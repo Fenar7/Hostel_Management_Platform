@@ -2,9 +2,15 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getAdminPortfolioStats } from "@/services/hostel/dashboard.service";
+import { requireRole } from "@/lib/auth";
+import { UserRole } from "@prisma/client";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  await requireRole([UserRole.MAIN_ADMIN]);
   const stats = await getAdminPortfolioStats();
+
 
 
   const accommodationTypeColors: Record<string, string> = {
