@@ -8,6 +8,7 @@ import {
   CalendarDays, Building2, BedSingle, UtensilsCrossed
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface PaymentItem {
   id: string;
@@ -486,6 +487,13 @@ export default function TenantDashboardPage() {
                       <UtensilsCrossed className="h-3.5 w-3.5 text-muted-foreground" />
                       {stay.foodPlan?.replace(/_/g, " ") || "Not Included"}
                     </span>
+                    {stay.foodPlan !== "NOT_INCLUDED" && (
+                      <Link href="/tenant/food" className="block mt-1">
+                        <Button size="sm" variant="outline" className="h-7 text-xs px-2">
+                          Manage Meals
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <span className="text-xs text-muted-foreground block">Joining Date</span>

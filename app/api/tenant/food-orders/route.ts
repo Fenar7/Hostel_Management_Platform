@@ -43,6 +43,10 @@ export async function GET(request: NextRequest) {
       throw new ForbiddenError("No active stay found. Food ordering is only available for active residents.");
     }
 
+    if (stay.foodPlan === "NOT_INCLUDED") {
+      throw new ForbiddenError("Food ordering is not available on your stay plan");
+    }
+
     // Validate query params
     const { searchParams } = new URL(request.url);
     const startDateStr = searchParams.get("startDate");
@@ -167,6 +171,10 @@ export async function POST(request: NextRequest) {
 
     if (!stay) {
       throw new ForbiddenError("No active stay found. Food ordering is only available for active residents.");
+    }
+
+    if (stay.foodPlan === "NOT_INCLUDED") {
+      throw new ForbiddenError("Food ordering is not available on your stay plan");
     }
 
     const body = await request.json();

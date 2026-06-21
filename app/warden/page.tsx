@@ -93,7 +93,7 @@ export default async function WardenPage({
             </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <Link href="/warden/occupancy">
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
@@ -103,6 +103,11 @@ export default async function WardenPage({
             <Link href="/warden/onboard">
               <Button variant="outline">
                 Onboard New Tenant
+              </Button>
+            </Link>
+            <Link href="/warden/food">
+              <Button variant="outline">
+                Kitchen Dashboard
               </Button>
             </Link>
           </div>

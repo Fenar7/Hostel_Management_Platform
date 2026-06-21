@@ -226,6 +226,22 @@ describe("Tenant Food Orders API", () => {
       expect(data.code).toBe("FORBIDDEN");
     });
 
+    it("returns 403 when tenant has a NOT_INCLUDED food plan", async () => {
+      mockPrisma.stay.findFirst.mockResolvedValue({
+        id: "stay-1",
+        foodPlan: FoodPlan.NOT_INCLUDED,
+      });
+
+      const res = await foodOrdersGET(
+        new Request("http://localhost/api/tenant/food-orders?startDate=2026-06-23&endDate=2026-06-25") as any
+      );
+      const data = await res.json();
+
+      expect(res.status).toBe(403);
+      expect(data.code).toBe("FORBIDDEN");
+      expect(data.error).toContain("Food ordering is not available");
+    });
+
     it("returns 400 when startDate is missing", async () => {
       const res = await foodOrdersGET(
         new Request("http://localhost/api/tenant/food-orders?endDate=2026-06-25") as any
@@ -359,6 +375,28 @@ describe("Tenant Food Orders API", () => {
 
       expect(res.status).toBe(403);
       expect(data.code).toBe("FORBIDDEN");
+    });
+
+    it("returns 403 when tenant has a NOT_INCLUDED food plan", async () => {
+      mockPrisma.stay.findFirst.mockResolvedValue({
+        id: "stay-1",
+        foodPlan: FoodPlan.NOT_INCLUDED,
+      });
+
+      const res = await foodOrdersPOST(
+        new Request("http://localhost/api/tenant/food-orders", {
+          method: "POST",
+          body: JSON.stringify({
+            forDate: "2026-12-25",
+            breakfast: true,
+          }),
+        }) as any
+      );
+      const data = await res.json();
+
+      expect(res.status).toBe(403);
+      expect(data.code).toBe("FORBIDDEN");
+      expect(data.error).toContain("Food ordering is not available");
     });
   });
 });
