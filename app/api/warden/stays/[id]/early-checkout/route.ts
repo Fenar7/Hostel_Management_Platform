@@ -34,6 +34,10 @@ export async function POST(
     }
     const { checkoutDate, refundAmount, notes } = parsed.data;
 
+    if (refundAmount > 100000) {
+      throw new ValidationError("Refund amount exceeds maximum transaction limit of ₹1,00,000");
+    }
+
     // Fetch stay
     const stay = await prisma.stay.findUnique({
       where: { id: stayId },
@@ -54,6 +58,12 @@ export async function POST(
     // Verify checkoutDate is between joiningDate and endDate
     if (checkoutDate.getTime() < stay.joiningDate.getTime() || checkoutDate.getTime() >= stay.endDate.getTime()) {
       throw new ValidationError("Checkout date must be between joining date and scheduled check-out date");
+    }
+
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (checkoutDate.getTime() > today.getTime()) {
+      throw new ValidationError("Checkout date cannot be in the future");
     }
 
     // Calculate days

@@ -36,6 +36,13 @@ export async function POST(
     }
     const { newEndDate, additionalRent, additionalFoodCharges, paymentMode } = parsed.data;
 
+    if (additionalRent > 100000) {
+      throw new ValidationError("Additional rent exceeds maximum transaction limit of ₹1,00,000");
+    }
+    if (additionalFoodCharges > 100000) {
+      throw new ValidationError("Additional food charges exceed maximum transaction limit of ₹1,00,000");
+    }
+
     // Fetch the Stay
     const stay = await prisma.stay.findUnique({
       where: { id: stayId },

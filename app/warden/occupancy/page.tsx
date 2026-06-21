@@ -572,6 +572,7 @@ function StayLifecycleModal({
                     <label className="text-xs font-semibold text-muted-foreground block mb-1">Early Checkout Date</label>
                     <input
                       type="date"
+                      max={new Date().toISOString().split("T")[0]}
                       value={checkoutDate}
                       onChange={(e) => setCheckoutDate(e.target.value)}
                       className="flex h-9 w-full rounded border bg-transparent px-3 py-2 text-xs focus:outline-none focus:border-primary"

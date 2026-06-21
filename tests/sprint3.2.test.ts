@@ -222,6 +222,31 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
       expect(data.code).toBe("VALIDATION_ERROR");
     });
 
+    it("throws ValidationError if additionalRent exceeds transaction limit of 100k", async () => {
+      mockPrisma.stay.findUnique.mockResolvedValue({
+        id: "stay-1",
+        hostelId: "hostel-1",
+        status: StayStatus.ACTIVE,
+        endDate: new Date("2025-07-01T00:00:00.000Z"),
+      });
+
+      const res = await extendPOST(
+        new Request("http://localhost/api/warden/stays/stay-1/extend", {
+          method: "POST",
+          body: JSON.stringify({
+            newEndDate: "2025-08-01T00:00:00.000Z",
+            additionalRent: 150000, // Exceeds limit
+            additionalFoodCharges: 0,
+          }),
+        }) as any,
+        { params: Promise.resolve({ id: "stay-1" }) }
+      );
+
+      const data = await res.json();
+      expect(res.status).toBe(400);
+      expect(data.code).toBe("VALIDATION_ERROR");
+    });
+
     it("throws ConflictError if bed has overlapping active stay during the extension window", async () => {
       mockPrisma.stay.findUnique.mockResolvedValue({
         id: "stay-1",
@@ -337,6 +362,63 @@ describe("Sprint 3.2: Warden Stay Lifecycle Controls", () => {
           body: JSON.stringify({
             checkoutDate: "2025-07-02T00:00:00.000Z", // Outside endDate
             refundAmount: 1000,
+          }),
+        }) as any,
+        { params: Promise.resolve({ id: "stay-1" }) }
+      );
+
+      const data = await res.json();
+      expect(res.status).toBe(400);
+      expect(data.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("throws ValidationError if checkoutDate is in the future", async () => {
+      mockPrisma.stay.findUnique.mockResolvedValue({
+        id: "stay-1",
+        hostelId: "hostel-1",
+        status: StayStatus.ACTIVE,
+        joiningDate: new Date("2025-06-01T00:00:00.000Z"),
+        endDate: new Date("2025-06-30T00:00:00.000Z"),
+        bedId: "bed-1",
+      });
+
+      // Set date to 10 days in the future
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 10);
+      const futureDateStr = futureDate.toISOString();
+
+      const res = await earlyCheckoutPOST(
+        new Request("http://localhost/api/warden/stays/stay-1/early-checkout", {
+          method: "POST",
+          body: JSON.stringify({
+            checkoutDate: futureDateStr, // Future date
+            refundAmount: 1000,
+          }),
+        }) as any,
+        { params: Promise.resolve({ id: "stay-1" }) }
+      );
+
+      const data = await res.json();
+      expect(res.status).toBe(400);
+      expect(data.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("throws ValidationError if refundAmount exceeds 100k limit", async () => {
+      mockPrisma.stay.findUnique.mockResolvedValue({
+        id: "stay-1",
+        hostelId: "hostel-1",
+        status: StayStatus.ACTIVE,
+        joiningDate: new Date("2025-06-01T00:00:00.000Z"),
+        endDate: new Date("2025-06-30T00:00:00.000Z"),
+        bedId: "bed-1",
+      });
+
+      const res = await earlyCheckoutPOST(
+        new Request("http://localhost/api/warden/stays/stay-1/early-checkout", {
+          method: "POST",
+          body: JSON.stringify({
+            checkoutDate: "2025-06-15T00:00:00.000Z",
+            refundAmount: 150000, // Exceeds limit
           }),
         }) as any,
         { params: Promise.resolve({ id: "stay-1" }) }
