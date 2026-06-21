@@ -1,95 +1,92 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { handleApiError } from "@/lib/errors";
-import { UserRole } from "@prisma/client";
+import { handleApiError, ValidationError } from "@/lib/errors";
+import { UserRole, StayStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.WARDEN]);
 
     const { searchParams } = new URL(request.url);
-    const joiningDate = searchParams.get("joiningDate");
-    const endDate = searchParams.get("endDate");
+    const joiningDateParam = searchParams.get("joiningDate");
+    const endDateParam = searchParams.get("endDate");
 
-    if (!joiningDate || !endDate) {
-      throw new Error("joiningDate and endDate are required");
+    if (!joiningDateParam || !endDateParam) {
+      throw new ValidationError(
+        "joiningDate and endDate query parameters are required"
+      );
+    }
+
+    const start = new Date(joiningDateParam);
+    const end = new Date(endDateParam);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new ValidationError(
+        "joiningDate and endDate must be valid ISO date strings"
+      );
+    }
+
+    if (end <= start) {
+      throw new ValidationError("endDate must be after joiningDate");
     }
 
     const warden = session.user.warden!;
     const hostelId = warden.hostelId;
 
-    const start = new Date(joiningDate);
-    const end = new Date(endDate);
-
-    const occupiedBedIds = await prisma.stay.findMany({
+    // Step 1: collect all bed IDs with ACTIVE or EXTENDED stays overlapping the range
+    const occupiedStays = await prisma.stay.findMany({
       where: {
         hostelId,
-        status: { in: ["ACTIVE", "EXTENDED"] },
-        OR: [
-          {
-            joiningDate: {
-              lte: new Date(end.getTime() + 86400000),
-            },
-            endDate: {
-              gte: new Date(start.getTime()),
-            },
-          },
-        ],
+        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
+        joiningDate: { lte: end },
+        endDate: { gte: start },
       },
       select: { bedId: true },
     });
 
-    const occupiedBedIdList = occupiedBedIds.map((stay) => stay.bedId);
+    const occupiedBedIdSet = new Set(occupiedStays.map((s) => s.bedId));
 
+    // Step 2: fetch AVAILABLE beds using a nested relation filter — no double query round-trip.
+    // Rooms belong EITHER to a flat (flat -> floor) OR directly to a floor.
     const availableBeds = await prisma.bed.findMany({
       where: {
-        roomId: {
-          in: await prisma.room.findMany({
-            where: {
-              OR: [
-                {
-                  flat: {
-                    floor: {
-                      hostelId,
-                    },
-                  },
-                },
-                {
-                  floor: {
-                    hostelId,
-                  },
-                },
-              ],
-            },
-            select: { id: true },
-          }),
-        },
         status: "AVAILABLE",
-        id: {
-          notIn: occupiedBedIdList,
+        id: { notIn: Array.from(occupiedBedIdSet) },
+        room: {
+          OR: [
+            { flat: { floor: { hostelId } } },
+            { floor: { hostelId } },
+          ],
         },
       },
       include: {
         room: {
           include: {
-            flat: {
-              include: { floor: true },
-            },
+            flat: { include: { floor: true } },
+            floor: true, // direct floor link
           },
         },
       },
     });
 
     return NextResponse.json({
-      availableBeds: availableBeds.map((bed) => ({
-        id: bed.id,
-        label: bed.label,
-        roomNumber: bed.room.roomNumber,
-        sharingType: bed.room.sharingType,
-        floorName: bed.room.flat.floor.name,
-        flatName: bed.room.flat.name,
-      })),
+      availableBeds: availableBeds.map((bed) => {
+        // Safe resolution — room may not have a flat
+        const floorName =
+          bed.room.flat?.floor.name ?? bed.room.floor?.name ?? "";
+        const flatName = bed.room.flat?.name ?? null;
+
+        return {
+          id: bed.id,
+          label: bed.label,
+          bedType: bed.bedType,
+          roomNumber: bed.room.roomNumber,
+          sharingType: bed.room.sharingType,
+          floorName,
+          flatName,
+        };
+      }),
     });
   } catch (error) {
     return handleApiError(error);

@@ -1,33 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { handleApiError } from "@/lib/errors";
-import { NotFoundError, ValidationError } from "@/lib/errors";
+import { handleApiError, NotFoundError, ValidationError } from "@/lib/errors";
 import { OnboardingRequestStatus } from "@prisma/client";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // In Next.js 15+, dynamic route params are a Promise — always await
+    const { id } = await params;
 
     const onboardingRequest = await prisma.onboardingRequest.findUnique({
       where: { id },
       include: {
         hostel: true,
-        bed: {
-          include: {
-            room: {
-              include: {
-                flat: {
-                  include: {
-                    floor: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        bed: true,
       },
     });
 
@@ -36,7 +24,9 @@ export async function GET(
     }
 
     if (onboardingRequest.status !== OnboardingRequestStatus.PENDING) {
-      throw new ValidationError("This link is no longer valid or has already been used");
+      throw new ValidationError(
+        "This link is no longer valid or has already been used"
+      );
     }
 
     return NextResponse.json({
