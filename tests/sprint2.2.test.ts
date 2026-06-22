@@ -46,6 +46,7 @@ vi.mock("../lib/storage", () => ({
 
 const mockCreateUser = vi.fn();
 const mockDeleteUser = vi.fn();
+const mockListUsers = vi.fn().mockResolvedValue({ data: { users: [] }, error: null });
 
 vi.mock("../lib/auth/server", () => ({
   createAdminClient: vi.fn(() => ({
@@ -53,6 +54,7 @@ vi.mock("../lib/auth/server", () => ({
       admin: {
         createUser: mockCreateUser,
         deleteUser: mockDeleteUser,
+        listUsers: mockListUsers,
       },
     },
   })),

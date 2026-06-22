@@ -13,10 +13,15 @@ vi.mock("../lib/db", () => ({
     stay: {
       groupBy: vi.fn(),
       count: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     onboardingRequest: {
       groupBy: vi.fn(),
       count: vi.fn(),
+    },
+    payment: {
+      groupBy: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
     },
   },
 }));
@@ -24,6 +29,9 @@ vi.mock("../lib/db", () => ({
 describe("Admin Dashboard Stats Aggregation", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(prisma.payment.groupBy).mockResolvedValue([]);
+    vi.mocked(prisma.payment.count).mockResolvedValue(0);
+    vi.mocked(prisma.stay.findMany).mockResolvedValue([]);
   });
 
   it("should correctly aggregate stats for multiple hostels", async () => {

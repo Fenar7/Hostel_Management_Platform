@@ -57,6 +57,11 @@ interface RoommateDetails {
   bedLabel: string;
 }
 
+interface PaymentConfig {
+  upiId: string | null;
+  qrCodeUrl: string | null;
+}
+
 interface ApiResponse {
   stay: StayDetails | null;
   hostel: HostelDetails | null;
@@ -111,6 +116,9 @@ export default function TenantDashboardPage() {
   const [roommates, setRoommates] = useState<RoommateDetails[]>([]);
   const [nextDueDate, setNextDueDate] = useState<string | null>(null);
 
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
+  const [paymentMode, setPaymentMode] = useState<"UPI" | "CASH">("UPI");
+
   const [amountPaid, setAmountPaid] = useState("");
   const [transactionRefNo, setTransactionRefNo] = useState("");
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
@@ -130,6 +138,16 @@ export default function TenantDashboardPage() {
       setPayments(data.payments || []);
       setRoommates(data.roommates || []);
       setNextDueDate(data.nextDueDate || null);
+
+      if (data.hostel?.id) {
+        try {
+          const pcRes = await fetch(`/api/public/hostels/${data.hostel.id}/payment-config`);
+          if (pcRes.ok) {
+            const pcData = await pcRes.json();
+            setPaymentConfig(pcData);
+          }
+        } catch { /* non-critical */ }
+      }
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred");
     } finally {
@@ -162,7 +180,7 @@ export default function TenantDashboardPage() {
 
   const handleUploadReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!screenshotFile) {
+    if (paymentMode === "UPI" && !screenshotFile) {
       setError("Please select your receipt screenshot file");
       return;
     }
@@ -177,7 +195,10 @@ export default function TenantDashboardPage() {
 
     try {
       const formData = new FormData();
-      formData.append("screenshot", screenshotFile);
+      formData.append("paymentMode", paymentMode);
+      if (screenshotFile) {
+        formData.append("screenshot", screenshotFile);
+      }
       formData.append("amountPaid", amountPaid);
       formData.append("transactionRefNo", transactionRefNo);
 
@@ -188,10 +209,14 @@ export default function TenantDashboardPage() {
 
       if (!response.ok) {
         const err = await response.json();
-        throw new Error(err.error || "Failed to submit screenshot");
+        throw new Error(err.error || "Failed to submit payment");
       }
 
-      setSuccessMsg("Receipt uploaded successfully! Your warden will verify this payment shortly.");
+      setSuccessMsg(
+        paymentMode === "CASH"
+          ? "Cash payment submitted successfully! Your warden will verify it shortly."
+          : "Receipt uploaded successfully! Your warden will verify this payment shortly."
+      );
       setAmountPaid("");
       setTransactionRefNo("");
       setScreenshotFile(null);
@@ -199,7 +224,7 @@ export default function TenantDashboardPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       await fetchStayDetails();
     } catch (err: any) {
-      setError(err.message || "An error occurred while uploading screenshot");
+      setError(err.message || "An error occurred while submitting payment");
     } finally {
       setSubmitting(false);
     }
@@ -284,35 +309,74 @@ export default function TenantDashboardPage() {
             <div className="lg:col-span-2 space-y-6">
               <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
                 <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Landmark className="h-5 w-5 text-primary" /> Step 1: Transfer Payment
+                  <Landmark className="h-5 w-5 text-primary" /> Step 1: Choose Payment Method
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Your profile has been approved! Please transfer the required booking deposit to the hostel account below via any UPI app (GPay, PhonePay, Paytm, etc.).
-                </p>
-                <div className="rounded-lg border p-4 bg-muted/10 grid gap-4 sm:grid-cols-2 text-sm">
-                  <div>
-                    <span className="text-xs text-muted-foreground block uppercase">UPI ID</span>
-                    <span className="font-bold text-foreground">payment@nexthome</span>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground block uppercase">Hostel Merchant Name</span>
-                    <span className="font-bold text-foreground">{hostel?.name}</span>
-                  </div>
+
+                <div className="flex gap-2 p-1 rounded-lg bg-muted/30 w-fit">
+                  <button
+                    type="button"
+                    onClick={() => { setPaymentMode("UPI"); setScreenshotFile(null); setPreviewUrl(null); }}
+                    className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${paymentMode === "UPI" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    UPI Payment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPaymentMode("CASH"); setScreenshotFile(null); setPreviewUrl(null); }}
+                    className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${paymentMode === "CASH" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Cash Payment
+                  </button>
                 </div>
+
+                {paymentMode === "UPI" ? (
+                  <>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Your profile has been approved! Please transfer the required booking deposit to the hostel account below via any UPI app (GPay, PhonePay, Paytm, etc.).
+                    </p>
+                    <div className="rounded-lg border p-4 bg-muted/10 grid gap-4 sm:grid-cols-2 text-sm">
+                      <div>
+                        <span className="text-xs text-muted-foreground block uppercase">UPI ID</span>
+                        <span className="font-bold text-foreground">{paymentConfig?.upiId || "payment@nexthome"}</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground block uppercase">Hostel Merchant Name</span>
+                        <span className="font-bold text-foreground">{hostel?.name}</span>
+                      </div>
+                      {paymentConfig?.qrCodeUrl && (
+                        <div className="sm:col-span-2 flex justify-center pt-2">
+                          <img src={paymentConfig.qrCodeUrl} alt="UPI QR Code" className="h-40 w-40 object-contain rounded-lg border" />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-lg border p-6 bg-muted/10 text-center space-y-3">
+                    <Landmark className="h-10 w-10 text-muted-foreground mx-auto" />
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Your profile has been approved! You can pay the booking deposit in cash at the hostel reception.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      After making the cash payment, submit the details below so the warden can verify and confirm your booking.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
                 <h2 className="text-lg font-bold flex items-center gap-2">
-                  <Upload className="h-5 w-5 text-primary" /> Step 2: Upload Screenshot
+                  <Upload className="h-5 w-5 text-primary" /> Step 2: Submit Payment Details
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Once the transfer is complete, please upload the transaction receipt screenshot below to request Warden verification.
+                  {paymentMode === "UPI"
+                    ? "Once the transfer is complete, please upload the transaction receipt screenshot below to request Warden verification."
+                    : "Enter the cash payment amount below to notify the warden for verification."}
                 </p>
 
                 <form onSubmit={handleUploadReceipt} className="space-y-4 text-sm mt-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="text-xs font-semibold">Amount Transferred (₹)</label>
+                      <label className="text-xs font-semibold">Amount Paid (₹)</label>
                       <input
                         type="number"
                         step="0.01"
@@ -324,10 +388,10 @@ export default function TenantDashboardPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold">Transaction Reference UTR (Optional)</label>
+                      <label className="text-xs font-semibold">Transaction Reference UTR {paymentMode === "CASH" ? "(Optional)" : "(Optional)"}</label>
                       <input
                         type="text"
-                        placeholder="UPI UTR number"
+                        placeholder={paymentMode === "CASH" ? "Cash receipt / note ref" : "UPI UTR number"}
                         value={transactionRefNo}
                         onChange={(e) => setTransactionRefNo(e.target.value)}
                         className="mt-1 flex h-9 w-full rounded border bg-transparent px-3 py-1.5 text-xs focus:outline-none"
@@ -335,40 +399,42 @@ export default function TenantDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="border border-dashed rounded-lg p-6 bg-muted/15 flex flex-col items-center justify-center gap-2">
-                    {screenshotFile && previewUrl ? (
-                      <div className="text-center space-y-2">
-                        <img
-                          src={previewUrl}
-                          alt="Receipt preview"
-                          className="max-h-40 rounded-lg object-contain mx-auto border"
-                        />
-                        <span className="font-bold text-xs max-w-xs truncate block">{screenshotFile.name}</span>
-                        <Button type="button" variant="secondary" size="xs" onClick={() => { setScreenshotFile(null); setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>Remove</Button>
-                      </div>
-                    ) : (
-                      <div className="text-center space-y-2">
-                        <Upload className="h-8 w-8 text-muted-foreground mx-auto" />
-                        <span className="text-xs font-medium block">Select transaction screenshot file</span>
-                        <span className="text-[10px] text-muted-foreground block">JPG, JPEG or PNG (Max 5MB)</span>
-                        <div className="relative inline-block mt-2">
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => setScreenshotFile(e.target.files?.[0] || null)}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            required
+                  {paymentMode === "UPI" && (
+                    <div className="border border-dashed rounded-lg p-6 bg-muted/15 flex flex-col items-center justify-center gap-2">
+                      {screenshotFile && previewUrl ? (
+                        <div className="text-center space-y-2">
+                          <img
+                            src={previewUrl}
+                            alt="Receipt preview"
+                            className="max-h-40 rounded-lg object-contain mx-auto border"
                           />
-                          <Button type="button" size="xs">Browse Files</Button>
+                          <span className="font-bold text-xs max-w-xs truncate block">{screenshotFile.name}</span>
+                          <Button type="button" variant="secondary" size="xs" onClick={() => { setScreenshotFile(null); setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>Remove</Button>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      ) : (
+                        <div className="text-center space-y-2">
+                          <Upload className="h-8 w-8 text-muted-foreground mx-auto" />
+                          <span className="text-xs font-medium block">Select transaction screenshot file</span>
+                          <span className="text-[10px] text-muted-foreground block">JPG, JPEG or PNG (Max 5MB)</span>
+                          <div className="relative inline-block mt-2">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setScreenshotFile(e.target.files?.[0] || null)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              required
+                            />
+                            <Button type="button" size="xs">Browse Files</Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <Button type="submit" disabled={submitting} className="w-full">
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Submit Screenshot for Verification
+                    {paymentMode === "CASH" ? "Submit Cash Payment" : "Submit Screenshot for Verification"}
                   </Button>
                 </form>
               </div>
@@ -563,6 +629,34 @@ export default function TenantDashboardPage() {
                     <span className="text-xs text-muted-foreground">Expected Monthly Rent</span>
                     <p className="font-bold text-primary">₹ {stay.monthlyRent.toLocaleString("en-IN")}</p>
                   </div>
+
+                  <div className="flex gap-2 p-1 rounded-lg bg-muted/30 w-fit mb-4">
+                    <button
+                      type="button"
+                      onClick={() => { setPaymentMode("UPI"); setScreenshotFile(null); setPreviewUrl(null); }}
+                      className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${paymentMode === "UPI" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      UPI Payment
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPaymentMode("CASH"); setScreenshotFile(null); setPreviewUrl(null); }}
+                      className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-colors ${paymentMode === "CASH" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                    >
+                      Cash Payment
+                    </button>
+                  </div>
+
+                  {paymentMode === "UPI" && paymentConfig?.upiId && (
+                    <div className="rounded-lg border p-3 bg-muted/10 mb-4 text-xs">
+                      <span className="text-muted-foreground block">UPI ID</span>
+                      <span className="font-bold">{paymentConfig.upiId}</span>
+                      {paymentConfig.qrCodeUrl && (
+                        <img src={paymentConfig.qrCodeUrl} alt="QR" className="h-20 w-20 mt-2 object-contain rounded border" />
+                      )}
+                    </div>
+                  )}
+
                   <form onSubmit={handleUploadReceipt} className="space-y-3 text-sm">
                     <div>
                       <label className="text-xs font-semibold">Amount Paid (₹)</label>
@@ -580,13 +674,14 @@ export default function TenantDashboardPage() {
                       <label className="text-xs font-semibold">Transaction Reference (UTR)</label>
                       <input
                         type="text"
-                        placeholder="UPI UTR number"
+                        placeholder={paymentMode === "CASH" ? "Cash receipt / note ref" : "UPI UTR number"}
                         value={transactionRefNo}
                         onChange={(e) => setTransactionRefNo(e.target.value)}
                         className="mt-1 flex h-9 w-full rounded border bg-transparent px-3 py-1.5 text-xs focus:outline-none"
                       />
                     </div>
 
+                    {paymentMode === "UPI" && (
                     <div className="border border-dashed rounded-lg p-4 bg-muted/15 flex flex-col items-center justify-center gap-2">
                       {screenshotFile && previewUrl ? (
                         <div className="text-center space-y-1">
@@ -616,10 +711,11 @@ export default function TenantDashboardPage() {
                         </div>
                       )}
                     </div>
+                    )}
 
                     <Button type="submit" disabled={submitting} className="w-full" size="sm">
                       {submitting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
-                      Submit Payment
+                      {paymentMode === "CASH" ? "Submit Cash Payment" : "Submit Payment"}
                     </Button>
                   </form>
                 </div>

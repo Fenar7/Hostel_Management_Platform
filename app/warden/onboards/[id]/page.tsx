@@ -86,6 +86,7 @@ export default function OnboardDetailPage() {
   const [tenant, setTenant] = useState<TenantDetails | null>(null);
   const [bed, setBed] = useState<BedDetails | null>(null);
   const [payments, setPayments] = useState<PaymentItem[]>([]);
+  const [upiId, setUpiId] = useState<string | null>(null);
 
   // Action pending states
   const [processingApprove, setProcessingApprove] = useState(false);
@@ -116,6 +117,7 @@ export default function OnboardDetailPage() {
       setTenant(data.tenant);
       setBed(data.bed);
       setPayments(data.payments);
+      setUpiId(data.upiId || null);
     } catch (err: any) {
       setError(err.message || "An error occurred while loading details");
     } finally {
@@ -259,6 +261,7 @@ export default function OnboardDetailPage() {
       name: tenant.fullName,
       amount: stay.totalPayable,
       paymentUrl: portalLink,
+      upiId: upiId || undefined,
       breakdown: {
         admissionFee: stay.admissionFee,
         monthlyRent: stay.monthlyRent,

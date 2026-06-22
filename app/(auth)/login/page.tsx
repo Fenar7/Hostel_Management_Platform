@@ -17,6 +17,7 @@ const loginSchema = z.object({
       "Enter a valid email or phone number"
     ),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  rememberMe: z.boolean().optional(),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -33,6 +34,7 @@ function LoginFormInner() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
+    defaultValues: { rememberMe: false },
   });
 
   async function onSubmit(data: LoginForm) {
@@ -105,6 +107,15 @@ function LoginFormInner() {
           <p className="text-destructive mt-1 text-xs">{errors.password.message}</p>
         )}
       </div>
+
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          className="rounded border-input"
+          {...register("rememberMe")}
+        />
+        <span className="text-sm text-muted-foreground">Remember me for 30 days</span>
+      </label>
 
       {serverError && (
         <p className="text-destructive text-sm">{serverError}</p>

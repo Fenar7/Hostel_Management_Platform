@@ -3,14 +3,14 @@ import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "@/lib/errors";
-import { UserRole, StayStatus } from "@prisma/client";
+import { UserRole, StayStatus, BedStatus } from "@prisma/client";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireRole([UserRole.WARDEN]);
+    const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const hostelId = await resolveHostelId(session, request);
 
     const { id } = await params;
@@ -43,6 +43,12 @@ export async function POST(
         data: {
           status: StayStatus.CANCELLED,
         },
+      });
+
+      // Free the bed back to AVAILABLE
+      await tx.bed.update({
+        where: { id: stay.bedId },
+        data: { status: BedStatus.AVAILABLE },
       });
 
       // Record StayStatusEvent

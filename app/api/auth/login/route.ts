@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/auth/server";
+import { cookies } from "next/headers";
+import { createClient as createSupabaseServerClient } from "@/lib/auth/server";
 import { authenticateUser } from "@/services/auth/auth.service";
 import { handleApiError } from "@/lib/errors";
 
@@ -13,10 +14,24 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { identifier, password } = loginSchema.parse(body);
+    const rememberMe = body.rememberMe === true;
 
     const isEmail = identifier.includes("@");
 
-    const supabase = await createClient();
+    // Set remember_me cookie BEFORE creating the Supabase client so that
+    // the createClient() call can read it and apply maxAge to setAll()
+    if (rememberMe) {
+      const cookieStore = await cookies();
+      cookieStore.set("remember_me", "true", {
+        maxAge: 30 * 24 * 60 * 60,
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+
+    const supabase = await createSupabaseServerClient();
     const authData = isEmail
       ? { email: identifier.toLowerCase() }
       : { phone: identifier };
@@ -27,6 +42,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (error || !data.session) {
+      // Auth failed — clean up the remember_me cookie
+      const cookieStore = await cookies();
+      cookieStore.set("remember_me", "", { maxAge: 0, path: "/" });
       return NextResponse.json(
         { error: "Invalid credentials", code: "UNAUTHORIZED" },
         { status: 401 }

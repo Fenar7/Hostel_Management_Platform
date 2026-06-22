@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DurationType, FoodPlan } from "@prisma/client";
-import { onboardingLink } from "@/lib/whatsapp/templates";
+import { onboardingLinkWithPassword } from "@/lib/whatsapp/templates";
 import { buildWaMeLink } from "@/lib/whatsapp/utils";
+
+interface HostelOption {
+  id: string;
+  name: string;
+  accommodationType: string;
+}
 
 interface AvailableBed {
   id: string;
@@ -42,12 +48,38 @@ export default function WardenOnboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [submittedLink, setSubmittedLink] = useState("");
+  const [submittedPassword, setSubmittedPassword] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [passwordCopied, setPasswordCopied] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const [hostels, setHostels] = useState<HostelOption[]>([]);
+  const [selectedHostelId, setSelectedHostelId] = useState(
+    () => searchParams.get("hostelId") || ""
+  );
+  const [hostelsLoading, setHostelsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (selectedHostelId) return;
+
+    setHostelsLoading(true);
+    fetch("/api/admin/hostels")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("not admin");
+        const data = await res.json();
+        setHostels(data.map((h: HostelOption) => ({ id: h.id, name: h.name, accommodationType: h.accommodationType })));
+        setIsAdmin(true);
+      })
+      .catch(() => {
+        setIsAdmin(false);
+      })
+      .finally(() => setHostelsLoading(false));
+  }, [selectedHostelId]);
 
   const totalPayable =
     admissionFee + monthlyRent + securityDeposit + foodCharges - discount;
 
-  // Client-side only phone validation — do NOT call any auth endpoint for prospect phones
   const handlePhoneValidation = (): boolean => {
     if (!PHONE_REGEX.test(phone)) {
       setPhoneError(
@@ -75,10 +107,16 @@ export default function WardenOnboardPage() {
     setSelectedBedId("");
 
     try {
+      const params = new URLSearchParams({
+        joiningDate,
+        endDate,
+      });
+      if (selectedHostelId) {
+        params.set("hostelId", selectedHostelId);
+      }
+
       const response = await fetch(
-        `/api/warden/beds/available?joiningDate=${encodeURIComponent(
-          joiningDate
-        )}&endDate=${encodeURIComponent(endDate)}`
+        `/api/warden/beds/available?${params.toString()}`
       );
 
       if (!response.ok) {
@@ -115,23 +153,29 @@ export default function WardenOnboardPage() {
     setError("");
 
     try {
+      const payload: Record<string, unknown> = {
+        phone,
+        bedId: selectedBedId,
+        joiningDate,
+        endDate,
+        durationType,
+        foodPlan,
+        isNewAdmission,
+        admissionFee,
+        monthlyRent,
+        securityDeposit,
+        foodCharges,
+        discount,
+      };
+
+      if (selectedHostelId) {
+        payload.hostelId = selectedHostelId;
+      }
+
       const response = await fetch("/api/warden/onboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone,
-          bedId: selectedBedId,
-          joiningDate,
-          endDate,
-          durationType,
-          foodPlan,
-          isNewAdmission,
-          admissionFee,
-          monthlyRent,
-          securityDeposit,
-          foodCharges,
-          discount,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -142,7 +186,8 @@ export default function WardenOnboardPage() {
       const data = await response.json();
       const fullLink = `${window.location.origin}${data.entryGateLink}`;
       setSubmittedLink(fullLink);
-      setStep(5); // move to success state
+      setSubmittedPassword(data.tempPassword || "");
+      setStep(5);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -156,7 +201,6 @@ export default function WardenOnboardPage() {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 3000);
     } catch {
-      // Fallback for non-HTTPS contexts
       const el = document.createElement("textarea");
       el.value = submittedLink;
       document.body.appendChild(el);
@@ -168,12 +212,37 @@ export default function WardenOnboardPage() {
     }
   };
 
+  const handleCopyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(submittedPassword);
+      setPasswordCopied(true);
+      setTimeout(() => setPasswordCopied(false), 3000);
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = submittedPassword;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      setPasswordCopied(true);
+      setTimeout(() => setPasswordCopied(false), 3000);
+    }
+  };
+
   const handleWhatsAppShare = () => {
-    const message = onboardingLink(submittedLink);
+    const message = onboardingLinkWithPassword(submittedLink, submittedPassword);
     window.open(buildWaMeLink("", message), "_blank");
   };
 
-  // Shared native input class
+  const hostelSelected = !!selectedHostelId;
+  const showHostelPicker = isAdmin && !hostelSelected && !hostelsLoading;
+  const totalSteps = showHostelPicker ? 5 : 4;
+
+  const stepLabel = (s: number) => {
+    if (showHostelPicker) return s;
+    return s + 1;
+  };
+
   const inputClass =
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -191,7 +260,7 @@ export default function WardenOnboardPage() {
 
       {/* Step progress indicator */}
       <div className="flex items-center gap-2 text-sm">
-        {[1, 2, 3, 4].map((s) => (
+        {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
           <div key={s} className="flex items-center gap-2">
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
@@ -204,7 +273,7 @@ export default function WardenOnboardPage() {
             >
               {step > s ? "✓" : s}
             </div>
-            {s < 4 && (
+            {s < totalSteps && (
               <div
                 className={`h-0.5 w-8 ${
                   step > s ? "bg-green-500" : "bg-muted"
@@ -223,8 +292,61 @@ export default function WardenOnboardPage() {
 
       <div className="rounded-lg border bg-card shadow-sm">
         <div className="p-6">
-          {/* ── Step 1: Phone ── */}
-          {step === 1 && (
+          {/* ── Step 1: Hostel Selection (admin only, when no hostel pre-selected) ── */}
+          {step === 1 && showHostelPicker && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">
+                Step 1: Select Hostel
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Choose which hostel to onboard this tenant into.
+              </p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="hostel-select">
+                  Hostel
+                </label>
+                <select
+                  id="hostel-select"
+                  value={selectedHostelId}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setSelectedHostelId(e.target.value)
+                  }
+                  className={selectClass}
+                >
+                  <option value="">-- Select a Hostel --</option>
+                  {hostels.map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.name} ({h.accommodationType === "MENS" ? "Men" : "Women"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/admin")}
+                >
+                  Back to Dashboard
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (!selectedHostelId) {
+                      setError("Please select a hostel");
+                      return;
+                    }
+                    setStep(2);
+                    setError("");
+                  }}
+                  className="flex-1"
+                >
+                  Continue
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 1 (or 2): Phone ── */}
+          {step === 1 && !showHostelPicker && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">
                 Step 1: Prospect Phone Number
@@ -265,11 +387,63 @@ export default function WardenOnboardPage() {
             </div>
           )}
 
-          {/* ── Step 2: Dates & Bed ── */}
-          {step === 2 && (
+          {step === 2 && showHostelPicker && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">
-                Step 2: Dates &amp; Bed Selection
+                Step 2: Prospect Phone Number
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Enter the Indian mobile number of the new prospect.
+              </p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium" htmlFor="phone-input-2">
+                  Phone Number
+                </label>
+                <input
+                  id="phone-input-2"
+                  type="tel"
+                  placeholder="+91XXXXXXXXXX"
+                  value={phone}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setPhone(e.target.value);
+                    setPhoneError("");
+                  }}
+                  className={`${inputClass} ${phoneError ? "border-red-500" : ""}`}
+                />
+                {phoneError && (
+                  <p className="text-xs text-red-600">{phoneError}</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setStep(1);
+                    setError("");
+                  }}
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (handlePhoneValidation()) {
+                      setStep(3);
+                      setError("");
+                    }
+                  }}
+                  className="flex-1"
+                >
+                  Continue
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 2/3: Dates & Bed ── */}
+          {((step === 2 && !showHostelPicker) || (step === 3 && showHostelPicker)) && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">
+                Step {showHostelPicker ? 3 : 2}: Dates &amp; Bed Selection
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -350,7 +524,7 @@ export default function WardenOnboardPage() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setStep(1);
+                    setStep(showHostelPicker ? 2 : 1);
                     setError("");
                   }}
                 >
@@ -358,7 +532,7 @@ export default function WardenOnboardPage() {
                 </Button>
                 <Button
                   onClick={() => {
-                    setStep(3);
+                    setStep(showHostelPicker ? 4 : 3);
                     setError("");
                   }}
                   disabled={!selectedBedId}
@@ -370,11 +544,11 @@ export default function WardenOnboardPage() {
             </div>
           )}
 
-          {/* ── Step 3: Fees ── */}
-          {step === 3 && (
+          {/* ── Step 3/4: Fees ── */}
+          {((step === 3 && !showHostelPicker) || (step === 4 && showHostelPicker)) && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">
-                Step 3: Fees &amp; Food Configuration
+                Step {showHostelPicker ? 4 : 3}: Fees &amp; Food Configuration
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -516,7 +690,6 @@ export default function WardenOnboardPage() {
                 </div>
               </div>
 
-              {/* Live total payable calculation */}
               <div
                 className={`rounded-lg border p-4 ${
                   totalPayable < 0
@@ -557,7 +730,7 @@ export default function WardenOnboardPage() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setStep(2);
+                    setStep(showHostelPicker ? 3 : 2);
                     setError("");
                   }}
                 >
@@ -565,7 +738,7 @@ export default function WardenOnboardPage() {
                 </Button>
                 <Button
                   onClick={() => {
-                    setStep(4);
+                    setStep(showHostelPicker ? 5 : 4);
                     setError("");
                   }}
                   disabled={totalPayable < 0}
@@ -577,13 +750,21 @@ export default function WardenOnboardPage() {
             </div>
           )}
 
-          {/* ── Step 4: Review & Submit ── */}
-          {step === 4 && (
+          {/* ── Step 4/5: Review & Submit ── */}
+          {((step === 4 && !showHostelPicker) || (step === 5 && showHostelPicker)) && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">
-                Step 4: Review &amp; Submit
+                Step {showHostelPicker ? 5 : 4}: Review &amp; Submit
               </h2>
               <div className="rounded-lg border bg-muted p-4 space-y-2 text-sm">
+                {hostelSelected && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Hostel</span>
+                    <span className="font-medium">
+                      {hostels.find((h) => h.id === selectedHostelId)?.name || selectedHostelId}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Phone</span>
                   <span className="font-medium">{phone}</span>
@@ -617,11 +798,25 @@ export default function WardenOnboardPage() {
                   </span>
                 </div>
               </div>
+
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer rounded-lg border p-3">
+                <input
+                  type="checkbox"
+                  checked={confirmed}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setConfirmed(e.target.checked)
+                  }
+                  className="rounded"
+                />
+                I confirm all the details above are correct and I am authorized to onboard this tenant.
+              </label>
+
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setStep(3);
+                    setConfirmed(false);
+                    setStep(showHostelPicker ? 4 : 3);
                     setError("");
                   }}
                 >
@@ -629,17 +824,17 @@ export default function WardenOnboardPage() {
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={loading}
+                  disabled={loading || !confirmed}
                   className="flex-1"
                 >
-                  {loading ? "Submitting..." : "Submit Onboarding Request"}
+                  {loading ? "Submitting..." : "Confirm & Send Onboarding Link"}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* ── Step 5: Success ── */}
-          {step === 5 && (
+          {/* ── Step 5/6: Success ── */}
+          {((step === 5 && !showHostelPicker) || (step === 6 && showHostelPicker)) && (
             <div className="space-y-6 text-center">
               <div className="flex flex-col items-center gap-2">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400 text-3xl">
@@ -661,14 +856,40 @@ export default function WardenOnboardPage() {
                 <p className="break-all text-sm font-mono">{submittedLink}</p>
               </div>
 
+              {submittedPassword && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/30 p-4 text-left space-y-2">
+                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                    Access Password (one-time)
+                  </p>
+                  <p className="text-lg font-bold font-mono tracking-wider text-amber-900 dark:text-amber-200">
+                    {submittedPassword}
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Share this password with the prospect along with the link above.
+                    It is valid until they set their own account password.
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-col gap-2">
-                <Button
-                  onClick={handleCopyLink}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {linkCopied ? "✓ Copied!" : "Copy Link"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleCopyLink}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    {linkCopied ? "✓ Link Copied!" : "Copy Link"}
+                  </Button>
+                  {submittedPassword && (
+                    <Button
+                      onClick={handleCopyPassword}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      {passwordCopied ? "✓ Password Copied!" : "Copy Password"}
+                    </Button>
+                  )}
+                </div>
                 <Button
                   onClick={handleWhatsAppShare}
                   className="w-full bg-green-600 hover:bg-green-700 text-white"
@@ -677,7 +898,7 @@ export default function WardenOnboardPage() {
                 </Button>
                 <Button
                   variant="ghost"
-                  onClick={() => router.push("/warden")}
+                  onClick={() => router.push(isAdmin ? "/admin" : "/warden")}
                   className="w-full"
                 >
                   Back to Dashboard

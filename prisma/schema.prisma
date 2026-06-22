@@ -106,10 +106,21 @@ model Hostel {
 
   // Inverse relations
   warden            Warden?
+  paymentConfig     HostelPaymentConfig?
   floors            Floor[]
   stays             Stay[]
   leads             Lead[]
   onboardingRequests OnboardingRequest[]
+}
+
+model HostelPaymentConfig {
+  id           String   @id @default(uuid())
+  hostelId     String   @unique
+  hostel       Hostel   @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  upiId        String?
+  qrCodePath   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Location {
@@ -200,18 +211,21 @@ enum OnboardingRequestStatus {
 }
 
 model OnboardingRequest {
-  id        String                  @id @default(uuid())
-  phone     String
-  hostelId  String
-  hostel    Hostel                  @relation(fields: [hostelId], references: [id])
-  bedId     String
-  bed       Bed                     @relation(fields: [bedId], references: [id])
-  wardenId  String
-  warden    Warden                  @relation(fields: [wardenId], references: [id])
-  status    OnboardingRequestStatus @default(PENDING)
-  createdAt DateTime                @default(now())
+  id                     String                  @id @default(uuid())
+  phone                  String
+  hostelId               String
+  hostel                 Hostel                  @relation(fields: [hostelId], references: [id])
+  bedId                  String
+  bed                    Bed                     @relation(fields: [bedId], references: [id])
+  wardenId               String
+  warden                 Warden                  @relation(fields: [wardenId], references: [id])
+  status                 OnboardingRequestStatus @default(PENDING)
+  tempPasswordHash       String?
+  onboardingCurrentStep  Int                     @default(0)
+  failedAttempts         Int                     @default(0)
+  lockedUntil            DateTime?
+  createdAt              DateTime                @default(now())
 
-  // Indexes
   @@index([phone])
   @@index([phone, status])
   // Note: Unique index on phone where status = PENDING should be enforced at db/migration or application level.

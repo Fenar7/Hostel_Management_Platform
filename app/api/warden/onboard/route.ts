@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { createHash, randomBytes } from "crypto";
 import { requireRole, requireHostelAccess } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
@@ -18,6 +19,7 @@ import {
   StayStatus,
   OnboardingRequestStatus,
   LeadStatus,
+  BedStatus,
 } from "@prisma/client";
 
 const onboardSchema = z.object({
@@ -25,13 +27,14 @@ const onboardSchema = z.object({
     .string()
     .regex(/^\+91[0-9]{10}$/, "Phone must be in format +91XXXXXXXXXX"),
   bedId: z.string().uuid("Invalid bed ID format"),
+  hostelId: z.string().uuid("Invalid hostel ID").optional(),
   joiningDate: z.string().transform((val) => new Date(val)),
   endDate: z.string().transform((val) => new Date(val)),
   durationType: z.nativeEnum(DurationType),
   foodPlan: z.nativeEnum(FoodPlan),
   isNewAdmission: z.boolean(),
   admissionFee: z.number().nonnegative(),
-  monthlyRent: z.number().positive(),
+  monthlyRent: z.number().nonnegative(),
   securityDeposit: z.number().nonnegative(),
   foodCharges: z.number().nonnegative(),
   discount: z.number().nonnegative(),
@@ -39,7 +42,7 @@ const onboardSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.WARDEN]);
+    const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
 
     const body = await request.json();
 
@@ -55,6 +58,7 @@ export async function POST(request: NextRequest) {
     const {
       phone,
       bedId,
+      hostelId: bodyHostelId,
       joiningDate,
       endDate,
       durationType,
@@ -72,7 +76,7 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("End date must be after joining date");
     }
 
-    const hostelId = await resolveHostelId(session, request);
+    const hostelId = await resolveHostelId(session, request, bodyHostelId);
 
     // Resolve the warden record for this hostel (needed for OnboardingRequest.wardenId)
     const hostelWarden = await prisma.warden.findUnique({
@@ -97,15 +101,30 @@ export async function POST(request: NextRequest) {
       foodChargesPaise -
       discountPaise;
 
-    // Guard 1: phone already belongs to a registered user
+    // Guard 1: phone already linked to a registered user account
     const existingUser = await prisma.user.findUnique({ where: { phone } });
     if (existingUser) {
+      throw new ConflictError(
+        "A user with this phone number is already registered"
+      );
+    }
+
+    // Guard 2: phone already has an active residential stay
+    const activeStayForPhone = await prisma.stay.findFirst({
+      where: {
+        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
+        tenant: {
+          user: { phone },
+        },
+      },
+    });
+    if (activeStayForPhone) {
       throw new ConflictError(
         "Phone number is already registered to an active resident"
       );
     }
 
-    // Guard 2: a PENDING onboarding request already exists for this phone
+    // Guard 3: a PENDING onboarding request already exists for this phone
     const existingPendingRequest = await prisma.onboardingRequest.findFirst({
       where: { phone, status: OnboardingRequestStatus.PENDING },
     });
@@ -161,6 +180,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Generate temp password for prospect to access onbaording
+    const tempPassword = randomBytes(6).toString("base64url").slice(0, 10);
+    const tempPasswordHash = createHash("sha256").update(tempPassword).digest("hex");
+
     // Atomic transaction: draft Tenant → Stay → OnboardingRequest
     const result = await prisma.$transaction(async (tx) => {
       // Create a placeholder tenant (profile will be filled by the prospect in Sprint 2.2)
@@ -209,7 +232,14 @@ export async function POST(request: NextRequest) {
           bedId,
           wardenId: hostelWarden.id,
           status: OnboardingRequestStatus.PENDING,
+          tempPasswordHash,
         },
+      });
+
+      // Mark the bed as ON_HOLD while onboarding is pending
+      await tx.bed.update({
+        where: { id: bedId },
+        data: { status: BedStatus.ON_HOLD },
       });
 
       return onboardingRequest;
@@ -229,7 +259,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       requestId: result.id,
-      entryGateLink: `/newuser?id=${result.id}`,
+      tempPassword,
+      entryGateLink: `/onboarding?id=${result.id}`,
     });
   } catch (error) {
     return handleApiError(error);

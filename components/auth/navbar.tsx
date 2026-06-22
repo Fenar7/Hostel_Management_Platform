@@ -24,9 +24,81 @@ export function Navbar({ userName, role }: NavbarProps) {
 
   return (
     <nav className="flex h-14 items-center justify-between border-b px-6">
-      <Link href="/" className="text-lg font-bold">
-        NextHome
-      </Link>
+      <div className="flex items-center gap-6">
+        <Link href="/" className="text-lg font-bold">
+          NextHome
+        </Link>
+
+        {role === "MAIN_ADMIN" && (
+          <div className="hidden items-center gap-4 md:flex">
+            <Link
+              href="/admin"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/admin/wardens"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Wardens
+            </Link>
+            <Link
+              href="/admin/leads"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Leads
+            </Link>
+            <Link
+              href="/admin/onboards"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Onboards
+            </Link>
+            <Link
+              href="/warden/onboard"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Onboard Tenant
+            </Link>
+            <Link
+              href="/admin/hostels/new"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Add Hostel
+            </Link>
+          </div>
+        )}
+
+        {role === "WARDEN" && (
+          <div className="hidden items-center gap-4 md:flex">
+            <Link
+              href="/warden"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/warden/onboard"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Onboard
+            </Link>
+            <Link
+              href="/warden/leads"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Leads
+            </Link>
+            <Link
+              href="/warden/onboards"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Onboards
+            </Link>
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center gap-4">
         <span className="text-sm text-muted-foreground">{userName}</span>

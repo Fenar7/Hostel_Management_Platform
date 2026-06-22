@@ -41,12 +41,17 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
+    const paymentMode = (formData.get("paymentMode") as string) || "UPI";
     const screenshotFile = formData.get("screenshot") as File | null;
     const amountPaidStr = formData.get("amountPaid") as string | null;
     const transactionRefNo = formData.get("transactionRefNo") as string | null;
 
-    if (!screenshotFile || typeof screenshotFile === "string" || typeof screenshotFile.arrayBuffer !== "function") {
-      throw new ValidationError("Payment receipt screenshot is required");
+    if (paymentMode !== "UPI" && paymentMode !== "CASH") {
+      throw new ValidationError("Invalid payment mode. Must be UPI or CASH");
+    }
+
+    if (paymentMode === "UPI" && (!screenshotFile || typeof screenshotFile === "string" || typeof screenshotFile.arrayBuffer !== "function")) {
+      throw new ValidationError("Payment receipt screenshot is required for UPI payments");
     }
 
     if (!amountPaidStr) {
@@ -64,41 +69,48 @@ export async function POST(request: NextRequest) {
 
     const amountPaidPaise = Math.round(amountPaid * 100);
 
-    const buffer = Buffer.from(await screenshotFile.arrayBuffer());
-    if (buffer.length > MAX_FILE_SIZE) {
-      throw new ValidationError("Screenshot file must be smaller than 5MB");
-    }
+    let screenshotPath: string | null = null;
+    if (screenshotFile && typeof screenshotFile !== "string" && typeof screenshotFile.arrayBuffer === "function") {
+      const buffer = Buffer.from(await screenshotFile.arrayBuffer());
+      if (buffer.length > MAX_FILE_SIZE) {
+        throw new ValidationError("Screenshot file must be smaller than 5MB");
+      }
 
-    const fileType = verifyAndGetFileType(buffer);
-    if (fileType !== "jpg" && fileType !== "png") {
-      throw new ValidationError("Screenshot must be a JPEG or PNG image");
-    }
+      const fileType = verifyAndGetFileType(buffer);
+      if (fileType !== "jpg" && fileType !== "png") {
+        throw new ValidationError("Screenshot must be a JPEG or PNG image");
+      }
 
-    const compressed = await compressImage(buffer, "document");
-    const screenshotPath = `tenants/${tenant.id}/payment_screenshot_${Date.now()}.jpg`;
-    await uploadToStorage(compressed.data, screenshotPath, compressed.mimeType);
+      const compressed = await compressImage(buffer, "document");
+      screenshotPath = `tenants/${tenant.id}/payment_screenshot_${Date.now()}.jpg`;
+      await uploadToStorage(compressed.data, screenshotPath, compressed.mimeType);
+    }
 
     const result = await prisma.$transaction(async (tx) => {
-      const doc = await tx.document.create({
-        data: {
-          ownerType: DocumentOwnerType.STAY,
-          stayId: stay.id,
-          documentType: DocumentType.PAYMENT_SCREENSHOT,
-          storagePath: screenshotPath,
-          fileSizeBytes: compressed.data.length,
-          uploadedByUserId: session.user.id,
-        },
-      });
+      let docId: string | null = null;
+      if (screenshotPath) {
+        const doc = await tx.document.create({
+          data: {
+            ownerType: DocumentOwnerType.STAY,
+            stayId: stay.id,
+            documentType: DocumentType.PAYMENT_SCREENSHOT,
+            storagePath: screenshotPath,
+            fileSizeBytes: 0,
+            uploadedByUserId: session.user.id,
+          },
+        });
+        docId = doc.id;
+      }
 
       const payment = await tx.payment.create({
         data: {
           stayId: stay.id,
           amountPaidPaise,
-          paymentMode: PaymentMode.UPI,
+          paymentMode: paymentMode as PaymentMode,
           transactionRefNo: transactionRefNo || null,
           receivedBy: "Self-Uploaded (Tenant)",
           paymentStatus: PaymentStatus.PENDING,
-          screenshotDocumentId: doc.id,
+          screenshotDocumentId: docId,
         },
       });
 
@@ -108,7 +120,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       paymentId: result.id,
-      message: "Receipt uploaded successfully. Your warden will verify this payment shortly.",
+      message: paymentMode === "CASH"
+        ? "Cash payment submitted successfully. Your warden will verify this payment shortly."
+        : "Receipt uploaded successfully. Your warden will verify this payment shortly.",
     });
   } catch (error) {
     return handleApiError(error);

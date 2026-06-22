@@ -20,6 +20,7 @@ function OnboardContent() {
   // Form step state
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -67,7 +68,7 @@ function OnboardContent() {
   const [idDocFile, setIdDocFile] = useState<File | null>(null);
   const [idDocPreview, setIdDocPreview] = useState<string | null>(null);
 
-  // Fetch onboarding details on load
+  // Fetch onboarding details + progress on load
   useEffect(() => {
     if (!requestId) {
       setError("Invalid registration link. Missing Onboarding Request ID.");
@@ -77,14 +78,42 @@ function OnboardContent() {
 
     const fetchRequest = async () => {
       try {
-        const response = await fetch(`/api/public/onboard-request/${requestId}`);
-        if (!response.ok) {
-          const errData = await response.json();
+        const [requestRes, progressRes] = await Promise.all([
+          fetch(`/api/public/onboard-request/${requestId}`),
+          fetch(`/api/public/onboarding/${requestId}/progress`),
+        ]);
+
+        if (!requestRes.ok) {
+          const errData = await requestRes.json();
           throw new Error(errData.error || "Failed to load request metadata");
         }
-        const data = await response.json();
+        const data = await requestRes.json();
         setOnboardingData(data);
-        setFullName(`Prospect ${data.phone}`); // Prepopulate placeholder
+
+        // Resume from saved progress if any
+        if (progressRes.ok) {
+          const progress = await progressRes.json();
+          if (progress.hasProgress && progress.tenant) {
+            const t = progress.tenant;
+            setStep(progress.step);
+            if (t.fullName) setFullName(t.fullName);
+            if (t.dateOfBirth) setDateOfBirth(t.dateOfBirth.split("T")[0]);
+            if (t.gender) setGender(t.gender);
+            if (t.placeOfBirth) setPlaceOfBirth(t.placeOfBirth);
+            if (t.permanentAddress) setPermanentAddress(t.permanentAddress);
+            if (t.emergencyContactName) setEmergencyContactName(t.emergencyContactName);
+            if (t.relationship) setRelationship(t.relationship);
+            if (t.emergencyContactNumber) setEmergencyContactNumber(t.emergencyContactNumber);
+            if (t.parentGuardianName) setParentGuardianName(t.parentGuardianName);
+            if (t.parentGuardianContact) setParentGuardianContact(t.parentGuardianContact);
+            if (t.occupationType) setOccupationType(t.occupationType);
+            if (t.collegeName) setCollegeName(t.collegeName);
+            if (t.courseOrBranch) setCourseOrBranch(t.courseOrBranch);
+            if (t.companyName) setCompanyName(t.companyName);
+            if (t.designation) setDesignation(t.designation);
+            if (t.purposeOfStay) setPurposeOfStay(t.purposeOfStay);
+          }
+        }
       } catch (err: any) {
         setError(err.message || "An unexpected error occurred");
       } finally {
@@ -231,9 +260,52 @@ function OnboardContent() {
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validateStep()) {
-      setStep((prev) => prev + 1);
+      setSaving(true);
+      setError("");
+      try {
+        // Save progress before advancing
+        const progressData: Record<string, unknown> = { step: step + 1, data: {} };
+        const data = progressData.data as Record<string, unknown>;
+
+        if (step === 2) {
+          data.fullName = fullName;
+          data.dateOfBirth = dateOfBirth;
+          data.gender = gender;
+          data.placeOfBirth = placeOfBirth;
+          data.permanentAddress = permanentAddress;
+          data.emergencyContactName = emergencyContactName;
+          data.relationship = relationship;
+          data.emergencyContactNumber = emergencyContactNumber;
+          data.parentGuardianName = parentGuardianName;
+          data.parentGuardianContact = parentGuardianContact;
+          data.email = email || null;
+        } else if (step === 3) {
+          data.occupationType = occupationType;
+          data.collegeName = occupationType === "STUDENT" ? collegeName : null;
+          data.courseOrBranch = occupationType === "STUDENT" ? courseOrBranch : null;
+          data.companyName = occupationType === "WORKING_PROFESSIONAL" ? companyName : null;
+          data.designation = occupationType === "WORKING_PROFESSIONAL" ? designation : null;
+          data.purposeOfStay = purposeOfStay;
+        }
+
+        const res = await fetch(`/api/public/onboarding/${requestId}/progress`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(progressData),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json();
+          console.warn("Progress save warning:", errData.error);
+        }
+      } catch (err) {
+        console.warn("Progress save failed (non-blocking):", err);
+      } finally {
+        setSaving(false);
+        setStep((prev) => prev + 1);
+      }
     }
   };
 

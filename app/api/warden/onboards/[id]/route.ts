@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await requireRole([UserRole.WARDEN]);
+    const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const hostelId = await resolveHostelId(session, request);
 
     const { id } = await params;
@@ -47,6 +47,11 @@ export async function GET(
     if (stay.hostelId !== hostelId) {
       throw new ForbiddenError("You are not authorized to view this stay record");
     }
+
+    // Fetch hostel payment config for UPI ID
+    const paymentConfig = await prisma.hostelPaymentConfig.findUnique({
+      where: { hostelId },
+    });
 
     // Generate signed URLs for all documents
     const documentsWithUrls = await Promise.all(
@@ -143,6 +148,7 @@ export async function GET(
         sharingType: stay.bed.room.sharingType,
       },
       payments: paymentsWithUrls,
+      upiId: paymentConfig?.upiId || null,
     });
   } catch (error) {
     return handleApiError(error);

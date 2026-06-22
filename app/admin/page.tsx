@@ -1,17 +1,16 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, Users } from "lucide-react";
+import { Plus, UserPlus, Users, Shield, ShieldAlert } from "lucide-react";
 import { getAdminPortfolioStats } from "@/services/hostel/dashboard.service";
 import { requireRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
+import { AdminDashboardClient } from "./dashboard-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   await requireRole([UserRole.MAIN_ADMIN]);
   const stats = await getAdminPortfolioStats();
-
-
 
   const accommodationTypeColors: Record<string, string> = {
     MENS: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
@@ -32,6 +31,12 @@ export default async function AdminPage() {
           <p className="text-muted-foreground">Portfolio overview and management</p>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/warden/onboard">
+            <Button variant="outline">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Onboard Tenant
+            </Button>
+          </Link>
           <Link href="/admin/leads">
             <Button variant="outline">
               <Users className="mr-2 h-4 w-4" />
@@ -47,7 +52,7 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-lg border bg-card p-6 shadow-sm">
           <p className="text-sm font-medium text-muted-foreground">Total Hostels</p>
           <p className="text-2xl font-bold">{stats.totalHostels}</p>
@@ -63,6 +68,12 @@ export default async function AdminPage() {
         <div className="rounded-lg border bg-card p-6 shadow-sm">
           <p className="text-sm font-medium text-muted-foreground">Portfolio Occupancy</p>
           <p className="text-2xl font-bold">{stats.portfolioOccupancyRate}%</p>
+        </div>
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
+          <p className={`text-2xl font-bold ${stats.totalPendingPayments > 0 ? "text-red-600" : ""}`}>
+            {stats.totalPendingPayments}
+          </p>
         </div>
       </div>
 
@@ -91,6 +102,21 @@ export default async function AdminPage() {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">{hostel.address}</p>
+
+                {/* Warden status */}
+                <div className="flex items-center gap-2 pt-1">
+                  {hostel.warden ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-400">
+                      <Shield className="h-3 w-3" />
+                      Warden: {hostel.warden.phone}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:text-red-400">
+                      <ShieldAlert className="h-3 w-3" />
+                      No Warden Assigned
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-6 sm:justify-end">
@@ -115,6 +141,12 @@ export default async function AdminPage() {
                     <p className="text-sm font-medium">{hostel.pendingOnboarding}</p>
                     <p className="text-xs text-muted-foreground">Pending</p>
                   </div>
+                  <div>
+                    <p className={`text-sm font-medium ${hostel.pendingPayments > 0 ? "text-red-600 font-bold" : ""}`}>
+                      {hostel.pendingPayments}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Pmts Pending</p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -128,6 +160,11 @@ export default async function AdminPage() {
                 </div>
 
                 <div className="flex gap-2">
+                  <Link href={`/warden/onboard?hostelId=${hostel.id}`}>
+                    <Button variant="outline" size="sm">
+                      Onboard Tenant
+                    </Button>
+                  </Link>
                   <Link href={`/admin/hostels/${hostel.id}/occupancy`}>
                     <Button variant="outline" size="sm">
                       View Occupancy
@@ -138,6 +175,8 @@ export default async function AdminPage() {
                       Manage Structure
                     </Button>
                   </Link>
+                  {/* Assign Warden button shown only when no warden */}
+                  <AdminDashboardClient hostelId={hostel.id} hostelName={hostel.name} hasWarden={!!hostel.warden} />
                 </div>
               </div>
             </div>

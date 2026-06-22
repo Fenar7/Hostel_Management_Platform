@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 type AccommodationType = "MENS" | "WOMENS";
 
@@ -96,7 +97,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
       <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold">{title}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+          <button onClick={onClose} className="cursor-pointer text-gray-400 hover:text-gray-600">&times;</button>
         </div>
         {children}
       </div>
@@ -133,6 +134,8 @@ export default function BuilderPage() {
   const [showAddRoom, setShowAddRoom] = useState<{ floorId?: string; flatId?: string } | null>(null);
   const [showEditBed, setShowEditBed] = useState<Bed | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: string; id: string; name: string } | null>(null);
+
+  const nextSortOrder = data ? Math.max(...data.floors.map((f) => f.sortOrder), -1) + 1 : 0;
 
   function loadData() {
     fetch(`/api/hostel-structure/${hostelId}`)
@@ -176,7 +179,6 @@ export default function BuilderPage() {
       await apiCall("/api/admin/floors", "POST", {
         hostelId,
         name: form.get("name"),
-        sortOrder: parseInt(form.get("sortOrder") as string, 10),
       });
       setShowAddFloor(false);
       setToast({ message: "Floor added successfully", type: "success" });
@@ -275,7 +277,7 @@ export default function BuilderPage() {
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
           {error || "Failed to load hostel structure"}
         </div>
-          <button onClick={loadData} className="text-sm text-blue-600 hover:underline">Retry</button>
+          <button onClick={loadData} className="cursor-pointer text-sm text-blue-600 hover:underline">Retry</button>
       </div>
     );
   }
@@ -288,18 +290,17 @@ export default function BuilderPage() {
           <p className="text-sm text-muted-foreground">{data.address} &middot; {data.accommodationType}</p>
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
+            variant="outline"
             onClick={() => router.push(`/admin/hostels/${hostelId}/occupancy`)}
-            className="rounded-lg border bg-background px-3 py-1.5 text-sm hover:bg-muted"
           >
             View Occupancy
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowAddFloor(true)}
-            className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
           >
             + Add Floor
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -319,19 +320,19 @@ export default function BuilderPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowAddRoom({ floorId: floor.id })}
-                    className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                    className="cursor-pointer rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
                   >
                     + Room
                   </button>
                   <button
                     onClick={() => setShowAddFlat(floor.id)}
-                    className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                    className="cursor-pointer rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
                   >
                     + Flat
                   </button>
                   <button
                     onClick={() => setConfirmDelete({ type: "floor", id: floor.id, name: floor.name })}
-                    className="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100"
+                    className="cursor-pointer rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100"
                   >
                     Delete
                   </button>
@@ -356,13 +357,13 @@ export default function BuilderPage() {
                           <div className="flex gap-1">
                             <button
                               onClick={() => setShowAddRoom({ flatId: flat.id })}
-                              className="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary hover:bg-primary/20"
+                              className="cursor-pointer rounded bg-primary/10 px-2 py-0.5 text-xs text-primary hover:bg-primary/20"
                             >
                               + Room
                             </button>
                             <button
                               onClick={() => setConfirmDelete({ type: "flat", id: flat.id, name: flat.name })}
-                              className="rounded bg-red-50 px-2 py-0.5 text-xs text-red-600 hover:bg-red-100"
+                              className="cursor-pointer rounded bg-red-50 px-2 py-0.5 text-xs text-red-600 hover:bg-red-100"
                             >
                               Delete
                             </button>
@@ -407,14 +408,14 @@ export default function BuilderPage() {
             <div>
               <label className="mb-1 block text-sm font-medium">Floor Name</label>
               <input name="name" required className="w-full rounded-lg border px-3 py-2 text-sm" placeholder="e.g. Ground Floor" />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Sort Order</label>
-              <input name="sortOrder" type="number" min="0" required className="w-full rounded-lg border px-3 py-2 text-sm" placeholder="0" />
+              <p className="mt-1 text-xs text-muted-foreground">
+                This will be Floor #{nextSortOrder + 1}{" "}
+                ({nextSortOrder === 0 ? "Ground Floor" : `sort order ${nextSortOrder}`}).
+              </p>
             </div>
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowAddFloor(false)} className="rounded-lg border px-3 py-1.5 text-sm">Cancel</button>
-              <button type="submit" className="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/80">Create</button>
+              <Button type="button" variant="outline" onClick={() => setShowAddFloor(false)}>Cancel</Button>
+              <Button type="submit">Create</Button>
             </div>
           </form>
         </Modal>
@@ -432,8 +433,8 @@ export default function BuilderPage() {
               <label htmlFor="flatPrivate" className="text-sm">Private Flat</label>
             </div>
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowAddFlat(null)} className="rounded-lg border px-3 py-1.5 text-sm">Cancel</button>
-              <button type="submit" className="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/80">Create</button>
+              <Button type="button" variant="outline" onClick={() => setShowAddFlat(null)}>Cancel</Button>
+              <Button type="submit">Create</Button>
             </div>
           </form>
         </Modal>
@@ -472,8 +473,8 @@ export default function BuilderPage() {
               <label htmlFor="roomPrivate" className="text-sm">Private Room</label>
             </div>
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowAddRoom(null)} className="rounded-lg border px-3 py-1.5 text-sm">Cancel</button>
-              <button type="submit" className="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/80">Create</button>
+              <Button type="button" variant="outline" onClick={() => setShowAddRoom(null)}>Cancel</Button>
+              <Button type="submit">Create</Button>
             </div>
           </form>
         </Modal>
@@ -505,8 +506,8 @@ export default function BuilderPage() {
               </select>
             </div>
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowEditBed(null)} className="rounded-lg border px-3 py-1.5 text-sm">Cancel</button>
-              <button type="submit" className="rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground hover:bg-primary/80">Save</button>
+              <Button type="button" variant="outline" onClick={() => setShowEditBed(null)}>Cancel</Button>
+              <Button type="submit">Save</Button>
             </div>
           </form>
         </Modal>
@@ -519,8 +520,8 @@ export default function BuilderPage() {
               Are you sure you want to delete &ldquo;{confirmDelete.name}&rdquo;? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setConfirmDelete(null)} className="rounded-lg border px-3 py-1.5 text-sm">Cancel</button>
-              <button onClick={handleDelete} className="rounded-lg bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700">Delete</button>
+              <Button variant="outline" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+              <Button onClick={handleDelete} variant="destructive">Delete</Button>
             </div>
           </div>
         </Modal>
@@ -544,7 +545,7 @@ function RoomCard({ room, onDelete, onEditBed }: { room: Room; onDelete: (id: st
         </div>
         <button
           onClick={() => onDelete(room.id, room.roomNumber)}
-          className="text-xs text-red-500 hover:text-red-700"
+          className="cursor-pointer text-xs text-red-500 hover:text-red-700"
         >
           Delete
         </button>
@@ -564,7 +565,7 @@ function RoomCard({ room, onDelete, onEditBed }: { room: Room; onDelete: (id: st
               <StatusBadge status={bed.status} derivedStatus={bed.derivedStatus} />
               <button
                 onClick={() => onEditBed(bed)}
-                className="text-blue-500 hover:text-blue-700"
+                className="cursor-pointer text-blue-500 hover:text-blue-700"
                 title="Edit bed"
               >
                 Edit

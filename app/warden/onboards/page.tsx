@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowRight, Eye, AlertCircle, FileText, CheckCircle, Clock } from "lucide-react";
+import { Loader2, ArrowRight, Eye, AlertCircle, FileText, CheckCircle, Clock, XCircle, Key, Copy, Check } from "lucide-react";
 
 interface OnboardItem {
   id: string;
@@ -23,12 +23,28 @@ interface OnboardItem {
     label: string;
     roomNumber: string;
   };
+  onboardingRequest?: {
+    id: string;
+    status: string;
+    createdAt: string;
+  } | null;
 }
 
 export default function WardenOnboardsPage() {
   const [onboards, setOnboards] = useState<OnboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  // Password modal
+  const [passwordModal, setPasswordModal] = useState<{
+    onboardingReqId: string;
+    phone: string;
+  } | null>(null);
+  const [revealedPassword, setRevealedPassword] = useState("");
+  const [passwordCopied, setPasswordCopied] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   const fetchOnboards = async () => {
     try {
@@ -42,6 +58,48 @@ export default function WardenOnboardsPage() {
       setError(err.message || "An error occurred while loading lists");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancel = async (id: string) => {
+    if (!confirm("Are you sure you want to cancel this onboarding request? The bed will be freed.")) {
+      return;
+    }
+    setCancellingId(id);
+    try {
+      const response = await fetch(`/api/admin/onboards/${id}/cancel`, {
+        method: "POST",
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to cancel");
+      }
+      await fetchOnboards();
+    } catch (err: any) {
+      setError(err.message || "Failed to cancel onboarding request");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const handleViewPassword = async (onboardingReqId: string, phone: string) => {
+    setPasswordModal({ onboardingReqId, phone });
+    setRevealedPassword("");
+    setPasswordCopied(false);
+    setPasswordError("");
+    setPasswordLoading(true);
+    try {
+      const res = await fetch(
+        `/api/warden/onboarding-requests/${onboardingReqId}/regenerate-password`,
+        { method: "POST" }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to get password");
+      setRevealedPassword(data.tempPassword);
+    } catch (err: any) {
+      setPasswordError(err.message || "An error occurred");
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -215,8 +273,37 @@ export default function WardenOnboardsPage() {
                   <p className="font-bold text-foreground">Phone: {item.tenant.phone}</p>
                   <p className="text-xs text-muted-foreground">Assigned bed: {item.bed.roomNumber} - {item.bed.label} &middot; Expected Joining: {formatDate(item.joiningDate)}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Link sent, awaiting form...</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      handleViewPassword(
+                        item.onboardingRequest?.id || "",
+                        item.tenant.phone
+                      )
+                    }
+                    disabled={!item.onboardingRequest?.id}
+                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                  >
+                    <Key className="h-4 w-4 mr-1" />
+                    Password
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleCancel(item.id)}
+                    disabled={cancellingId === item.id}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    {cancellingId === item.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <XCircle className="h-4 w-4 mr-1" />
+                    )}
+                    Cancel
+                  </Button>
                   <Link href={`/warden/onboards/${item.id}`}>
                     <Button size="sm" variant="ghost">View Details</Button>
                   </Link>
@@ -255,6 +342,94 @@ export default function WardenOnboardsPage() {
           </div>
         )}
       </div>
+
+      {/* Password Reveal Modal */}
+      {passwordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-w-sm w-full rounded-lg border bg-card shadow-xl">
+            <div className="flex items-center justify-between border-b px-5 py-3">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <Key className="h-4 w-4 text-amber-500" />
+                Access Password
+              </h3>
+              <button
+                onClick={() => { setPasswordModal(null); setRevealedPassword(""); }}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Phone: {passwordModal.phone}
+              </p>
+
+              {passwordError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
+                  {passwordError}
+                </div>
+              )}
+
+              {passwordLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : revealedPassword ? (
+                <>
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/30 p-4 text-center">
+                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-2">
+                      One-time Password
+                    </p>
+                    <p className="text-2xl font-bold font-mono tracking-wider text-amber-900 dark:text-amber-200 select-all">
+                      {revealedPassword}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    A new password was generated. The old one is no longer valid.
+                    Share this with the prospect.
+                  </p>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(revealedPassword);
+                        setPasswordCopied(true);
+                        setTimeout(() => setPasswordCopied(false), 3000);
+                      } catch {
+                        const el = document.createElement("textarea");
+                        el.value = revealedPassword;
+                        document.body.appendChild(el);
+                        el.select();
+                        document.execCommand("copy");
+                        document.body.removeChild(el);
+                        setPasswordCopied(true);
+                        setTimeout(() => setPasswordCopied(false), 3000);
+                      }
+                    }}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {passwordCopied ? (
+                      <><Check className="h-4 w-4 mr-2" /> Copied!</>
+                    ) : (
+                      <><Copy className="h-4 w-4 mr-2" /> Copy Password</>
+                    )}
+                  </Button>
+                </>
+              ) : null}
+            </div>
+            {revealedPassword && (
+              <div className="flex justify-end border-t px-5 py-3">
+                <Button
+                  onClick={() => { setPasswordModal(null); setRevealedPassword(""); }}
+                  size="sm"
+                >
+                  Done
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

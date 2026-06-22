@@ -74,11 +74,20 @@ async function hasActiveStayOnBed(bedId: string): Promise<boolean> {
   return count > 0;
 }
 
-export async function createFloor(data: { hostelId: string; name: string; sortOrder: number }) {
+export async function createFloor(data: { hostelId: string; name: string; sortOrder?: number }) {
   const hostel = await prisma.hostel.findUnique({ where: { id: data.hostelId } });
   if (!hostel) throw new NotFoundError("Hostel not found");
 
-  return prisma.floor.create({ data });
+  const sortOrder = data.sortOrder ?? await (async () => {
+    const maxFloor = await prisma.floor.findFirst({
+      where: { hostelId: data.hostelId },
+      orderBy: { sortOrder: "desc" },
+      select: { sortOrder: true },
+    });
+    return (maxFloor?.sortOrder ?? -1) + 1;
+  })();
+
+  return prisma.floor.create({ data: { hostelId: data.hostelId, name: data.name, sortOrder } });
 }
 
 export async function updateFloor(id: string, data: { name?: string; sortOrder?: number }) {
@@ -96,7 +105,14 @@ export async function deleteFloor(id: string) {
     throw new ConflictError("Cannot delete floor: one or more beds in this floor have stay records");
   }
 
-  await prisma.floor.delete({ where: { id } });
+  try {
+    await prisma.floor.delete({ where: { id } });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2025") {
+      throw new NotFoundError("Floor not found");
+    }
+    throw err;
+  }
 }
 
 export async function createFlat(data: { floorId: string; name: string; isPrivate?: boolean }) {
@@ -127,7 +143,14 @@ export async function deleteFlat(id: string) {
     throw new ConflictError("Cannot delete flat: one or more beds in this flat have stay records");
   }
 
-  await prisma.flat.delete({ where: { id } });
+  try {
+    await prisma.flat.delete({ where: { id } });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2025") {
+      throw new NotFoundError("Flat not found");
+    }
+    throw err;
+  }
 }
 
 export async function createRoom(data: {
@@ -147,11 +170,25 @@ export async function createRoom(data: {
   if (data.flatId) {
     const flat = await prisma.flat.findUnique({ where: { id: data.flatId } });
     if (!flat) throw new NotFoundError("Flat not found");
+
+    const existingInFlat = await prisma.room.findFirst({
+      where: { flatId: data.flatId, roomNumber: data.roomNumber },
+    });
+    if (existingInFlat) {
+      throw new ConflictError(`Room number "${data.roomNumber}" already exists in this flat`);
+    }
   }
 
   if (data.floorId) {
     const floor = await prisma.floor.findUnique({ where: { id: data.floorId } });
     if (!floor) throw new NotFoundError("Floor not found");
+
+    const existingOnFloor = await prisma.room.findFirst({
+      where: { floorId: data.floorId, roomNumber: data.roomNumber },
+    });
+    if (existingOnFloor) {
+      throw new ConflictError(`Room number "${data.roomNumber}" already exists on this floor`);
+    }
   }
 
   const bedLabels = generateBedLabels(data.roomNumber, data.sharingType);
@@ -237,7 +274,14 @@ export async function deleteRoom(id: string) {
     throw new ConflictError("Cannot delete room: one or more beds in this room have stay records");
   }
 
-  await prisma.room.delete({ where: { id } });
+  try {
+    await prisma.room.delete({ where: { id } });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2025") {
+      throw new NotFoundError("Room not found");
+    }
+    throw err;
+  }
 }
 
 export async function updateBed(
@@ -282,7 +326,14 @@ export async function deleteBed(id: string) {
     throw new ConflictError("Cannot delete bed: this bed has stay records");
   }
 
-  await prisma.bed.delete({ where: { id } });
+  try {
+    await prisma.bed.delete({ where: { id } });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2025") {
+      throw new NotFoundError("Bed not found");
+    }
+    throw err;
+  }
 }
 
 export async function getFullHierarchy(hostelId: string) {

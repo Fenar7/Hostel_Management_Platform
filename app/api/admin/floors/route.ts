@@ -8,7 +8,7 @@ import { createFloor } from "@/services/hostel/structure.service";
 const createFloorSchema = z.object({
   hostelId: z.string().uuid(),
   name: z.string().min(1, "Floor name is required"),
-  sortOrder: z.number().int().min(0),
+  sortOrder: z.number().int().min(0).optional(),
 });
 
 export async function POST(request: NextRequest) {

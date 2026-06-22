@@ -7,7 +7,7 @@ import { UserRole, StayStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.WARDEN]);
+    const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const hostelId = await resolveHostelId(session, request);
 
     // Fetch stays and onboarding requests for warden's hostel

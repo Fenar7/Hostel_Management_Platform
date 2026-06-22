@@ -194,14 +194,13 @@ export async function POST(
       }
     }
 
-    // 6. Find the draft stay and placeholder tenant
+    // 6. Find the draft stay and placeholder tenant (by bed, not emergencyContactNumber)
     const stay = await prisma.stay.findFirst({
       where: {
         bedId: onboardingRequest.bedId,
         status: StayStatus.ONBOARDING_PENDING,
         tenant: {
           userId: null,
-          emergencyContactNumber: phone,
         },
       },
       include: { tenant: true },
@@ -213,24 +212,52 @@ export async function POST(
 
     const tenantId = stay.tenant.id;
 
-    // 7. Supabase Auth User creation
+    let supabaseAuthId: string;
+
+    // 7. Supabase Auth User creation (with orphan cleanup retry)
     const supabase = createAdminClient();
-    const { data: authData, error: authError } =
-      await supabase.auth.admin.createUser({
-        phone,
-        email: data.email?.toLowerCase() || undefined,
-        password: data.password,
-        phone_confirm: true,
-        email_confirm: !!data.email,
-      });
 
-    if (authError || !authData.user) {
-      throw new ConflictError(
-        authError?.message || "Failed to create Supabase authentication credentials"
-      );
-    }
+    const createAuthUser = async (): Promise<string> => {
+      const { data: authData, error: authError } =
+        await supabase.auth.admin.createUser({
+          phone,
+          email: data.email?.toLowerCase() || undefined,
+          password: data.password,
+          phone_confirm: true,
+          email_confirm: !!data.email,
+        });
 
-    const supabaseAuthId = authData.user.id;
+      if (authError || !authData?.user) {
+        // If Supabase says "already registered", it's likely an orphaned auth user
+        // from a previous failed registration cleanup. Delete it and retry.
+        if (authError?.message?.toLowerCase().includes("already")) {
+          const { data: existingUsers } = await supabase.auth.admin.listUsers();
+          const orphanedUser = existingUsers?.users?.find(
+            (u) => u.phone === phone || u.phone === phone.replace(/^\+/, "")
+          );
+          if (orphanedUser) {
+            await supabase.auth.admin.deleteUser(orphanedUser.id);
+            const retry = await supabase.auth.admin.createUser({
+              phone,
+              email: data.email?.toLowerCase() || undefined,
+              password: data.password,
+              phone_confirm: true,
+              email_confirm: !!data.email,
+            });
+            if (!retry.error && retry.data?.user) {
+              return retry.data.user.id;
+            }
+          }
+        }
+        throw new ConflictError(
+          authError?.message || "Failed to create Supabase authentication credentials"
+        );
+      }
+
+      return authData.user.id;
+    };
+
+    supabaseAuthId = await createAuthUser();
 
     try {
       // 8. Compress Profile Photo & Upload all files to private Supabase storage

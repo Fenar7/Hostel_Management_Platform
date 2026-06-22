@@ -59,7 +59,7 @@ export default async function WardenPage({
         <p className="text-muted-foreground">Manage your assigned hostel</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-lg border bg-card p-6 shadow-sm">
           <p className="text-sm font-medium text-muted-foreground">Total Beds</p>
           <p className="text-2xl font-bold">{stats.totalBeds}</p>
@@ -75,6 +75,12 @@ export default async function WardenPage({
         <div className="rounded-lg border bg-card p-6 shadow-sm">
           <p className="text-sm font-medium text-muted-foreground">Active Tenants</p>
           <p className="text-2xl font-bold">{stats.activeTenants}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-6 shadow-sm">
+          <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
+          <p className={`text-2xl font-bold ${stats.pendingPayments > 0 ? "text-red-600" : ""}`}>
+            {stats.pendingPayments}
+          </p>
         </div>
       </div>
 
@@ -100,7 +106,7 @@ export default async function WardenPage({
                 View Occupancy Map
               </Button>
             </Link>
-            <Link href="/warden/onboard">
+            <Link href={`/warden/onboard${hostelId ? `?hostelId=${hostelId}` : ""}`}>
               <Button variant="outline">
                 Onboard New Tenant
               </Button>
@@ -124,11 +130,19 @@ export default async function WardenPage({
             </Link>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <Link href="/warden/onboards" className="block hover:opacity-90 transition">
               <div className="rounded-lg border bg-card p-4">
                 <p className="text-sm font-medium text-muted-foreground">Pending Onboarding</p>
                 <p className="text-2xl font-bold text-primary">{stats.pendingOnboarding} →</p>
+              </div>
+            </Link>
+            <Link href="/warden/onboards" className="block hover:opacity-90 transition">
+              <div className="rounded-lg border bg-card p-4">
+                <p className="text-sm font-medium text-muted-foreground">Pending Payments</p>
+                <p className={`text-2xl font-bold ${stats.pendingPayments > 0 ? "text-red-600" : "text-primary"}`}>
+                  {stats.pendingPayments} →
+                </p>
               </div>
             </Link>
             <div className="rounded-lg border bg-card p-4">

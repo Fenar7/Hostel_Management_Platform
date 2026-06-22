@@ -9,6 +9,7 @@ export async function POST() {
     const response = NextResponse.json({ success: true });
     response.cookies.set("sb-auth-token", "", { maxAge: 0, path: "/" });
     response.cookies.set("supabase-auth-token", "", { maxAge: 0, path: "/" });
+    response.cookies.set("remember_me", "", { maxAge: 0, path: "/" });
     return response;
   } catch {
     return NextResponse.json({ success: true });

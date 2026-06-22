@@ -17,6 +17,24 @@ export function onboardingLink(registrationUrl: string, name?: string): string {
 }
 
 /**
+ * Onboarding invitation with a one-time access password.
+ */
+export function onboardingLinkWithPassword(
+  registrationUrl: string,
+  tempPassword: string,
+  name?: string
+): string {
+  const greeting = name ? `Hello ${name}` : "Hello";
+  return (
+    `${greeting}, welcome to NextHome! Your onboarding is ready.\n\n` +
+    `🔗 Link: ${registrationUrl}\n` +
+    `🔑 Access Password: ${tempPassword}\n\n` +
+    `Please use the link and password above to complete your registration. ` +
+    `This password is valid until you set your own account password.`
+  );
+}
+
+/**
  * Application-approved payment request message.
  *
  * @param params.name - Tenant's full name.
@@ -29,6 +47,7 @@ export function applicationApprovedPaymentRequest(params: {
   name: string;
   amount: number;
   paymentUrl: string;
+  upiId?: string;
   breakdown?: {
     admissionFee: number;
     monthlyRent: number;
@@ -38,8 +57,9 @@ export function applicationApprovedPaymentRequest(params: {
     roomBedLabel?: string;
   };
 }): string {
-  const { name, amount, paymentUrl, breakdown } = params;
+  const { name, amount, paymentUrl, upiId, breakdown } = params;
   const formattedAmount = amount.toLocaleString("en-IN");
+  const upiDisplay = upiId || "payment@nexthome";
 
   if (breakdown) {
     const roomLabel = breakdown.roomBedLabel ?? "your room";
@@ -52,7 +72,7 @@ export function applicationApprovedPaymentRequest(params: {
       `- Security Deposit: \u20B9${breakdown.securityDeposit.toLocaleString("en-IN")}\n` +
       `- Food Charges: \u20B9${breakdown.foodCharges.toLocaleString("en-IN")}\n` +
       `- Discount: \u20B9${breakdown.discount.toLocaleString("en-IN")}\n\n` +
-      `Please transfer to UPI ID: payment@nexthome or scan the hostel code. ` +
+      `Please transfer to UPI ID: ${upiDisplay}. ` +
       `Kindly upload the receipt screenshot in your portal at ${paymentUrl} or share it here.\n\n` +
       `Thank you!`
     );

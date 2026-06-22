@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { BedStatus, StayStatus } from "@prisma/client";
+import { BedStatus, StayStatus, PaymentStatus } from "@prisma/client";
 
 export interface HostelStats {
   id: string;
@@ -12,7 +12,9 @@ export interface HostelStats {
   availableBeds: number;
   activeTenants: number;
   pendingOnboarding: number;
+  pendingPayments: number;
   occupancyRate: number;
+  warden?: { id: string; phone: string; email: string | null } | null;
 }
 
 export interface AdminPortfolioStats {
@@ -20,6 +22,7 @@ export interface AdminPortfolioStats {
   totalBeds: number;
   totalOccupiedBeds: number;
   portfolioOccupancyRate: number;
+  totalPendingPayments: number;
   hostels: HostelStats[];
 }
 
@@ -29,6 +32,7 @@ export interface WardenHostelStats {
   availableBeds: number;
   activeTenants: number;
   pendingOnboarding: number;
+  pendingPayments: number;
   occupancyRate: number;
 }
 
@@ -45,6 +49,17 @@ export async function getAdminPortfolioStats(): Promise<AdminPortfolioStats> {
           name: true,
         },
       },
+      warden: {
+        select: {
+          id: true,
+          user: {
+            select: {
+              phone: true,
+              email: true,
+            },
+          },
+        },
+      },
       floors: {
         select: {
           rooms: { select: { _count: { select: { beds: true } } } },
@@ -58,24 +73,45 @@ export async function getAdminPortfolioStats(): Promise<AdminPortfolioStats> {
     }
   });
 
-  const activeStays = await prisma.stay.groupBy({
-    by: ["hostelId"],
-    _count: { _all: true },
-    where: {
-      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-    },
-  });
-
-  const pendingOnboardings = await prisma.onboardingRequest.groupBy({
-    by: ["hostelId"],
-    _count: { _all: true },
-    where: {
-      status: "PENDING",
-    },
-  });
+  const [activeStays, pendingOnboardings, pendingPayments] = await Promise.all([
+    prisma.stay.groupBy({
+      by: ["hostelId"],
+      _count: { _all: true },
+      where: {
+        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
+      },
+    }),
+    prisma.onboardingRequest.groupBy({
+      by: ["hostelId"],
+      _count: { _all: true },
+      where: {
+        status: "PENDING",
+      },
+    }),
+    prisma.payment.groupBy({
+      by: ["stayId"],
+      _count: { _all: true },
+      where: {
+        paymentStatus: PaymentStatus.PENDING,
+      },
+    }),
+  ]);
 
   const activeStaysMap = new Map(activeStays.map((s) => [s.hostelId, s._count._all]));
   const pendingOnboardingsMap = new Map(pendingOnboardings.map((s) => [s.hostelId, s._count._all]));
+
+  const stayIds = pendingPayments.map((p) => p.stayId);
+  const stays = stayIds.length > 0
+    ? await prisma.stay.findMany({ where: { id: { in: stayIds } }, select: { id: true, hostelId: true } })
+    : [];
+  const stayToHostelMap = new Map(stays.map((s) => [s.id, s.hostelId]));
+  const pendingPaymentsMap = new Map<string, number>();
+  for (const pp of pendingPayments) {
+    const hid = stayToHostelMap.get(pp.stayId);
+    if (hid) {
+      pendingPaymentsMap.set(hid, (pendingPaymentsMap.get(hid) || 0) + pp._count._all);
+    }
+  }
 
   const hostelsStats: HostelStats[] = hostels.map((hostel) => {
     let totalBeds = 0;
@@ -94,6 +130,7 @@ export async function getAdminPortfolioStats(): Promise<AdminPortfolioStats> {
     const availableBeds = Math.max(0, totalBeds - occupiedBeds);
     const activeTenants = occupiedBeds;
     const pendingOnboarding = pendingOnboardingsMap.get(hostel.id) || 0;
+    const pendingPayments = pendingPaymentsMap.get(hostel.id) || 0;
     const occupancyRate = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0;
 
     return {
@@ -107,7 +144,15 @@ export async function getAdminPortfolioStats(): Promise<AdminPortfolioStats> {
       availableBeds,
       activeTenants,
       pendingOnboarding,
+      pendingPayments,
       occupancyRate: Math.round(occupancyRate * 100) / 100,
+      warden: hostel.warden
+        ? {
+            id: hostel.warden.id,
+            phone: hostel.warden.user.phone,
+            email: hostel.warden.user.email,
+          }
+        : null,
     };
   });
 
@@ -115,12 +160,14 @@ export async function getAdminPortfolioStats(): Promise<AdminPortfolioStats> {
   const totalBeds = hostelsStats.reduce((sum, h) => sum + h.totalBeds, 0);
   const totalOccupiedBeds = hostelsStats.reduce((sum, h) => sum + h.occupiedBeds, 0);
   const portfolioOccupancyRate = totalBeds > 0 ? (totalOccupiedBeds / totalBeds) * 100 : 0;
+  const totalPendingPayments = hostelsStats.reduce((sum, h) => sum + h.pendingPayments, 0);
 
   return {
     totalHostels,
     totalBeds,
     totalOccupiedBeds,
     portfolioOccupancyRate: Math.round(portfolioOccupancyRate * 100) / 100,
+    totalPendingPayments,
     hostels: hostelsStats,
   };
 }
@@ -147,7 +194,7 @@ export async function getWardenHostelStats(hostelId: string): Promise<WardenHost
     throw new Error("Hostel not found");
   }
 
-  const [activeStaysCount, pendingOnboardingCount] = await Promise.all([
+  const [activeStaysCount, pendingOnboardingCount, pendingPaymentsCount] = await Promise.all([
     prisma.stay.count({
       where: {
         hostelId,
@@ -158,6 +205,12 @@ export async function getWardenHostelStats(hostelId: string): Promise<WardenHost
       where: {
         hostelId,
         status: "PENDING",
+      },
+    }),
+    prisma.payment.count({
+      where: {
+        stay: { hostelId },
+        paymentStatus: PaymentStatus.PENDING,
       },
     }),
   ]);
@@ -186,6 +239,7 @@ export async function getWardenHostelStats(hostelId: string): Promise<WardenHost
     availableBeds,
     activeTenants,
     pendingOnboarding,
+    pendingPayments: pendingPaymentsCount,
     occupancyRate: Math.round(occupancyRate * 100) / 100,
   };
 }
