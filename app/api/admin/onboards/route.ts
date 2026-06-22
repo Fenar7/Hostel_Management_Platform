@@ -25,6 +25,11 @@ export async function GET() {
         hostel: { select: { id: true, name: true } },
         tenant: { include: { user: true } },
         bed: { include: { room: true } },
+        payments: {
+          select: {
+            paymentStatus: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -42,6 +47,7 @@ export async function GET() {
         joiningDate: stay.joiningDate,
         endDate: stay.endDate,
         totalPayable: stay.totalPayablePaise / 100,
+        hasPendingPayment: stay.payments.some((p) => p.paymentStatus === "PENDING"),
         hostel: stay.hostel,
         tenant: {
           id: stay.tenant.id,
@@ -49,6 +55,7 @@ export async function GET() {
           phone: stay.tenant.user?.phone || matchingReq?.phone || "",
           gender: stay.tenant.gender,
           hasProfile: stay.tenant.userId !== null,
+          plainTextPassword: stay.tenant.user?.plainTextPassword || null,
         },
         bed: {
           id: stay.bed.id,

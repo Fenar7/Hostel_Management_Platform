@@ -62,6 +62,7 @@ interface TenantDetails {
   purposeOfStay: string;
   phone: string;
   email: string;
+  plainTextPassword?: string | null;
   documents: DocumentItem[];
 }
 
@@ -105,6 +106,7 @@ export default function OnboardDetailPage() {
   // Success dialog state for WhatsApp request
   const [showPaymentRequest, setShowPaymentRequest] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
 
   const fetchDetails = async () => {
     try {
@@ -367,17 +369,55 @@ export default function OnboardDetailPage() {
         </div>
       )}
 
+      {/* PENDING PAYMENT NOTICE BANNER */}
+      {payments.some((p) => p.paymentStatus === "PENDING") && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 rounded-xl border border-amber-200 bg-amber-500/10 p-5 max-w-7xl dark:border-amber-900/30">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-amber-800 dark:text-amber-300 text-sm">Action Required: Verify Tenant Deposit Payment</h4>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 leading-relaxed">
+                The tenant has submitted a payment receipt. Please inspect the screenshot and details under the <strong>Logged Payments</strong> section at the bottom, and click <strong>Verify Payment</strong> to activate this resident stay.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => {
+              const el = document.getElementById("logged-payments-section");
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shrink-0 self-end sm:self-center"
+          >
+            Review Payment Now
+          </Button>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* LEFT COLUMN: Profile Details */}
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
             <div className="flex flex-col sm:flex-row items-center gap-6 border-b pb-6">
               {profilePhoto?.signedUrl ? (
-                <div className="h-24 w-24 rounded-full overflow-hidden border-2 bg-muted shadow">
-                  <img src={profilePhoto.signedUrl} alt="Profile" className="h-full w-full object-cover" />
+                <div
+                  onClick={() => setShowLightbox(true)}
+                  className="group/avatar relative h-24 w-24 rounded-xl overflow-hidden border-2 bg-muted shadow hover:shadow-md cursor-zoom-in transition-all duration-200"
+                  title="Click to view full screen"
+                >
+                  <img
+                    src={profilePhoto.signedUrl}
+                    alt="Profile"
+                    className="h-full w-full object-cover group-hover/avatar:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity text-white text-[10px] font-bold">
+                    View Full
+                  </div>
                 </div>
               ) : (
-                <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center text-muted-foreground border">
+                <div className="h-24 w-24 rounded-xl bg-muted flex items-center justify-center text-muted-foreground border text-xs font-semibold">
                   No Photo
                 </div>
               )}
@@ -385,6 +425,11 @@ export default function OnboardDetailPage() {
                 <h2 className="text-2xl font-bold">{tenant?.fullName}</h2>
                 <p className="text-sm text-muted-foreground">Phone: {tenant?.phone || stay?.id}</p>
                 {tenant?.email && <p className="text-xs text-muted-foreground">Email: {tenant.email}</p>}
+                {tenant?.plainTextPassword && (
+                  <p className="text-xs text-muted-foreground flex items-center justify-center sm:justify-start gap-1.5 mt-1">
+                    Password: <span className="font-mono bg-muted/80 dark:bg-muted/30 px-1.5 py-0.5 rounded border text-foreground font-bold select-all">{tenant.plainTextPassword}</span>
+                  </p>
+                )}
                 <p className="text-xs mt-1">
                   Occupation: <span className="font-semibold">{tenant?.occupationType}</span>
                 </p>
@@ -485,9 +530,15 @@ export default function OnboardDetailPage() {
           <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
             <h3 className="font-bold text-lg border-b pb-2">Assigned Booking</h3>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Status:</span>
-                <span className="font-bold uppercase text-xs">{stay?.status}</span>
+                {stay?.status === "APPROVED_AWAITING_PAYMENT" && payments.some((p) => p.paymentStatus === "PENDING") ? (
+                  <span className="rounded bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-xs font-bold text-amber-800 dark:text-amber-400 border border-amber-500/20 animate-pulse">
+                    ⚡ Verify Payment
+                  </span>
+                ) : (
+                  <span className="font-bold uppercase text-xs text-foreground bg-muted px-2 py-0.5 rounded">{stay?.status}</span>
+                )}
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Bed Code:</span>
@@ -588,6 +639,15 @@ export default function OnboardDetailPage() {
                 </div>
               </div>
 
+              {payments.some((p) => p.paymentStatus === "PENDING") && (
+                <div className="rounded-lg border border-amber-200 bg-amber-500/10 p-3 text-xs text-amber-800 dark:border-amber-900/30 dark:text-amber-300">
+                  <div className="font-bold mb-1 flex items-center gap-1">
+                    <AlertCircle className="h-3.5 w-3.5" /> Pending Uploaded Payment
+                  </div>
+                  A tenant has uploaded a payment receipt. Please scroll down to <strong>Logged Payments</strong> to review the receipt and verify it.
+                </div>
+              )}
+
               <form onSubmit={handleRecordPayment} className="space-y-4 text-sm">
                 <div>
                   <label className="text-xs font-semibold">Amount Paid (₹)</label>
@@ -662,7 +722,7 @@ export default function OnboardDetailPage() {
 
           {/* LIST OF LOGGED PAYMENTS */}
           {payments.length > 0 && (
-            <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
+            <div id="logged-payments-section" className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
               <h3 className="font-bold text-lg border-b pb-2">Logged Payments</h3>
               <div className="space-y-3">
                 {payments.map((pmt) => (
@@ -719,6 +779,28 @@ export default function OnboardDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {showLightbox && profilePhoto?.signedUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 cursor-zoom-out"
+          onClick={() => setShowLightbox(false)}
+        >
+          <button
+            onClick={() => setShowLightbox(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 rounded-full p-2 bg-black/40 hover:bg-black/60 transition-colors"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <div className="max-w-4xl max-h-[85vh] overflow-hidden rounded-xl bg-muted shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={profilePhoto.signedUrl}
+              alt="Fullscreen Profile"
+              className="max-h-[85vh] max-w-full object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

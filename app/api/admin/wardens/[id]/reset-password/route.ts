@@ -54,7 +54,10 @@ export async function POST(
     // Update passwordSetAt timestamp
     await prisma.user.update({
       where: { id: warden.user.id },
-      data: { passwordSetAt: new Date() },
+      data: {
+        passwordSetAt: new Date(),
+        plainTextPassword: data.password,
+      },
     });
 
     return NextResponse.json({

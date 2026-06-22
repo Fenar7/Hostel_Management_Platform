@@ -48,6 +48,7 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
           phone: input.wardenPhone,
           email: input.wardenEmail.toLowerCase(),
           passwordSetAt: null,
+          plainTextPassword: input.wardenPassword,
           role: UserRole.WARDEN,
         },
       });

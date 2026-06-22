@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, UserPlus, Users, Shield, ShieldAlert } from "lucide-react";
+import { Plus, UserPlus, Users, Shield, ShieldAlert, AlertCircle } from "lucide-react";
 import { getAdminPortfolioStats } from "@/services/hostel/dashboard.service";
 import { requireRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
@@ -51,6 +51,22 @@ export default async function AdminPage() {
           </Link>
         </div>
       </div>
+
+      {stats.totalPendingPayments > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-500/10 p-4 text-sm text-amber-800 dark:border-amber-900/30 dark:text-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>
+              <strong>Payment Verification Required:</strong> {stats.totalPendingPayments} onboarding payment(s) have been submitted by tenants and are awaiting warden verification.
+            </span>
+          </div>
+          <Link href="/admin/onboards" className="shrink-0 self-end sm:self-center">
+            <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white border-none text-xs font-semibold">
+              Review Payments
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-lg border bg-card p-6 shadow-sm">

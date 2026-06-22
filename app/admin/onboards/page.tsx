@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, XCircle, Key, Copy, Check, Eye } from "lucide-react";
+import { Loader2, AlertCircle, XCircle, Key, Copy, Check, Eye, ArrowRight } from "lucide-react";
 
 interface OnboardItem {
   id: string;
@@ -11,6 +11,7 @@ interface OnboardItem {
   joiningDate: string;
   endDate: string;
   totalPayable: number;
+  hasPendingPayment?: boolean;
   hostel: { id: string; name: string };
   tenant: {
     id: string;
@@ -135,48 +136,63 @@ export default function AdminOnboardsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Onboarding Requests</h1>
-          <p className="text-muted-foreground">Manage all onboarding requests across all hostels</p>
-        </div>
+    <div className="space-y-10 max-w-7xl mx-auto px-4 py-6">
+      <div className="border-b pb-6">
+        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+          Onboarding Management
+        </h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          Oversee, review, cancel and manage all tenant onboarding flows across all portfolio hostels.
+        </p>
       </div>
 
       {error && (
-        <div className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive max-w-2xl">
           <AlertCircle className="h-5 w-5 shrink-0" />
           <div>{error}</div>
         </div>
       )}
 
-      {/* Awaiting Tenant Form */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          ⏳ Link Sent, Awaiting Form
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{awaitingTenant.length}</span>
-        </h2>
+      {/* 1. LINK SENT, AWAITING FORM */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="text-xl font-bold flex items-center gap-2.5 text-muted-foreground">
+            <span>⏳ Link Sent, Awaiting Registration Form</span>
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
+              {awaitingTenant.length}
+            </span>
+          </h2>
+        </div>
         {awaitingTenant.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
+          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
             All sent onboarding links have been acted upon.
           </div>
         ) : (
-          <div className="border rounded-lg bg-card divide-y overflow-hidden shadow-sm">
+          <div className="border rounded-xl bg-card divide-y overflow-hidden shadow-sm">
             {awaitingTenant.map((item) => (
-              <div key={item.id} className="p-4 flex items-center justify-between gap-4 text-sm">
-                <div>
-                  <p className="font-bold text-foreground">
-                    {item.hostel.name} — {item.tenant.phone}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
+              <div
+                key={item.id}
+                className="group relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 hover:bg-muted/20 transition-all duration-150"
+              >
+                <Link
+                  href={`/warden/onboards/${item.id}`}
+                  className="flex-1 min-w-0 pr-4"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 rounded-full bg-yellow-500 shrink-0" />
+                    <p className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                      {item.hostel.name} &mdash; {item.tenant.phone}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
                     Bed: {item.bed.roomNumber}-{item.bed.label}
                     {item.bed.status === "ON_HOLD" && (
-                      <span className="ml-2 text-amber-600 font-medium">(ON HOLD)</span>
+                      <span className="ml-2 text-amber-600 font-semibold">(ON HOLD)</span>
                     )}
                     &middot; Sent: {item.onboardingRequest ? formatDate(item.onboardingRequest.createdAt) : "—"}
                   </p>
-                </div>
-                <div className="flex items-center gap-2">
+                </Link>
+                <div className="flex items-center gap-2 shrink-0 z-10 self-end sm:self-center">
                   <Button
                     size="sm"
                     variant="ghost"
@@ -187,23 +203,24 @@ export default function AdminOnboardsPage() {
                       )
                     }
                     disabled={!item.onboardingRequest?.id}
-                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20 text-xs font-semibold"
                   >
-                    <Key className="h-4 w-4 mr-1" />
-                    Password
+                    <Key className="h-4 w-4 mr-1.5" />
+                    Reveal Password
                   </Button>
                   <Button
-                    variant="destructive"
+                    variant="ghost"
                     size="sm"
                     disabled={cancelling === item.id}
                     onClick={() => handleCancel(item.id, item.hostel.id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs font-semibold"
                   >
                     {cancelling === item.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <XCircle className="h-4 w-4 mr-1" />
+                      <XCircle className="h-4 w-4 mr-1.5" />
                     )}
-                    Cancel & Free Bed
+                    Cancel Request
                   </Button>
                 </div>
               </div>
@@ -212,119 +229,179 @@ export default function AdminOnboardsPage() {
         )}
       </div>
 
-      {/* Awaiting Review */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          📋 Awaiting Review
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{awaitingReview.length}</span>
-        </h2>
+      {/* 2. AWAITING REVIEW */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+            <span>📋 Awaiting Application Review</span>
+            <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+              {awaitingReview.length}
+            </span>
+          </h2>
+        </div>
         {awaitingReview.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
+          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
             No forms awaiting review.
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             {awaitingReview.map((item) => (
-              <div key={item.id} className="rounded-lg border bg-card p-6 shadow-sm">
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <h3 className="font-bold text-lg">{item.tenant.fullName}</h3>
-                    <p className="text-sm text-muted-foreground">{item.tenant.phone}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{item.hostel.name}</p>
+              <Link
+                href={`/warden/onboards/${item.id}`}
+                key={item.id}
+                className="group relative flex flex-col justify-between rounded-xl border bg-card p-6 shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer duration-200 overflow-hidden"
+              >
+                <div>
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                        {item.hostel.name}
+                      </span>
+                      <h3 className="font-extrabold text-lg text-foreground group-hover:text-primary transition-colors">
+                        {item.tenant.fullName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground font-mono mt-0.5">{item.tenant.phone}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 px-2.5 py-0.5 text-xs font-semibold text-yellow-800 dark:text-yellow-400">
+                        Awaiting Review
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
-                    Awaiting Review
-                  </span>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs border-t pt-4">
-                  <div>
-                    <span className="text-muted-foreground block">Assigned Bed</span>
-                    <span className="font-semibold">{item.bed.roomNumber}-{item.bed.label}</span>
+                  <div className="mt-6 grid grid-cols-2 gap-4 text-xs border-t pt-4 border-muted/50">
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Assigned Bed</span>
+                      <span className="font-semibold text-foreground bg-muted px-2 py-0.5 rounded inline-block">
+                        {item.bed.roomNumber}-{item.bed.label}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Expected Stay</span>
+                      <span className="font-semibold text-foreground">
+                        {formatDate(item.joiningDate)} to {formatDate(item.endDate)}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground block">Stay</span>
-                    <span className="font-semibold">{formatDate(item.joiningDate)} to {formatDate(item.endDate)}</span>
-                  </div>
                 </div>
-                <div className="mt-4">
-                  <Link href={`/warden/onboards/${item.id}`}>
-                    <Button size="sm" variant="outline" className="w-full">
-                      <Eye className="h-4 w-4 mr-1.5" />
-                      Review Application
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
       </div>
 
-      {/* Awaiting Payment */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          💳 Awaiting Payment
-          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800">{awaitingPayment.length}</span>
-        </h2>
+      {/* 3. AWAITING PAYMENT */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+            <span>💳 Awaiting Deposit Payment</span>
+            <span className="rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-bold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+              {awaitingPayment.length}
+            </span>
+          </h2>
+        </div>
         {awaitingPayment.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
+          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
             No approved applications awaiting payments.
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             {awaitingPayment.map((item) => (
-              <div key={item.id} className="rounded-lg border bg-card p-6 shadow-sm">
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <h3 className="font-bold text-lg">{item.tenant.fullName}</h3>
-                    <p className="text-sm text-muted-foreground">{item.tenant.phone}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{item.hostel.name}</p>
+              <Link
+                href={`/warden/onboards/${item.id}`}
+                key={item.id}
+                className="group relative flex flex-col justify-between rounded-xl border bg-card p-6 shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer duration-200 overflow-hidden"
+              >
+                <div>
+                  <div className="flex justify-between items-start gap-4">
+                    <div>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                        {item.hostel.name}
+                      </span>
+                      <h3 className="font-extrabold text-lg text-foreground group-hover:text-primary transition-colors">
+                        {item.tenant.fullName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground font-mono mt-0.5">{item.tenant.phone}</p>
+                      {item.hasPendingPayment && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-2.5 py-1 text-[10px] font-extrabold text-amber-700 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                            ⚡ Payment Uploaded (Verify Now)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {item.hasPendingPayment ? (
+                        <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                          ⚡ Verify Payment
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:text-blue-400">
+                          Awaiting Payment
+                        </span>
+                      )}
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800">
-                    Awaiting Payment
-                  </span>
+                  <div className="mt-6 grid grid-cols-2 gap-4 text-xs border-t pt-4 border-muted/50">
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Total Payable</span>
+                      <span className="font-bold text-sm text-primary">
+                        ₹ {item.totalPayable.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block mb-0.5">Bed Assignment</span>
+                      <span className="font-semibold text-foreground bg-muted px-2 py-0.5 rounded inline-block">
+                        {item.bed.roomNumber}-{item.bed.label}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs border-t pt-4">
-                  <div>
-                    <span className="text-muted-foreground block">Total Due</span>
-                    <span className="font-semibold text-sm">₹{item.totalPayable.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block">Bed</span>
-                    <span className="font-semibold">{item.bed.roomNumber}-{item.bed.label}</span>
-                  </div>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
       </div>
 
-      {/* Active Stays */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          ✅ Active Stays
-          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">{activeStays.length}</span>
-        </h2>
+      {/* 4. ACTIVE STAYS */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+            <span>✅ Recently Activated Stays</span>
+            <span className="rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-bold text-green-600 dark:bg-green-900/30 dark:text-green-400">
+              {activeStays.length}
+            </span>
+          </h2>
+        </div>
         {activeStays.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
+          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
             No active stays.
           </div>
         ) : (
-          <div className="border rounded-lg bg-card divide-y overflow-hidden shadow-sm">
+          <div className="border rounded-xl bg-card divide-y overflow-hidden shadow-sm">
             {activeStays.map((item) => (
-              <div key={item.id} className="p-4 flex items-center justify-between gap-4 text-sm">
-                <div>
-                  <p className="font-semibold text-foreground">{item.tenant.fullName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.hostel.name} &middot; {item.bed.roomNumber}-{item.bed.label}
-                    &middot; {formatDate(item.joiningDate)} to {formatDate(item.endDate)}
+              <Link
+                key={item.id}
+                href={`/warden/onboards/${item.id}`}
+                className="group relative flex items-center justify-between gap-4 p-5 hover:bg-muted/20 transition-all duration-150"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                    {item.tenant.fullName}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {item.hostel.name} &middot; Bed: {item.bed.roomNumber}-{item.bed.label}
+                    &middot; Term: {formatDate(item.joiningDate)} to {formatDate(item.endDate)}
                   </p>
                 </div>
-                <span className="inline-flex items-center gap-1 rounded bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
-                  Active
-                </span>
-              </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-xs font-semibold text-green-800 dark:text-green-400">
+                    Active
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </div>
+              </Link>
             ))}
           </div>
         )}
@@ -332,47 +409,50 @@ export default function AdminOnboardsPage() {
 
       {/* Password Reveal Modal */}
       {passwordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-w-sm w-full rounded-lg border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b px-5 py-3">
-              <h3 className="font-bold text-sm flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="max-w-sm w-full rounded-xl border bg-card shadow-2xl overflow-hidden transform scale-100 transition-all duration-200">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <h3 className="font-extrabold text-sm flex items-center gap-2.5">
                 <Key className="h-4 w-4 text-amber-500" />
                 Access Password
               </h3>
               <button
-                onClick={() => { setPasswordModal(null); setRevealedPassword(""); }}
-                className="rounded-full p-1 text-muted-foreground hover:bg-muted"
+                onClick={() => {
+                  setPasswordModal(null);
+                  setRevealedPassword("");
+                }}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted transition-colors"
               >
                 <XCircle className="h-4 w-4" />
               </button>
             </div>
-            <div className="px-5 py-4 space-y-4">
+            <div className="px-6 py-5 space-y-4">
               <p className="text-xs text-muted-foreground">
-                Phone: {passwordModal.phone}
+                Phone Number: <span className="font-mono text-foreground font-semibold">{passwordModal.phone}</span>
               </p>
 
               {passwordError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
                   {passwordError}
                 </div>
               )}
 
               {passwordLoading ? (
-                <div className="flex items-center justify-center py-6">
+                <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : revealedPassword ? (
                 <>
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/30 p-4 text-center">
-                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-2">
-                      One-time Password
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/30 p-5 text-center">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">
+                      One-time Portal Password
                     </p>
-                    <p className="text-2xl font-bold font-mono tracking-wider text-amber-900 dark:text-amber-200 select-all">
+                    <p className="text-3xl font-extrabold font-mono tracking-wider text-amber-900 dark:text-amber-200 select-all">
                       {revealedPassword}
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    A new password was generated. The old one is no longer valid.
+                  <p className="text-xs text-muted-foreground leading-normal">
+                    This password was generated fresh. Old passwords are invalidated.
                   </p>
                   <Button
                     onClick={async () => {
@@ -392,21 +472,28 @@ export default function AdminOnboardsPage() {
                       }
                     }}
                     variant="outline"
-                    className="w-full"
+                    className="w-full flex items-center justify-center gap-2 border-amber-300 dark:border-amber-900 text-amber-800 dark:text-amber-300 font-semibold"
                   >
                     {passwordCopied ? (
-                      <><Check className="h-4 w-4 mr-2" /> Copied!</>
+                      <>
+                        <Check className="h-4 w-4" /> Copied!
+                      </>
                     ) : (
-                      <><Copy className="h-4 w-4 mr-2" /> Copy Password</>
+                      <>
+                        <Copy className="h-4 w-4" /> Copy Password
+                      </>
                     )}
                   </Button>
                 </>
               ) : null}
             </div>
             {revealedPassword && (
-              <div className="flex justify-end border-t px-5 py-3">
+              <div className="flex justify-end border-t px-6 py-3.5 bg-muted/20">
                 <Button
-                  onClick={() => { setPasswordModal(null); setRevealedPassword(""); }}
+                  onClick={() => {
+                    setPasswordModal(null);
+                    setRevealedPassword("");
+                  }}
                   size="sm"
                 >
                   Done

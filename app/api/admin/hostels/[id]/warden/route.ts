@@ -103,6 +103,7 @@ export async function POST(
             phone: data.phone,
             email: data.email?.toLowerCase() || null,
             passwordSetAt: null,
+            plainTextPassword: data.password,
             role: UserRole.WARDEN,
           },
         });

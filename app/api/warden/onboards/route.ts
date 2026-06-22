@@ -34,6 +34,11 @@ export async function GET(request: NextRequest) {
             room: true,
           },
         },
+        payments: {
+          select: {
+            paymentStatus: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -59,12 +64,14 @@ export async function GET(request: NextRequest) {
         joiningDate: stay.joiningDate,
         endDate: stay.endDate,
         totalPayable: stay.totalPayablePaise / 100, // paise to rupees
+        hasPendingPayment: stay.payments.some((p) => p.paymentStatus === "PENDING"),
         tenant: {
           id: stay.tenant.id,
           fullName: stay.tenant.fullName,
           phone: stay.tenant.user?.phone || matchingReq?.phone || "",
           gender: stay.tenant.gender,
           hasProfile: stay.tenant.userId !== null,
+          plainTextPassword: stay.tenant.user?.plainTextPassword || null,
         },
         bed: {
           id: stay.bed.id,

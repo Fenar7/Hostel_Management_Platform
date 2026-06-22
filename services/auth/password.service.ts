@@ -77,4 +77,12 @@ export async function resetPasswordViaAdmin(targetUserId: string, newPassword: s
   if (error) {
     throw new Error(`Failed to reset password: ${error.message}`);
   }
+
+  await prisma.user.update({
+    where: { id: targetUserId },
+    data: {
+      passwordSetAt: new Date(),
+      plainTextPassword: newPassword,
+    },
+  });
 }

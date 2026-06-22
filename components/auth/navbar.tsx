@@ -56,6 +56,12 @@ export function Navbar({ userName, role }: NavbarProps) {
               Onboards
             </Link>
             <Link
+              href="/admin/users"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Users
+            </Link>
+            <Link
               href="/warden/onboard"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >

@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const dbUser = await fetchUserBySupabaseId(authUser.id);
-    await setUserPasswordSetAt(dbUser.id);
+    await setUserPasswordSetAt(dbUser.id, password);
 
     const redirectMap = {
       MAIN_ADMIN: "/admin",

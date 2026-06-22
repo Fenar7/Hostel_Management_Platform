@@ -11,6 +11,7 @@ interface OnboardItem {
   joiningDate: string;
   endDate: string;
   totalPayable: number;
+  hasPendingPayment?: boolean;
   tenant: {
     id: string;
     fullName: string;
@@ -149,11 +150,18 @@ export default function WardenOnboardsPage() {
     });
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, hasPendingPayment?: boolean) => {
     switch (status) {
       case "ONBOARDING_PENDING":
         return <span className="inline-flex items-center gap-1 rounded bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"><Clock className="h-3 w-3" /> Awaiting Form</span>;
       case "APPROVED_AWAITING_PAYMENT":
+        if (hasPendingPayment) {
+          return (
+            <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+              ⚡ Verify Payment
+            </span>
+          );
+        }
         return <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"><FileText className="h-3 w-3" /> Awaiting Payment</span>;
       case "ACTIVE":
       case "EXTENDED":
@@ -164,117 +172,177 @@ export default function WardenOnboardsPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Onboarding Requests &amp; Applications</h1>
-        <p className="text-muted-foreground">Review registrations, record payments and activate stays</p>
+    <div className="space-y-10 max-w-7xl mx-auto px-4 py-6">
+      <div className="border-b pb-6">
+        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+          Onboarding Applications
+        </h1>
+        <p className="text-sm text-muted-foreground mt-2">
+          Verify documents, record deposits, activate resident stays and retrieve access passwords.
+        </p>
       </div>
 
       {/* 1. AWAITING WARDEN REVIEW (Tenant form completed) */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          📋 Awaiting Review <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{awaitingReview.length}</span>
-        </h2>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+            <span>📋 Awaiting Warden Review</span>
+            <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+              {awaitingReview.length}
+            </span>
+          </h2>
+        </div>
         {awaitingReview.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
+          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
             No registration forms awaiting review right now.
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             {awaitingReview.map((item) => (
-              <div key={item.id} className="rounded-lg border bg-card p-6 shadow-sm flex flex-col justify-between">
+              <Link
+                href={`/warden/onboards/${item.id}`}
+                key={item.id}
+                className="group relative flex flex-col justify-between rounded-xl border bg-card p-6 shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer duration-200 overflow-hidden"
+              >
                 <div>
                   <div className="flex justify-between items-start gap-4">
                     <div>
-                      <h3 className="font-bold text-lg">{item.tenant.fullName}</h3>
-                      <p className="text-sm text-muted-foreground">{item.tenant.phone}</p>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                        Application Form Complete
+                      </span>
+                      <h3 className="font-extrabold text-lg text-foreground group-hover:text-primary transition-colors">
+                        {item.tenant.fullName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground font-mono mt-0.5">{item.tenant.phone}</p>
                     </div>
-                    {getStatusBadge(item.status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(item.status)}
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs border-t pt-4">
+                  <div className="mt-6 grid grid-cols-2 gap-4 text-xs border-t pt-4 border-muted/50">
                     <div>
-                      <span className="text-muted-foreground block">Assigned Bed</span>
-                      <span className="font-semibold">{item.bed.roomNumber} - {item.bed.label}</span>
+                      <span className="text-muted-foreground block mb-0.5">Assigned Bed</span>
+                      <span className="font-semibold text-foreground bg-muted px-2 py-0.5 rounded inline-block">
+                        {item.bed.roomNumber} - {item.bed.label}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block">Expected Stay</span>
-                      <span className="font-semibold">{formatDate(item.joiningDate)} to {formatDate(item.endDate)}</span>
+                      <span className="text-muted-foreground block mb-0.5">Expected Stay</span>
+                      <span className="font-semibold text-foreground">
+                        {formatDate(item.joiningDate)} to {formatDate(item.endDate)}
+                      </span>
                     </div>
                   </div>
                 </div>
-                <div className="mt-6">
-                  <Link href={`/warden/onboards/${item.id}`}>
-                    <Button className="w-full flex items-center justify-center gap-2">
-                      <Eye className="h-4 w-4" /> Review Profile &amp; Documents
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
       </div>
 
       {/* 2. AWAITING PAYMENT (Approved by Warden) */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          💳 Awaiting Payment <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">{awaitingPayment.length}</span>
-        </h2>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+            <span>💳 Awaiting Deposit Payment</span>
+            <span className="rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-bold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+              {awaitingPayment.length}
+            </span>
+          </h2>
+        </div>
         {awaitingPayment.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
+          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
             No approved applications awaiting payments.
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             {awaitingPayment.map((item) => (
-              <div key={item.id} className="rounded-lg border bg-card p-6 shadow-sm flex flex-col justify-between">
+              <Link
+                href={`/warden/onboards/${item.id}`}
+                key={item.id}
+                className="group relative flex flex-col justify-between rounded-xl border bg-card p-6 shadow-sm hover:shadow-md hover:border-primary/50 transition-all cursor-pointer duration-200 overflow-hidden"
+              >
                 <div>
                   <div className="flex justify-between items-start gap-4">
                     <div>
-                      <h3 className="font-bold text-lg">{item.tenant.fullName}</h3>
-                      <p className="text-sm text-muted-foreground">{item.tenant.phone}</p>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                        Approved Stay &amp; Rent Set
+                      </span>
+                      <h3 className="font-extrabold text-lg text-foreground group-hover:text-primary transition-colors">
+                        {item.tenant.fullName}
+                      </h3>
+                      <p className="text-sm text-muted-foreground font-mono mt-0.5">{item.tenant.phone}</p>
+                      {item.hasPendingPayment && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/15 px-2.5 py-1 text-[10px] font-extrabold text-amber-700 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+                            ⚡ Payment Uploaded (Verify Now)
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    {getStatusBadge(item.status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(item.status, item.hasPendingPayment)}
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs border-t pt-4">
+                  <div className="mt-6 grid grid-cols-2 gap-4 text-xs border-t pt-4 border-muted/50">
                     <div>
-                      <span className="text-muted-foreground block">Total Amount Due</span>
-                      <span className="font-semibold text-sm text-primary">₹ {item.totalPayable.toLocaleString("en-IN")}</span>
+                      <span className="text-muted-foreground block mb-0.5">Total Amount Due</span>
+                      <span className="font-bold text-sm text-primary">
+                        ₹ {item.totalPayable.toLocaleString("en-IN")}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block">Bed Assignment</span>
-                      <span className="font-semibold">{item.bed.roomNumber} - {item.bed.label}</span>
+                      <span className="text-muted-foreground block mb-0.5">Bed Assignment</span>
+                      <span className="font-semibold text-foreground bg-muted px-2 py-0.5 rounded inline-block">
+                        {item.bed.roomNumber} - {item.bed.label}
+                      </span>
                     </div>
                   </div>
                 </div>
-                <div className="mt-6">
-                  <Link href={`/warden/onboards/${item.id}`}>
-                    <Button variant="outline" className="w-full flex items-center justify-center gap-2 border-blue-200 text-blue-800 hover:bg-blue-50 dark:border-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/20">
-                      Record Payment &amp; Activate <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
       </div>
 
       {/* 3. AWAITING TENANT FORM SUBMISSION */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2 text-muted-foreground">
-          ⏳ Pending Tenant Registration <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">{awaitingTenant.length}</span>
-        </h2>
-        {awaitingTenant.length > 0 && (
-          <div className="border rounded-lg bg-card/40 divide-y overflow-hidden shadow-sm">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="text-xl font-bold flex items-center gap-2.5 text-muted-foreground">
+            <span>⏳ Link Sent, Awaiting Registration Form</span>
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
+              {awaitingTenant.length}
+            </span>
+          </h2>
+        </div>
+        {awaitingTenant.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
+            All sent onboarding links have been acted upon.
+          </div>
+        ) : (
+          <div className="border rounded-xl bg-card divide-y overflow-hidden shadow-sm">
             {awaitingTenant.map((item) => (
-              <div key={item.id} className="p-4 flex items-center justify-between gap-4 text-sm">
-                <div>
-                  <p className="font-bold text-foreground">Phone: {item.tenant.phone}</p>
-                  <p className="text-xs text-muted-foreground">Assigned bed: {item.bed.roomNumber} - {item.bed.label} &middot; Expected Joining: {formatDate(item.joiningDate)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Link sent, awaiting form...</span>
+              <div
+                key={item.id}
+                className="group relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 hover:bg-muted/20 transition-all duration-150"
+              >
+                <Link
+                  href={`/warden/onboards/${item.id}`}
+                  className="flex-1 min-w-0 pr-4"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Clock className="h-4 w-4 text-yellow-500 shrink-0" />
+                    <p className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                      Prospect: {item.tenant.phone}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Bed: {item.bed.roomNumber} - {item.bed.label} &middot; Expected Joining: {formatDate(item.joiningDate)} &middot; Created: {item.onboardingRequest ? formatDate(item.onboardingRequest.createdAt) : "—"}
+                  </p>
+                </Link>
+                <div className="flex items-center gap-2 shrink-0 z-10 self-end sm:self-center">
                   <Button
                     size="sm"
                     variant="ghost"
@@ -285,28 +353,25 @@ export default function WardenOnboardsPage() {
                       )
                     }
                     disabled={!item.onboardingRequest?.id}
-                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                    className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/20 text-xs font-semibold"
                   >
-                    <Key className="h-4 w-4 mr-1" />
-                    Password
+                    <Key className="h-4 w-4 mr-1.5" />
+                    Reveal Password
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => handleCancel(item.id)}
                     disabled={cancellingId === item.id}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs font-semibold"
                   >
                     {cancellingId === item.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <XCircle className="h-4 w-4 mr-1" />
+                      <XCircle className="h-4 w-4 mr-1.5" />
                     )}
-                    Cancel
+                    Cancel Request
                   </Button>
-                  <Link href={`/warden/onboards/${item.id}`}>
-                    <Button size="sm" variant="ghost">View Details</Button>
-                  </Link>
                 </div>
               </div>
             ))}
@@ -315,78 +380,91 @@ export default function WardenOnboardsPage() {
       </div>
 
       {/* 4. ACTIVE RESIDENTS HISTORY */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          ✅ Recently Activated Stays <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-400">{activeStays.length}</span>
-        </h2>
-        {activeStays.length > 0 ? (
-          <div className="border rounded-lg bg-card divide-y overflow-hidden shadow-sm">
-            {activeStays.map((item) => (
-              <div key={item.id} className="p-4 flex items-center justify-between gap-4 text-sm">
-                <div>
-                  <p className="font-semibold text-foreground">{item.tenant.fullName}</p>
-                  <p className="text-xs text-muted-foreground">Bed: {item.bed.roomNumber} - {item.bed.label} &middot; Term: {formatDate(item.joiningDate)} to {formatDate(item.endDate)}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {getStatusBadge(item.status)}
-                  <Link href={`/warden/onboards/${item.id}`}>
-                    <Button size="sm" variant="outline">View Stay</Button>
-                  </Link>
-                </div>
-              </div>
-            ))}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="text-xl font-bold flex items-center gap-2.5 text-foreground">
+            <span>✅ Recently Activated Stays</span>
+            <span className="rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-bold text-green-600 dark:bg-green-900/30 dark:text-green-400">
+              {activeStays.length}
+            </span>
+          </h2>
+        </div>
+        {activeStays.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm bg-card/25 shadow-sm">
+            No recently activated stays to show.
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground text-sm">
-            No recently activated stays to show.
+          <div className="border rounded-xl bg-card divide-y overflow-hidden shadow-sm">
+            {activeStays.map((item) => (
+              <Link
+                key={item.id}
+                href={`/warden/onboards/${item.id}`}
+                className="group relative flex items-center justify-between gap-4 p-5 hover:bg-muted/20 transition-all duration-150"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                    {item.tenant.fullName}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Bed: {item.bed.roomNumber} - {item.bed.label} &middot; Term: {formatDate(item.joiningDate)} to {formatDate(item.endDate)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 shrink-0">
+                  {getStatusBadge(item.status)}
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </div>
 
       {/* Password Reveal Modal */}
       {passwordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-w-sm w-full rounded-lg border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b px-5 py-3">
-              <h3 className="font-bold text-sm flex items-center gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="max-w-sm w-full rounded-xl border bg-card shadow-2xl overflow-hidden transform scale-100 transition-all duration-200">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <h3 className="font-extrabold text-sm flex items-center gap-2.5">
                 <Key className="h-4 w-4 text-amber-500" />
                 Access Password
               </h3>
               <button
-                onClick={() => { setPasswordModal(null); setRevealedPassword(""); }}
-                className="rounded-full p-1 text-muted-foreground hover:bg-muted"
+                onClick={() => {
+                  setPasswordModal(null);
+                  setRevealedPassword("");
+                }}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted transition-colors"
               >
                 <XCircle className="h-4 w-4" />
               </button>
             </div>
-            <div className="px-5 py-4 space-y-4">
+            <div className="px-6 py-5 space-y-4">
               <p className="text-xs text-muted-foreground">
-                Phone: {passwordModal.phone}
+                Phone Number: <span className="font-mono text-foreground font-semibold">{passwordModal.phone}</span>
               </p>
 
               {passwordError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
                   {passwordError}
                 </div>
               )}
 
               {passwordLoading ? (
-                <div className="flex items-center justify-center py-6">
+                <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : revealedPassword ? (
                 <>
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/30 p-4 text-center">
-                    <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-2">
-                      One-time Password
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/30 p-5 text-center">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">
+                      One-time Portal Password
                     </p>
-                    <p className="text-2xl font-bold font-mono tracking-wider text-amber-900 dark:text-amber-200 select-all">
+                    <p className="text-3xl font-extrabold font-mono tracking-wider text-amber-900 dark:text-amber-200 select-all">
                       {revealedPassword}
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    A new password was generated. The old one is no longer valid.
-                    Share this with the prospect.
+                  <p className="text-xs text-muted-foreground leading-normal">
+                    This password was generated fresh. Old passwords are invalidated. Provide it to the prospect to log in.
                   </p>
                   <Button
                     onClick={async () => {
@@ -406,21 +484,28 @@ export default function WardenOnboardsPage() {
                       }
                     }}
                     variant="outline"
-                    className="w-full"
+                    className="w-full flex items-center justify-center gap-2 border-amber-300 dark:border-amber-900 text-amber-800 dark:text-amber-300 font-semibold"
                   >
                     {passwordCopied ? (
-                      <><Check className="h-4 w-4 mr-2" /> Copied!</>
+                      <>
+                        <Check className="h-4 w-4" /> Copied!
+                      </>
                     ) : (
-                      <><Copy className="h-4 w-4 mr-2" /> Copy Password</>
+                      <>
+                        <Copy className="h-4 w-4" /> Copy Password
+                      </>
                     )}
                   </Button>
                 </>
               ) : null}
             </div>
             {revealedPassword && (
-              <div className="flex justify-end border-t px-5 py-3">
+              <div className="flex justify-end border-t px-6 py-3.5 bg-muted/20">
                 <Button
-                  onClick={() => { setPasswordModal(null); setRevealedPassword(""); }}
+                  onClick={() => {
+                    setPasswordModal(null);
+                    setRevealedPassword("");
+                  }}
                   size="sm"
                 >
                   Done
