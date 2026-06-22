@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { authorizePasswordReset, resetPasswordViaAdmin } from "@/services/auth/password.service";
 import { handleApiError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, extractIp } from "@/lib/rate-limit";
 
 const resetPasswordSchema = z.object({
   targetUserId: z.string().uuid(),
@@ -14,8 +14,8 @@ const resetPasswordSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown-ip";
-    const rl = rateLimit(`reset_pwd_${ip}`, { limit: 10, windowMs: 60 * 1000 });
+    const ip = extractIp(request);
+    const rl = await rateLimit(`reset_pwd_${ip}`, { limit: 10, windowMs: 60 * 1000 });
     
     if (!rl.success) {
       return Response.json(

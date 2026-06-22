@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/auth/server";
 import { fetchUserBySupabaseId, setUserPasswordSetAt } from "@/services/auth/auth.service";
 import { handleApiError } from "@/lib/errors";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, extractIp } from "@/lib/rate-limit";
 
 const setPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -15,8 +15,8 @@ const setPasswordSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get("x-forwarded-for") || "unknown-ip";
-    const rl = rateLimit(`set_pwd_${ip}`, { limit: 10, windowMs: 60 * 1000 });
+    const ip = extractIp(request);
+    const rl = await rateLimit(`set_pwd_${ip}`, { limit: 10, windowMs: 60 * 1000 });
     
     if (!rl.success) {
       return NextResponse.json(
