@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft, Plus, Check, X } from "lucide-react";
 import Link from "next/link";
 
 const AccommodationType = {
@@ -20,6 +20,7 @@ const createHostelSchema = z.object({
   accommodationType: z.enum(["MENS", "WOMENS"], {
     message: "Select a valid accommodation type",
   }),
+  locationId: z.string().optional().nullable(),
   wardenEmail: z.string().email("Invalid email for warden"),
   wardenPhone: z
     .string()
@@ -34,17 +35,70 @@ export default function NewHostelPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
+  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
+  const [isAddingLocation, setIsAddingLocation] = useState(false);
+  const [isAddingLocationApi, setIsAddingLocationApi] = useState(false);
+  const [newLocationName, setNewLocationName] = useState("");
+  const [locationError, setLocationError] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<HostelFormValues>({
     resolver: zodResolver(createHostelSchema),
     defaultValues: {
       accommodationType: AccommodationType.MENS,
       wardenPhone: "+91",
+      locationId: "",
     },
   });
+
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const res = await fetch("/api/admin/locations");
+        if (res.ok) {
+          const data = await res.json();
+          setLocations(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch locations", err);
+      }
+    }
+    fetchLocations();
+  }, []);
+
+  async function handleAddLocation() {
+    if (!newLocationName.trim()) return;
+    setIsAddingLocationApi(true);
+    setLocationError(null);
+    try {
+      const res = await fetch("/api/admin/locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newLocationName }),
+      });
+      if (res.ok) {
+        const newLoc = await res.json();
+        setLocations((prev) => {
+          if (prev.some((l) => l.id === newLoc.id)) return prev;
+          return [...prev, newLoc].sort((a, b) => a.name.localeCompare(b.name));
+        });
+        setValue("locationId", newLoc.id);
+        setNewLocationName("");
+        setIsAddingLocation(false);
+      } else {
+        const err = await res.json();
+        setLocationError(err.error || "Failed to add location");
+      }
+    } catch (err) {
+      setLocationError("Error adding location");
+    } finally {
+      setIsAddingLocationApi(false);
+    }
+  }
 
   async function onSubmit(data: HostelFormValues) {
     setServerError(null);
@@ -130,6 +184,89 @@ export default function NewHostelPage() {
                 <p className="text-destructive text-xs">{errors.accommodationType.message}</p>
               )}
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="locationId" className="text-sm font-medium">
+              Location / Area
+            </label>
+            {!isAddingLocation ? (
+              <div className="flex gap-2">
+                <select
+                  id="locationId"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  {...register("locationId")}
+                >
+                  <option value="">Select location (e.g. Kannur, Kozhikode)</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={() => setIsAddingLocation(true)}
+                  title="Add new location"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="Enter new location name (e.g. Kannur)"
+                    value={newLocationName}
+                    onChange={(e) => {
+                      setNewLocationName(e.target.value);
+                      setLocationError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddLocation();
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleAddLocation}
+                    disabled={isAddingLocationApi}
+                  >
+                    {isAddingLocationApi ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 shrink-0"
+                    onClick={() => {
+                      setIsAddingLocation(false);
+                      setNewLocationName("");
+                      setLocationError(null);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                {locationError && (
+                  <p className="text-destructive text-xs">{locationError}</p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-1">

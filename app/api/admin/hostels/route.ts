@@ -15,6 +15,7 @@ const createHostelSchema = z.object({
     .string()
     .regex(/^\+\d{1,3}\d{6,14}$/, "Phone must start with country code (e.g. +91)"),
   wardenPassword: z.string().min(8, "Password must be at least 8 characters"),
+  locationId: z.string().nullable().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -38,6 +39,7 @@ export async function GET() {
     const hostels = await prisma.hostel.findMany({
       orderBy: { name: "asc" },
       include: {
+        location: true,
         warden: {
           include: {
             user: {

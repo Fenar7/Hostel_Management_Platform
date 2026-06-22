@@ -10,6 +10,7 @@ export interface CreateHostelInput {
   wardenEmail: string;
   wardenPhone: string;
   wardenPassword: string;
+  locationId?: string | null;
 }
 
 export async function createHostelWithWarden(input: CreateHostelInput) {
@@ -56,6 +57,7 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
           name: input.name,
           address: input.address,
           accommodationType: input.accommodationType,
+          locationId: input.locationId || null,
         },
       });
 
@@ -75,6 +77,7 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
         name: hostel.name,
         address: hostel.address,
         accommodationType: hostel.accommodationType,
+        locationId: hostel.locationId || null,
       },
       warden: {
         id: dbUser.id,

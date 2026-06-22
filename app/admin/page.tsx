@@ -84,6 +84,11 @@ export default async function AdminPage() {
                   >
                     {hostel.accommodationType === "MENS" ? "Men's" : "Women's"}
                   </span>
+                  {hostel.location && (
+                    <span className="rounded-full bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-0.5 text-xs font-medium border">
+                      {hostel.location.name}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">{hostel.address}</p>
               </div>

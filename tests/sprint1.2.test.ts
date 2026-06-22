@@ -164,6 +164,7 @@ describe("Task A: Hostel Creation with Warden Provisioning", () => {
         name: "Test Hostel",
         address: "123 Test St",
         accommodationType: AccommodationType.MENS,
+        locationId: null,
       },
     });
 
@@ -180,6 +181,7 @@ describe("Task A: Hostel Creation with Warden Provisioning", () => {
         name: "Test Hostel",
         address: "123 Test St",
         accommodationType: AccommodationType.MENS,
+        locationId: null,
       },
       warden: {
         id: "db-user-123",

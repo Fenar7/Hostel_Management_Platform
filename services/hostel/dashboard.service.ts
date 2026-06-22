@@ -6,6 +6,7 @@ export interface HostelStats {
   name: string;
   address: string;
   accommodationType: string;
+  location?: { id: string; name: string } | null;
   totalBeds: number;
   occupiedBeds: number;
   availableBeds: number;
@@ -38,6 +39,12 @@ export async function getAdminPortfolioStats(): Promise<AdminPortfolioStats> {
       name: true,
       address: true,
       accommodationType: true,
+      location: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       floors: {
         select: {
           rooms: { select: { _count: { select: { beds: true } } } },
@@ -94,6 +101,7 @@ export async function getAdminPortfolioStats(): Promise<AdminPortfolioStats> {
       name: hostel.name,
       address: hostel.address,
       accommodationType: hostel.accommodationType,
+      location: hostel.location,
       totalBeds,
       occupiedBeds,
       availableBeds,
