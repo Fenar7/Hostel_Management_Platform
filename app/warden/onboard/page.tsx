@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
+import { notify } from "@/lib/toast";
 import { DurationType, FoodPlan } from "@prisma/client";
 import { onboardingLinkWithPassword } from "@/lib/whatsapp/templates";
 import { buildWaMeLink } from "@/lib/whatsapp/utils";
@@ -46,7 +47,6 @@ export default function WardenOnboardPage() {
   const [availableBeds, setAvailableBeds] = useState<AvailableBed[]>([]);
   const [selectedBedId, setSelectedBedId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [submittedLink, setSubmittedLink] = useState("");
   const [submittedPassword, setSubmittedPassword] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
@@ -93,16 +93,15 @@ export default function WardenOnboardPage() {
 
   const handleSearchBeds = async () => {
     if (!joiningDate || !endDate) {
-      setError("Please select both joining date and end date");
+      notify.error("Please select both joining date and end date");
       return;
     }
     if (new Date(endDate) <= new Date(joiningDate)) {
-      setError("End date must be after joining date");
+      notify.error("End date must be after joining date");
       return;
     }
 
     setLoading(true);
-    setError("");
     setAvailableBeds([]);
     setSelectedBedId("");
 
@@ -128,10 +127,10 @@ export default function WardenOnboardPage() {
       setAvailableBeds(data.availableBeds);
 
       if (data.availableBeds.length === 0) {
-        setError("No available beds found for the selected date range.");
+        notify.error("No available beds found for the selected date range.");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -139,18 +138,17 @@ export default function WardenOnboardPage() {
 
   const handleSubmit = async () => {
     if (!selectedBedId) {
-      setError("Please select a bed");
+      notify.error("Please select a bed");
       return;
     }
     if (totalPayable < 0) {
-      setError(
+      notify.error(
         "Total payable cannot be negative. Please check your discount amount."
       );
       return;
     }
 
     setLoading(true);
-    setError("");
 
     try {
       const payload: Record<string, unknown> = {
@@ -189,7 +187,7 @@ export default function WardenOnboardPage() {
       setSubmittedPassword(data.tempPassword || "");
       setStep(5);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -284,12 +282,6 @@ export default function WardenOnboardPage() {
         ))}
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-200">
-          {error}
-        </div>
-      )}
-
       <div className="rounded-lg border bg-card shadow-sm">
         <div className="p-6">
           {/* ── Step 1: Hostel Selection (admin only, when no hostel pre-selected) ── */}
@@ -331,11 +323,10 @@ export default function WardenOnboardPage() {
                 <Button
                   onClick={() => {
                     if (!selectedHostelId) {
-                      setError("Please select a hostel");
+                      notify.error("Please select a hostel");
                       return;
                     }
                     setStep(2);
-                    setError("");
                   }}
                   className="flex-1"
                 >
@@ -377,7 +368,6 @@ export default function WardenOnboardPage() {
                 onClick={() => {
                   if (handlePhoneValidation()) {
                     setStep(2);
-                    setError("");
                   }
                 }}
                 className="w-full"
@@ -419,7 +409,6 @@ export default function WardenOnboardPage() {
                   variant="outline"
                   onClick={() => {
                     setStep(1);
-                    setError("");
                   }}
                 >
                   Back
@@ -428,7 +417,6 @@ export default function WardenOnboardPage() {
                   onClick={() => {
                     if (handlePhoneValidation()) {
                       setStep(3);
-                      setError("");
                     }
                   }}
                   className="flex-1"
@@ -525,7 +513,6 @@ export default function WardenOnboardPage() {
                   variant="outline"
                   onClick={() => {
                     setStep(showHostelPicker ? 2 : 1);
-                    setError("");
                   }}
                 >
                   Back
@@ -533,7 +520,6 @@ export default function WardenOnboardPage() {
                 <Button
                   onClick={() => {
                     setStep(showHostelPicker ? 4 : 3);
-                    setError("");
                   }}
                   disabled={!selectedBedId}
                   className="flex-1"
@@ -731,7 +717,6 @@ export default function WardenOnboardPage() {
                   variant="outline"
                   onClick={() => {
                     setStep(showHostelPicker ? 3 : 2);
-                    setError("");
                   }}
                 >
                   Back
@@ -739,7 +724,6 @@ export default function WardenOnboardPage() {
                 <Button
                   onClick={() => {
                     setStep(showHostelPicker ? 5 : 4);
-                    setError("");
                   }}
                   disabled={totalPayable < 0}
                   className="flex-1"
@@ -817,7 +801,6 @@ export default function WardenOnboardPage() {
                   onClick={() => {
                     setConfirmed(false);
                     setStep(showHostelPicker ? 4 : 3);
-                    setError("");
                   }}
                 >
                   Back

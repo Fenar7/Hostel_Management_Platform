@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { notify } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 
@@ -60,13 +61,11 @@ export default function WardenLeadsPage() {
   const [logSource, setLogSource] = useState("MANUAL");
   const [logNotes, setLogNotes] = useState("");
   const [logLoading, setLogLoading] = useState(false);
-  const [logError, setLogError] = useState("");
 
   // Detail modal state
   const [detailNote, setDetailNote] = useState("");
   const [detailStatus, setDetailStatus] = useState("");
   const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState("");
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -96,11 +95,10 @@ export default function WardenLeadsPage() {
 
   const handleLogEnquiry = async () => {
     if (!logPhone.trim()) {
-      setLogError("Phone number is required");
+      notify.error("Phone number is required");
       return;
     }
     setLogLoading(true);
-    setLogError("");
     try {
       const res = await fetch("/api/warden/leads", {
         method: "POST",
@@ -121,7 +119,7 @@ export default function WardenLeadsPage() {
       setLogNotes("");
       await fetchLeads();
     } catch (err: any) {
-      setLogError(err.message);
+      notify.error(err.message);
     } finally {
       setLogLoading(false);
     }
@@ -131,14 +129,12 @@ export default function WardenLeadsPage() {
     setSelectedLead(lead);
     setDetailStatus(lead.status);
     setDetailNote("");
-    setDetailError("");
     setShowDetailModal(true);
   };
 
   const handleUpdateLead = async () => {
     if (!selectedLead) return;
     setDetailLoading(true);
-    setDetailError("");
     try {
       const body: any = {};
       if (detailStatus !== selectedLead.status) {
@@ -163,7 +159,7 @@ export default function WardenLeadsPage() {
       setShowDetailModal(false);
       await fetchLeads();
     } catch (err: any) {
-      setDetailError(err.message);
+      notify.error(err.message);
     } finally {
       setDetailLoading(false);
     }
@@ -294,11 +290,6 @@ export default function WardenLeadsPage() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            {logError && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {logError}
-              </div>
-            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Phone Number</label>
               <input
@@ -416,12 +407,6 @@ export default function WardenLeadsPage() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
             </div>
-
-            {detailError && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {detailError}
-              </div>
-            )}
 
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setShowDetailModal(false)}>

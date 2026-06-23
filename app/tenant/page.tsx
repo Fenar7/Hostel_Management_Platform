@@ -14,6 +14,8 @@ import { RoommatesCard } from "@/components/tenant/RoommatesCard";
 import { PaymentHistory } from "@/components/tenant/PaymentHistory";
 import { PaymentUploadForm, RentRenewalForm } from "@/components/tenant/PaymentForms";
 import { InitialPaymentForm } from "@/components/tenant/InitialPaymentForm";
+import { notify } from "@/lib/toast";
+import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 
 interface PaymentItem {
   id: string;
@@ -89,8 +91,6 @@ function formatDate(dateStr: string) {
 export default function TenantDashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const [stay, setStay] = useState<StayDetails | null>(null);
@@ -126,7 +126,7 @@ export default function TenantDashboardPage() {
         } catch { /* non-critical */ }
       }
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
+      notify.error(err.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -152,10 +152,7 @@ export default function TenantDashboardPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="text-muted-foreground font-medium">Loading your portal dashboard...</p>
-        </div>
+        <DashboardSkeleton />
       </div>
     );
   }
@@ -181,19 +178,6 @@ export default function TenantDashboardPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {error && (
-          <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive max-w-xl">
-            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-            <div>{error}</div>
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-500/10 p-4 text-sm text-green-600 max-w-xl dark:border-green-900/30">
-            <CheckCircle className="h-5 w-5 shrink-0 mt-0.5" />
-            <div>{successMsg}</div>
-          </div>
-        )}
 
         {!stay ? (
           <div className="max-w-md mx-auto border rounded-xl bg-card p-8 shadow-sm text-center space-y-4">
@@ -231,13 +215,11 @@ export default function TenantDashboardPage() {
                 paymentConfig={paymentConfig}
                 remainingBalance={remainingBalance}
                 onSuccess={(msg) => {
-                  setSuccessMsg(msg);
-                  setError("");
+                  notify.success(msg);
                   fetchStayDetails();
                 }}
                 onError={(msg) => {
-                  setError(msg);
-                  setSuccessMsg("");
+                  notify.error(msg);
                 }}
               />
             </div>
@@ -337,13 +319,11 @@ export default function TenantDashboardPage() {
                 nextDueDate={nextDueDate}
                 formatDate={formatDate}
                 onSuccess={(msg) => {
-                  setSuccessMsg(msg);
-                  setError("");
+                  notify.success(msg);
                   fetchStayDetails();
                 }}
                 onError={(msg) => {
-                  setError(msg);
-                  setSuccessMsg("");
+                  notify.error(msg);
                 }}
               />
               <PaymentHistory payments={payments} formatDate={formatDate} />

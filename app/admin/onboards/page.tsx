@@ -4,6 +4,18 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, XCircle, Key, Copy, Check, Eye, ArrowRight } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { notify } from "@/lib/toast";
 
 interface OnboardItem {
   id: string;
@@ -32,8 +44,8 @@ interface OnboardItem {
 export default function AdminOnboardsPage() {
   const [onboards, setOnboards] = useState<OnboardItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState<{stayId: string, hostelId: string} | null>(null);
 
   // Password modal
   const [passwordModal, setPasswordModal] = useState<{
@@ -43,7 +55,6 @@ export default function AdminOnboardsPage() {
   const [revealedPassword, setRevealedPassword] = useState("");
   const [passwordCopied, setPasswordCopied] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
 
   const fetchOnboards = useCallback(async () => {
     try {
@@ -52,7 +63,7 @@ export default function AdminOnboardsPage() {
       const data = await response.json();
       setOnboards(data.onboards);
     } catch (err: any) {
-      setError(err.message || "An error occurred");
+      notify.error(err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -62,11 +73,12 @@ export default function AdminOnboardsPage() {
     fetchOnboards();
   }, [fetchOnboards]);
 
-  const handleCancel = async (stayId: string, hostelId: string) => {
-    if (!confirm("Cancel this onboarding request? The bed will be freed back to AVAILABLE.")) return;
-
+  const executeCancel = async () => {
+    if (!confirmCancel) return;
+    const { stayId, hostelId } = confirmCancel;
+    
+    setConfirmCancel(null);
     setCancelling(stayId);
-    setError("");
 
     try {
       const response = await fetch(`/api/admin/onboards/${stayId}/cancel`, {
@@ -81,8 +93,9 @@ export default function AdminOnboardsPage() {
       }
 
       fetchOnboards();
+      notify.success("Request cancelled successfully");
     } catch (err: any) {
-      setError(err.message || "Failed to cancel onboarding request");
+      notify.error(err.message || "Failed to cancel onboarding request");
     } finally {
       setCancelling(null);
     }
@@ -92,7 +105,6 @@ export default function AdminOnboardsPage() {
     setPasswordModal({ onboardingReqId, phone });
     setRevealedPassword("");
     setPasswordCopied(false);
-    setPasswordError("");
     setPasswordLoading(true);
     try {
       const res = await fetch(
@@ -103,7 +115,7 @@ export default function AdminOnboardsPage() {
       if (!res.ok) throw new Error(data.error || "Failed to get password");
       setRevealedPassword(data.tempPassword);
     } catch (err: any) {
-      setPasswordError(err.message || "An error occurred");
+      notify.error(err.message || "An error occurred");
     } finally {
       setPasswordLoading(false);
     }
@@ -129,8 +141,12 @@ export default function AdminOnboardsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <div className="border-b pb-6">
+          <div className="h-8 w-64 bg-muted rounded animate-pulse mb-2" />
+          <div className="h-4 w-96 bg-muted rounded animate-pulse" />
+        </div>
+        <TableSkeleton />
       </div>
     );
   }
@@ -145,13 +161,6 @@ export default function AdminOnboardsPage() {
           Oversee, review, cancel and manage all tenant onboarding flows across all portfolio hostels.
         </p>
       </div>
-
-      {error && (
-        <div className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive max-w-2xl">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <div>{error}</div>
-        </div>
-      )}
 
       {/* 1. LINK SENT, AWAITING FORM */}
       <div className="space-y-6">
@@ -212,7 +221,7 @@ export default function AdminOnboardsPage() {
                     variant="ghost"
                     size="sm"
                     disabled={cancelling === item.id}
-                    onClick={() => handleCancel(item.id, item.hostel.id)}
+                    onClick={() => setConfirmCancel({stayId: item.id, hostelId: item.hostel.id})}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs font-semibold"
                   >
                     {cancelling === item.id ? (
@@ -431,12 +440,6 @@ export default function AdminOnboardsPage() {
                 Phone Number: <span className="font-mono text-foreground font-semibold">{passwordModal.phone}</span>
               </p>
 
-              {passwordError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
-                  {passwordError}
-                </div>
-              )}
-
               {passwordLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -503,6 +506,24 @@ export default function AdminOnboardsPage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!confirmCancel} onOpenChange={(open) => !open && setConfirmCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Onboarding Request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently cancel the onboarding request. The assigned bed will be freed back to the AVAILABLE pool.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Continue Cancellation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

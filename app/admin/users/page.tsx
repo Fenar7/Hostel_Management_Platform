@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { notify } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -24,6 +25,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 
 interface UserItem {
   id: string;
@@ -87,7 +89,6 @@ interface UserItem {
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
@@ -101,7 +102,6 @@ export default function AdminUsersPage() {
   const [newPassword, setNewPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
-  const [resetError, setResetError] = useState("");
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [showLightboxUrl, setShowLightboxUrl] = useState<string | null>(null);
 
@@ -115,7 +115,7 @@ export default function AdminUsersPage() {
       const data = await res.json();
       setUsers(data.users || []);
     } catch (err: any) {
-      setError(err.message || "An error occurred while loading users");
+      notify.error(err.message || "An error occurred while loading users");
     } finally {
       setLoading(false);
     }
@@ -138,12 +138,11 @@ export default function AdminUsersPage() {
     e.preventDefault();
     if (!resettingUser) return;
     if (newPassword.length < 8) {
-      setResetError("Password must be at least 8 characters");
+      notify.error("Password must be at least 8 characters");
       return;
     }
 
     setResetLoading(true);
-    setResetError("");
     setResetSuccess(false);
 
     try {
@@ -162,10 +161,11 @@ export default function AdminUsersPage() {
       }
 
       setResetSuccess(true);
+      notify.success("Password Updated Successfully!");
       // Refresh local list to update passwordSetAt timestamp
       fetchUsers();
     } catch (err: any) {
-      setResetError(err.message || "Reset failed");
+      notify.error(err.message || "Reset failed");
     } finally {
       setResetLoading(false);
     }
@@ -228,17 +228,12 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive max-w-lg mx-auto mt-10 shadow-sm">
-        <AlertCircle className="h-5 w-5 shrink-0" />
-        <div>{error}</div>
+      <div className="space-y-8 max-w-7xl mx-auto px-4 py-6">
+        <div className="border-b pb-6">
+          <div className="h-8 w-64 bg-muted rounded animate-pulse mb-2" />
+          <div className="h-4 w-96 bg-muted rounded animate-pulse" />
+        </div>
+        <TableSkeleton />
       </div>
     );
   }
@@ -475,8 +470,6 @@ export default function AdminUsersPage() {
                             e.stopPropagation();
                             setResettingUser(u);
                             setNewPassword("");
-                            setResetSuccess(false);
-                            setResetError("");
                           }}
                           className="h-8 px-2 text-xs font-semibold hover:text-amber-600"
                         >
@@ -739,12 +732,6 @@ export default function AdminUsersPage() {
                   <p className="font-mono text-muted-foreground">Email: {resettingUser.email}</p>
                 )}
               </div>
-
-              {resetError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
-                  {resetError}
-                </div>
-              )}
 
               {resetSuccess ? (
                 <div className="space-y-4">

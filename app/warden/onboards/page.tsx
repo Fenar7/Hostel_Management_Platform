@@ -4,6 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, Eye, AlertCircle, FileText, CheckCircle, Clock, XCircle, Key, Copy, Check } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
+import { notify } from "@/lib/toast";
 
 interface OnboardItem {
   id: string;
@@ -34,8 +46,8 @@ interface OnboardItem {
 export default function WardenOnboardsPage() {
   const [onboards, setOnboards] = useState<OnboardItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
   // Password modal
   const [passwordModal, setPasswordModal] = useState<{
@@ -45,7 +57,6 @@ export default function WardenOnboardsPage() {
   const [revealedPassword, setRevealedPassword] = useState("");
   const [passwordCopied, setPasswordCopied] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
 
   const fetchOnboards = async () => {
     try {
@@ -56,16 +67,16 @@ export default function WardenOnboardsPage() {
       const data = await response.json();
       setOnboards(data.onboards);
     } catch (err: any) {
-      setError(err.message || "An error occurred while loading lists");
+      notify.error(err.message || "An error occurred while loading lists");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = async (id: string) => {
-    if (!confirm("Are you sure you want to cancel this onboarding request? The bed will be freed.")) {
-      return;
-    }
+  const executeCancel = async () => {
+    if (!confirmCancelId) return;
+    const id = confirmCancelId;
+    setConfirmCancelId(null);
     setCancellingId(id);
     try {
       const response = await fetch(`/api/admin/onboards/${id}/cancel`, {
@@ -76,8 +87,9 @@ export default function WardenOnboardsPage() {
         throw new Error(errData.error || "Failed to cancel");
       }
       await fetchOnboards();
+      notify.success("Request cancelled successfully");
     } catch (err: any) {
-      setError(err.message || "Failed to cancel onboarding request");
+      notify.error(err.message || "Failed to cancel onboarding request");
     } finally {
       setCancellingId(null);
     }
@@ -87,7 +99,6 @@ export default function WardenOnboardsPage() {
     setPasswordModal({ onboardingReqId, phone });
     setRevealedPassword("");
     setPasswordCopied(false);
-    setPasswordError("");
     setPasswordLoading(true);
     try {
       const res = await fetch(
@@ -98,7 +109,7 @@ export default function WardenOnboardsPage() {
       if (!res.ok) throw new Error(data.error || "Failed to get password");
       setRevealedPassword(data.tempPassword);
     } catch (err: any) {
-      setPasswordError(err.message || "An error occurred");
+      notify.error(err.message || "An error occurred");
     } finally {
       setPasswordLoading(false);
     }
@@ -110,17 +121,12 @@ export default function WardenOnboardsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive max-w-lg mx-auto">
-        <AlertCircle className="h-5 w-5 shrink-0" />
-        <div>{error}</div>
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <div className="border-b pb-6">
+          <div className="h-8 w-64 bg-muted rounded animate-pulse mb-2" />
+          <div className="h-4 w-96 bg-muted rounded animate-pulse" />
+        </div>
+        <TableSkeleton />
       </div>
     );
   }
@@ -361,7 +367,7 @@ export default function WardenOnboardsPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleCancel(item.id)}
+                    onClick={() => setConfirmCancelId(item.id)}
                     disabled={cancellingId === item.id}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs font-semibold"
                   >
@@ -443,12 +449,6 @@ export default function WardenOnboardsPage() {
                 Phone Number: <span className="font-mono text-foreground font-semibold">{passwordModal.phone}</span>
               </p>
 
-              {passwordError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:bg-red-900/20 dark:text-red-200">
-                  {passwordError}
-                </div>
-              )}
-
               {passwordLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -515,6 +515,23 @@ export default function WardenOnboardsPage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!confirmCancelId} onOpenChange={(open) => !open && setConfirmCancelId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Onboarding Request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this onboarding request? The bed will be freed back to the available pool.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirm Cancellation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
