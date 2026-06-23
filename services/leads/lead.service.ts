@@ -8,15 +8,35 @@ export async function getLeads(hostelId?: string | null) {
     return prisma.lead.findMany({
       where: { hostelId },
       orderBy: { createdAt: "desc" },
+      include: {
+        notes: {
+          include: { author: { select: { id: true, phone: true } } },
+          orderBy: { createdAt: "asc" },
+        },
+      },
     });
   }
   return prisma.lead.findMany({
     orderBy: { createdAt: "desc" },
+    include: {
+      notes: {
+        include: { author: { select: { id: true, phone: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
 }
 
 export async function getLeadById(id: string) {
-  const lead = await prisma.lead.findUnique({ where: { id } });
+  const lead = await prisma.lead.findUnique({
+    where: { id },
+    include: {
+      notes: {
+        include: { author: { select: { id: true, phone: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
   if (!lead) {
     throw new NotFoundError("Lead not found");
   }
@@ -28,7 +48,7 @@ export interface CreateLeadInput {
   source: LeadSource;
   notes?: string;
   hostelId?: string | null;
-  author: string;
+  authorId: string;
 }
 
 export async function createLead(input: CreateLeadInput) {
@@ -53,25 +73,27 @@ export async function createLead(input: CreateLeadInput) {
     }
   }
 
-  let serializedNotes: string;
-  if (input.notes && typeof input.notes === "string" && input.notes.trim().length > 0) {
-    serializedNotes = JSON.stringify([
-      {
-        text: input.notes.trim(),
-        createdAt: new Date().toISOString(),
-        author: input.author,
-      },
-    ]);
-  } else {
-    serializedNotes = "[]";
-  }
-
   return prisma.lead.create({
     data: {
       phone: normalizedPhone,
       source: input.source,
-      notes: serializedNotes,
       hostelId: input.hostelId || null,
+      ...(input.notes && input.notes.trim().length > 0
+        ? {
+            notes: {
+              create: {
+                note: input.notes.trim(),
+                authorId: input.authorId,
+              },
+            },
+          }
+        : {}),
+    },
+    include: {
+      notes: {
+        include: { author: { select: { id: true, phone: true } } },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 }
@@ -79,7 +101,7 @@ export async function createLead(input: CreateLeadInput) {
 export interface UpdateLeadInput {
   status: LeadStatus;
   notes?: string;
-  author: string;
+  authorId: string;
 }
 
 export async function updateLead(id: string, input: UpdateLeadInput) {
@@ -88,31 +110,26 @@ export async function updateLead(id: string, input: UpdateLeadInput) {
     throw new NotFoundError("Lead not found");
   }
 
-  let existingNotes: any[] = [];
-  if (lead.notes && lead.notes !== "[]") {
-    try {
-      existingNotes = JSON.parse(lead.notes);
-      if (!Array.isArray(existingNotes)) {
-        existingNotes = [];
-      }
-    } catch {
-      existingNotes = [];
-    }
-  }
-
-  if (input.notes && typeof input.notes === "string" && input.notes.trim().length > 0) {
-    existingNotes.push({
-      text: input.notes.trim(),
-      createdAt: new Date().toISOString(),
-      author: input.author,
-    });
-  }
-
   return prisma.lead.update({
     where: { id },
     data: {
       status: input.status,
-      notes: JSON.stringify(existingNotes),
+      ...(input.notes && input.notes.trim().length > 0
+        ? {
+            notes: {
+              create: {
+                note: input.notes.trim(),
+                authorId: input.authorId,
+              },
+            },
+          }
+        : {}),
+    },
+    include: {
+      notes: {
+        include: { author: { select: { id: true, phone: true } } },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 }

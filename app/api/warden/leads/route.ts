@@ -47,14 +47,14 @@ export async function POST(request: NextRequest) {
       resolvedHostelId = await resolveHostelId(session, request);
     }
 
-    const author = user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden";
+    const authorId = user.id;
 
     const lead = await createLead({
       phone,
       source,
       notes,
       hostelId: resolvedHostelId,
-      author,
+      authorId,
     });
 
     return NextResponse.json({ lead }, { status: 201 });

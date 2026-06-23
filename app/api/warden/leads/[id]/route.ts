@@ -50,7 +50,7 @@ export async function PATCH(
     const body = await request.json();
     const { status, note } = body;
 
-    const author = user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden";
+    const authorId = user.id;
 
     if (status !== undefined && !Object.values(LeadStatus).includes(status)) {
       throw new NotFoundError(`Invalid status: ${status}`);
@@ -63,7 +63,7 @@ export async function PATCH(
     const updatedLead = await updateLead(id, {
       status: status !== undefined ? status : lead.status,
       notes: note,
-      author,
+      authorId,
     });
 
     return NextResponse.json({ lead: updatedLead });
