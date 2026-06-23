@@ -33,3 +33,8 @@ export const LEAD_STATUS_COLORS: Record<string, string> = {
   CONVERTED: "bg-green-100 text-green-800",
   DROPPED: "bg-gray-100 text-gray-800",
 };
+
+export const LEAD_SOURCE_COLORS: Record<string, string> = {
+  WHATSAPP_BOT: "bg-emerald-100 text-emerald-800",
+  MANUAL: "bg-gray-100 text-gray-800",
+};
