@@ -1,8 +1,14 @@
 import { prisma } from "@/lib/db";
-import { NotFoundError, ValidationError, ConflictError } from "@/lib/errors";
+import { NotFoundError, ValidationError, ConflictError, ForbiddenError } from "@/lib/errors";
 import { PaymentMode, PaymentStatus, StayStatus, BedStatus } from "@prisma/client";
 import { checkBedConflict } from "@/services/beds/bed.service";
 import { generatePaymentReceipt } from "@/services/pdf/receipt.service";
+
+import { verifyAndGetFileType, compressImage } from "@/lib/image";
+import { uploadToStorage } from "@/lib/storage";
+import { DocumentType, DocumentOwnerType } from "@prisma/client";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
 
 export interface RecordPaymentInput {
   stayId: string;
@@ -10,7 +16,8 @@ export interface RecordPaymentInput {
   paymentMode: PaymentMode;
   transactionRefNo?: string | null;
   receivedBy?: string | null;
-  screenshotDocId?: string | null;
+  screenshotFile?: File | null;
+  uploadedByUserId: string;
 }
 
 export async function calculateBalance(stayId: string): Promise<{ totalPayable: number; totalPaid: number; balance: number }> {
@@ -58,6 +65,36 @@ export async function recordPayment(input: RecordPaymentInput) {
     throw new ValidationError("Transaction reference number is required for UPI or Bank Transfer payments");
   }
 
+  let screenshotDocId: string | null = null;
+
+  if (input.screenshotFile && typeof input.screenshotFile !== "string" && typeof input.screenshotFile.arrayBuffer === "function") {
+    const buffer = Buffer.from(await input.screenshotFile.arrayBuffer());
+    if (buffer.length > MAX_FILE_SIZE) {
+      throw new ValidationError("Screenshot file must be smaller than 5MB");
+    }
+
+    const fileType = verifyAndGetFileType(buffer);
+    if (fileType !== "jpg" && fileType !== "png") {
+      throw new ValidationError("Screenshot must be a JPEG or PNG image");
+    }
+
+    const compressed = await compressImage(buffer, "document");
+    const screenshotPath = `tenants/${stay.tenantId}/payment_screenshot_${Date.now()}.jpg`;
+    await uploadToStorage(compressed.data, screenshotPath, compressed.mimeType);
+
+    const doc = await prisma.document.create({
+      data: {
+        ownerType: DocumentOwnerType.STAY,
+        stayId: stay.id,
+        documentType: DocumentType.PAYMENT_SCREENSHOT,
+        storagePath: screenshotPath,
+        fileSizeBytes: compressed.data.length,
+        uploadedByUserId: input.uploadedByUserId,
+      },
+    });
+    screenshotDocId = doc.id;
+  }
+
   return prisma.payment.create({
     data: {
       stayId: input.stayId,
@@ -66,15 +103,20 @@ export async function recordPayment(input: RecordPaymentInput) {
       transactionRefNo: input.transactionRefNo || null,
       receivedBy: input.receivedBy || "System",
       paymentStatus: PaymentStatus.PENDING,
-      screenshotDocumentId: input.screenshotDocId,
+      screenshotDocumentId: screenshotDocId,
     },
   });
 }
 
-export async function verifyPayment(paymentId: string, verifiedByUserId: string) {
+export async function verifyPayment(
+  paymentId: string, 
+  verifiedByUserId: string, 
+  authorizedHostelId: string, 
+  userRole: string
+) {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
-    include: { stay: { include: { payments: true } } },
+    include: { stay: true },
   });
 
   if (!payment) {
@@ -83,26 +125,43 @@ export async function verifyPayment(paymentId: string, verifiedByUserId: string)
 
   const stay = payment.stay;
 
+  if (userRole !== "MAIN_ADMIN" && stay.hostelId !== authorizedHostelId) {
+    throw new ForbiddenError("You are not authorized to verify payment for this stay");
+  }
+
   if (payment.paymentStatus !== PaymentStatus.PENDING) {
     throw new ValidationError("Payment has already been processed");
   }
 
-  // Bed conflict check
-  const hasConflict = await checkBedConflict(stay.bedId, stay.joiningDate, stay.endDate, stay.id);
-  if (hasConflict) {
-    throw new ConflictError(
-      "Cannot activate stay. The bed has been booked by another active/extended resident for this date range."
-    );
-  }
-
-  const alreadyVerifiedSum = stay.payments
-    .filter((p) => p.id !== paymentId && p.paymentStatus === PaymentStatus.PAID)
-    .reduce((sum, p) => sum + p.amountPaidPaise, 0);
-
-  const totalVerifiedWithCurrent = alreadyVerifiedSum + payment.amountPaidPaise;
-  const isFullyPaid = totalVerifiedWithCurrent >= stay.totalPayablePaise;
-
   const result = await prisma.$transaction(async (tx) => {
+    // Bed conflict check inside transaction
+    const overlappingStay = await tx.stay.findFirst({
+      where: {
+        bedId: stay.bedId,
+        id: { not: stay.id },
+        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
+        joiningDate: { lte: stay.endDate },
+        endDate: { gte: stay.joiningDate },
+      },
+    });
+
+    if (overlappingStay) {
+      throw new ConflictError(
+        "Cannot activate stay. The bed has been booked by another active/extended resident for this date range."
+      );
+    }
+
+    const currentPayments = await tx.payment.findMany({
+      where: { stayId: stay.id },
+    });
+
+    const alreadyVerifiedSum = currentPayments
+      .filter((p) => p.id !== paymentId && p.paymentStatus === PaymentStatus.PAID)
+      .reduce((sum, p) => sum + p.amountPaidPaise, 0);
+
+    const totalVerifiedWithCurrent = alreadyVerifiedSum + payment.amountPaidPaise;
+    const isFullyPaid = totalVerifiedWithCurrent >= stay.totalPayablePaise;
+
     const updatedPayment = await tx.payment.update({
       where: { id: paymentId },
       data: {

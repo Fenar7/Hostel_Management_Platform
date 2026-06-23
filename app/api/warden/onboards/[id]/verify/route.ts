@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
-import { prisma } from "@/lib/db";
-import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "@/lib/errors";
+import { handleApiError, ValidationError } from "@/lib/errors";
 import { UserRole } from "@prisma/client";
 import { verifySchema } from "@/lib/validation/onboarding";
 import { verifyPayment } from "@/services/payments/payment.service";
@@ -22,34 +21,9 @@ export async function POST(
     }
     const { paymentId } = parsed.data;
 
-    // Fetch the Stay to check authorization
-    const stay = await prisma.stay.findUnique({
-      where: { id: stayId },
-    });
+    const hostelId = await resolveHostelId(session, request);
 
-    if (!stay) {
-      throw new NotFoundError("Stay record not found");
-    }
-
-    const hostelId = await resolveHostelId(session, request, stay.hostelId);
-
-    if (session.user.role !== UserRole.MAIN_ADMIN && stay.hostelId !== hostelId) {
-      throw new ForbiddenError("You are not authorized to verify payment for this stay");
-    }
-
-    const payment = await prisma.payment.findUnique({
-      where: { id: paymentId },
-    });
-
-    if (!payment) {
-      throw new NotFoundError("Payment record not found");
-    }
-
-    if (payment.stayId !== stayId) {
-      throw new ValidationError("Payment does not belong to this stay");
-    }
-
-    const result = await verifyPayment(paymentId, session.user.id);
+    const result = await verifyPayment(paymentId, session.user.id, hostelId, session.user.role);
 
     return NextResponse.json({
       success: true,

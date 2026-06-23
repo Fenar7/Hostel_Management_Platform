@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     let roommates: {
       fullName: string;
       photoUrl: string | null;
-      occupationType: string;
+      occupationType: string | null;
       collegeName: string | null;
       companyName: string | null;
       designation: string | null;

@@ -28,33 +28,8 @@ export async function POST(request: NextRequest) {
 
     const hostelId = await resolveHostelId(session, request, data.hostelId);
 
-    // Guard: fetch bed — rooms can be linked either via flat->floor OR directly to floor
-    const bed = await prisma.bed.findUnique({
-      where: { id: data.bedId },
-      include: {
-        room: {
-          include: {
-            flat: { include: { floor: true } },
-            floor: true, // direct floor link (when flatId is null)
-          },
-        },
-      },
-    });
-
-    if (!bed) {
-      throw new NotFoundError("Bed not found");
-    }
-
-    const bedHostelId = bed.room.flat?.floor.hostelId ?? bed.room.floor?.hostelId;
-
-    if (!bedHostelId) {
-      throw new NotFoundError(
-        "Hostel mapping for the selected bed could not be resolved"
-      );
-    }
-
     // Guard: warden may only onboard into their own hostel
-    await requireHostelAccess(session, bedHostelId);
+    await requireHostelAccess(session, hostelId);
 
     const result = await initiateOnboarding({
       phone: data.phone,

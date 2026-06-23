@@ -110,14 +110,40 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
   const overlappingStay = await prisma.stay.findFirst({
     where: {
       bedId,
-      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
+      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
       joiningDate: { lte: endDate },
       endDate: { gte: joiningDate },
     },
   });
 
   if (overlappingStay) {
-    throw new ConflictError("The selected bed is occupied during the specified dates");
+    throw new ConflictError("The selected bed is occupied or reserved during the specified dates");
+  }
+
+  // Double-booking check: Bed must actually be AVAILABLE
+  const bed = await prisma.bed.findUnique({
+    where: { id: bedId },
+    include: {
+      room: {
+        include: {
+          flat: { include: { floor: true } },
+          floor: true,
+        },
+      },
+    },
+  });
+
+  if (!bed) {
+    throw new NotFoundError("Bed not found");
+  }
+
+  if (bed.status !== BedStatus.AVAILABLE) {
+    throw new ConflictError(`Cannot onboard. Bed is currently ${bed.status}`);
+  }
+
+  const bedHostelId = bed.room.flat?.floor.hostelId ?? bed.room.floor?.hostelId;
+  if (!bedHostelId || bedHostelId !== hostelId) {
+    throw new ConflictError("Bed does not belong to the requested hostel");
   }
 
   const tempPassword = randomBytes(6).toString("base64url").slice(0, 10);
@@ -128,17 +154,6 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
       data: {
         userId: null,
         fullName: `Prospect ${phone}`,
-        dateOfBirth: new Date("2000-01-01"),
-        gender: "MALE",
-        placeOfBirth: "Unknown",
-        permanentAddress: "Unknown",
-        emergencyContactName: "Unknown",
-        relationship: "Unknown",
-        emergencyContactNumber: phone,
-        parentGuardianName: "Unknown",
-        parentGuardianContact: phone,
-        occupationType: OccupationType.STUDENT,
-        purposeOfStay: "Hostel Accommodation",
       },
     });
 

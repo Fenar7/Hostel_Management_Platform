@@ -61,21 +61,21 @@ model Tenant {
   userId                 String?        @unique
   user                   User?          @relation(fields: [userId], references: [id])
   fullName               String
-  dateOfBirth            DateTime
-  gender                 String
-  placeOfBirth           String
-  permanentAddress       String
-  emergencyContactName   String
-  relationship           String
-  emergencyContactNumber String
-  parentGuardianName     String
-  parentGuardianContact  String
-  occupationType         OccupationType
+  dateOfBirth            DateTime?
+  gender                 String?
+  placeOfBirth           String?
+  permanentAddress       String?
+  emergencyContactName   String?
+  relationship           String?
+  emergencyContactNumber String?
+  parentGuardianName     String?
+  parentGuardianContact  String?
+  occupationType         OccupationType?
   collegeName            String?
   courseOrBranch         String?
   companyName            String?
   designation            String?
-  purposeOfStay          String
+  purposeOfStay          String?
   photoUrl               String?
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt

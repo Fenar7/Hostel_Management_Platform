@@ -3,10 +3,9 @@ import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleApiError, ValidationError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import { isPastFoodCutoff } from "@/lib/dates/food-cutoff";
-import { getStartOfDayIST, addDays } from "@/lib/dates";
 import { UserRole, StayStatus } from "@prisma/client";
 import { toggleSchema } from "@/lib/validation/food";
-import { updateFoodOrder, getFoodOrdersInRange } from "@/services/food/food.service";
+import { updateFoodOrder, getFoodOrdersInRange, getActiveStayForFoodOrdering } from "@/services/food/food.service";
 
 /**
  * GET /api/tenant/food-orders
@@ -23,30 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.TENANT]);
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!tenant) {
-      throw new NotFoundError("Tenant profile not found");
-    }
-
-    // Find active/extended stay
-    const stay = await prisma.stay.findFirst({
-      where: {
-        tenantId: tenant.id,
-        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-      },
-      select: { id: true, foodPlan: true, status: true },
-    });
-
-    if (!stay) {
-      throw new ForbiddenError("No active stay found. Food ordering is only available for active residents.");
-    }
-
-    if (stay.foodPlan === "NOT_INCLUDED") {
-      throw new ForbiddenError("Food ordering is not available on your stay plan");
-    }
+    const stay = await getActiveStayForFoodOrdering(session.user.id);
 
     // Validate query params
     const { searchParams } = new URL(request.url);
@@ -99,30 +75,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.TENANT]);
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!tenant) {
-      throw new NotFoundError("Tenant profile not found");
-    }
-
-    // Find active/extended stay
-    const stay = await prisma.stay.findFirst({
-      where: {
-        tenantId: tenant.id,
-        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-      },
-      select: { id: true, foodPlan: true, joiningDate: true },
-    });
-
-    if (!stay) {
-      throw new ForbiddenError("No active stay found. Food ordering is only available for active residents.");
-    }
-
-    if (stay.foodPlan === "NOT_INCLUDED") {
-      throw new ForbiddenError("Food ordering is not available on your stay plan");
-    }
+    const stay = await getActiveStayForFoodOrdering(session.user.id);
 
     const body = await request.json();
     const parseResult = toggleSchema.safeParse(body);

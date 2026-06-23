@@ -1,6 +1,35 @@
 import { prisma } from "@/lib/db";
 import { isPastFoodCutoff } from "@/lib/dates/food-cutoff";
-import { ValidationError, ForbiddenError } from "@/lib/errors";
+import { ValidationError, ForbiddenError, NotFoundError } from "@/lib/errors";
+import { StayStatus } from "@prisma/client";
+
+export async function getActiveStayForFoodOrdering(userId: string) {
+  const tenant = await prisma.tenant.findUnique({
+    where: { userId },
+  });
+
+  if (!tenant) {
+    throw new NotFoundError("Tenant profile not found");
+  }
+
+  const stay = await prisma.stay.findFirst({
+    where: {
+      tenantId: tenant.id,
+      status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
+    },
+    select: { id: true, foodPlan: true, status: true, joiningDate: true },
+  });
+
+  if (!stay) {
+    throw new ForbiddenError("No active stay found. Food ordering is only available for active residents.");
+  }
+
+  if (stay.foodPlan === "NOT_INCLUDED") {
+    throw new ForbiddenError("Food ordering is not available on your stay plan");
+  }
+
+  return stay;
+}
 
 export async function validateCutoff(forDate: Date): Promise<{ isOpen: boolean; closedAt?: Date }> {
   const pastCutoff = isPastFoodCutoff(forDate);
