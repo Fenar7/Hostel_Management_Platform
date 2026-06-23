@@ -6,6 +6,7 @@ import {
   Loader2, AlertCircle, ChevronLeft, ChevronRight,
   Coffee, Sun, Moon, Search, Users, Lock, Unlock, CalendarDays
 } from "lucide-react";
+import { notify } from "@/lib/toast";
 
 interface ResidentFoodEntry {
   stayId: string;
@@ -58,14 +59,12 @@ function formatDisplayDate(iso: string): string {
 export default function WardenFoodPage() {
   const [data, setData] = useState<FoodStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => toISODate(new Date()));
   const [searchQuery, setSearchQuery] = useState("");
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      setError("");
       const res = await fetch(`/api/warden/food-stats?date=${selectedDate}`);
       if (!res.ok) {
         const err = await res.json();
@@ -74,7 +73,7 @@ export default function WardenFoodPage() {
       const json = await res.json();
       setData(json);
     } catch (e: any) {
-      setError(e.message || "An unexpected error occurred");
+      notify.error(e.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -99,13 +98,6 @@ export default function WardenFoodPage() {
         <h1 className="text-2xl font-bold">Kitchen Dashboard</h1>
         <p className="text-muted-foreground">Consolidated meal stats for your hostel</p>
       </div>
-
-      {error && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <div>{error}</div>
-        </div>
-      )}
 
       {/* Date Navigation */}
       <div className="flex items-center justify-between">

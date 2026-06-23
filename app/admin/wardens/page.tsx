@@ -7,6 +7,7 @@ import {
   Key, Pencil, X, CheckCircle, ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 
 interface WardenItem {
   id: string;
@@ -124,8 +125,14 @@ export default function WardensPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="h-8 w-64 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-4 w-96 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+        <TableSkeleton />
       </div>
     );
   }

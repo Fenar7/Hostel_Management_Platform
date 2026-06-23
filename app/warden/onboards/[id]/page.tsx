@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { notify } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Check, X, CreditCard, ShieldCheck, AlertCircle, FileText, ExternalLink, MessageSquare, Clipboard, Upload } from "lucide-react";
 import { applicationApprovedPaymentRequest } from "@/lib/whatsapp/templates";
@@ -79,8 +80,6 @@ export default function OnboardDetailPage() {
   const stayId = params.id as string;
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
   
   // Data state
   const [stay, setStay] = useState<StayDetails | null>(null);
@@ -121,7 +120,7 @@ export default function OnboardDetailPage() {
       setPayments(data.payments);
       setUpiId(data.upiId || null);
     } catch (err: any) {
-      setError(err.message || "An error occurred while loading details");
+      notify.error(err.message || "An error occurred while loading details");
     } finally {
       setLoading(false);
     }
@@ -133,7 +132,6 @@ export default function OnboardDetailPage() {
 
   const handleApprove = async () => {
     setProcessingApprove(true);
-    setError("");
     try {
       const response = await fetch(`/api/warden/onboards/${stayId}/approve`, {
         method: "POST",
@@ -142,11 +140,11 @@ export default function OnboardDetailPage() {
         const err = await response.json();
         throw new Error(err.error || "Approval failed");
       }
-      setSuccessMsg("Profile approved. Payment request ready.");
+      notify.success("Profile approved. Payment request ready.");
       setShowPaymentRequest(true);
       await fetchDetails();
     } catch (err: any) {
-      setError(err.message || "An error occurred during approval");
+      notify.error(err.message || "An error occurred during approval");
     } finally {
       setProcessingApprove(false);
     }
@@ -155,7 +153,6 @@ export default function OnboardDetailPage() {
   const handleReject = async () => {
     if (!confirm("Are you sure you want to reject this registration request?")) return;
     setProcessingReject(true);
-    setError("");
     try {
       const response = await fetch(`/api/warden/onboards/${stayId}/reject`, {
         method: "POST",
@@ -164,10 +161,10 @@ export default function OnboardDetailPage() {
         const err = await response.json();
         throw new Error(err.error || "Rejection failed");
       }
-      setSuccessMsg("Registration request rejected successfully.");
+      notify.success("Registration request rejected successfully.");
       router.push("/warden/onboards");
     } catch (err: any) {
-      setError(err.message || "An error occurred during rejection");
+      notify.error(err.message || "An error occurred during rejection");
     } finally {
       setProcessingReject(false);
     }
@@ -176,17 +173,15 @@ export default function OnboardDetailPage() {
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amountPaid || parseFloat(amountPaid) <= 0) {
-      setError("Please provide a valid payment amount");
+      notify.error("Please provide a valid payment amount");
       return;
     }
     if (paymentMode !== "CASH" && !transactionRefNo.trim()) {
-      setError("Transaction reference number is required for bank or UPI transfer");
+      notify.error("Transaction reference number is required for bank or UPI transfer");
       return;
     }
 
     setProcessingPayment(true);
-    setError("");
-    setSuccessMsg("");
 
     try {
       const formData = new FormData();
@@ -208,7 +203,7 @@ export default function OnboardDetailPage() {
         throw new Error(err.error || "Failed to record payment");
       }
 
-      setSuccessMsg("Payment recorded successfully, awaiting verification");
+      notify.success("Payment recorded successfully, awaiting verification");
       // Reset form
       setAmountPaid("");
       setTransactionRefNo("");
@@ -218,7 +213,7 @@ export default function OnboardDetailPage() {
       
       await fetchDetails();
     } catch (err: any) {
-      setError(err.message || "An error occurred while recording payment");
+      notify.error(err.message || "An error occurred while recording payment");
     } finally {
       setProcessingPayment(false);
     }
@@ -226,8 +221,6 @@ export default function OnboardDetailPage() {
 
   const handleVerifyPayment = async (paymentId: string) => {
     setProcessingVerify(paymentId);
-    setError("");
-    setSuccessMsg("");
     try {
       const response = await fetch(`/api/warden/onboards/${stayId}/verify`, {
         method: "POST",
@@ -242,14 +235,14 @@ export default function OnboardDetailPage() {
       }
 
       if (data.activated) {
-        setSuccessMsg("Payment verified! Stay has been activated and Bed status updated to OCCUPIED.");
+        notify.success("Payment verified! Stay has been activated and Bed status updated to OCCUPIED.");
       } else {
-        setSuccessMsg("Partial payment verified. Awaiting balance payments to activate stay.");
+        notify.success("Partial payment verified. Awaiting balance payments to activate stay.");
       }
 
       await fetchDetails();
     } catch (err: any) {
-      setError(err.message || "An error occurred during verification");
+      notify.error(err.message || "An error occurred during verification");
     } finally {
       setProcessingVerify(null);
     }
@@ -332,20 +325,6 @@ export default function OnboardDetailPage() {
           </div>
         )}
       </div>
-
-      {error && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive max-w-2xl">
-          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>{error}</div>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-500/10 p-4 text-sm text-green-600 max-w-2xl dark:border-green-900/30">
-          <Check className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>{successMsg}</div>
-        </div>
-      )}
 
       {/* WHATSAPP PAYMENT REQUEST MODAL/ALERT */}
       {showPaymentRequest && (

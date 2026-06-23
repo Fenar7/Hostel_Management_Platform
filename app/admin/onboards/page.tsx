@@ -4,6 +4,17 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, XCircle, Key, Copy, Check, Eye, ArrowRight } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 
 interface OnboardItem {
   id: string;
@@ -34,6 +45,7 @@ export default function AdminOnboardsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState<{stayId: string, hostelId: string} | null>(null);
 
   // Password modal
   const [passwordModal, setPasswordModal] = useState<{
@@ -62,9 +74,11 @@ export default function AdminOnboardsPage() {
     fetchOnboards();
   }, [fetchOnboards]);
 
-  const handleCancel = async (stayId: string, hostelId: string) => {
-    if (!confirm("Cancel this onboarding request? The bed will be freed back to AVAILABLE.")) return;
-
+  const executeCancel = async () => {
+    if (!confirmCancel) return;
+    const { stayId, hostelId } = confirmCancel;
+    
+    setConfirmCancel(null);
     setCancelling(stayId);
     setError("");
 
@@ -129,8 +143,12 @@ export default function AdminOnboardsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <div className="border-b pb-6">
+          <div className="h-8 w-64 bg-muted rounded animate-pulse mb-2" />
+          <div className="h-4 w-96 bg-muted rounded animate-pulse" />
+        </div>
+        <TableSkeleton />
       </div>
     );
   }
@@ -212,7 +230,7 @@ export default function AdminOnboardsPage() {
                     variant="ghost"
                     size="sm"
                     disabled={cancelling === item.id}
-                    onClick={() => handleCancel(item.id, item.hostel.id)}
+                    onClick={() => setConfirmCancel({stayId: item.id, hostelId: item.hostel.id})}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs font-semibold"
                   >
                     {cancelling === item.id ? (
@@ -503,6 +521,24 @@ export default function AdminOnboardsPage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!confirmCancel} onOpenChange={(open) => !open && setConfirmCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Onboarding Request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently cancel the onboarding request. The assigned bed will be freed back to the AVAILABLE pool.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Continue Cancellation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

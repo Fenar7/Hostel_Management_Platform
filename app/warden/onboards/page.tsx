@@ -4,6 +4,17 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, Eye, AlertCircle, FileText, CheckCircle, Clock, XCircle, Key, Copy, Check } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { TableSkeleton } from "@/components/shared/TableSkeleton";
 
 interface OnboardItem {
   id: string;
@@ -36,6 +47,7 @@ export default function WardenOnboardsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
   // Password modal
   const [passwordModal, setPasswordModal] = useState<{
@@ -62,10 +74,10 @@ export default function WardenOnboardsPage() {
     }
   };
 
-  const handleCancel = async (id: string) => {
-    if (!confirm("Are you sure you want to cancel this onboarding request? The bed will be freed.")) {
-      return;
-    }
+  const executeCancel = async () => {
+    if (!confirmCancelId) return;
+    const id = confirmCancelId;
+    setConfirmCancelId(null);
     setCancellingId(id);
     try {
       const response = await fetch(`/api/admin/onboards/${id}/cancel`, {
@@ -110,8 +122,12 @@ export default function WardenOnboardsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        <div className="border-b pb-6">
+          <div className="h-8 w-64 bg-muted rounded animate-pulse mb-2" />
+          <div className="h-4 w-96 bg-muted rounded animate-pulse" />
+        </div>
+        <TableSkeleton />
       </div>
     );
   }
@@ -361,7 +377,7 @@ export default function WardenOnboardsPage() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleCancel(item.id)}
+                    onClick={() => setConfirmCancelId(item.id)}
                     disabled={cancellingId === item.id}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs font-semibold"
                   >
@@ -515,6 +531,23 @@ export default function WardenOnboardsPage() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!confirmCancelId} onOpenChange={(open) => !open && setConfirmCancelId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Onboarding Request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this onboarding request? The bed will be freed back to the available pool.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirm Cancellation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

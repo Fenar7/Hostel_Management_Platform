@@ -7,6 +7,7 @@ import {
   Utensils, Coffee, Sun, Moon, CalendarDays
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { notify } from "@/lib/toast";
 
 interface FoodOrderDay {
   forDate: string;
@@ -59,17 +60,14 @@ export default function TenantFoodPage() {
   const router = useRouter();
   const [data, setData] = useState<FoodOrdersResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
   const [saving, setSaving] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState("");
 
   const weekEnd = addDays(weekStart, 6);
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      setError("");
       const startDate = toISODate(weekStart);
       const endDate = toISODate(weekEnd);
       const res = await fetch(`/api/tenant/food-orders?startDate=${startDate}&endDate=${endDate}`);
@@ -80,7 +78,7 @@ export default function TenantFoodPage() {
       const json = await res.json();
       setData(json);
     } catch (e: any) {
-      setError(e.message || "An unexpected error occurred");
+      notify.error(e.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -96,7 +94,6 @@ export default function TenantFoodPage() {
 
     const key = `${forDate}-${meal}`;
     setSaving(key);
-    setSaveSuccess("");
 
     try {
       const res = await fetch("/api/tenant/food-orders", {
@@ -126,11 +123,9 @@ export default function TenantFoodPage() {
         };
       });
 
-      setSaveSuccess("Saved!");
-      setTimeout(() => setSaveSuccess(""), 2000);
+      notify.success("Saved!");
     } catch (e: any) {
-      setError(e.message || "Failed to update");
-      setTimeout(() => setError(""), 3000);
+      notify.error(e.message || "Failed to update");
     } finally {
       setSaving(null);
     }
@@ -146,20 +141,6 @@ export default function TenantFoodPage() {
         <h1 className="text-2xl font-bold">Food Orders</h1>
         <p className="text-muted-foreground">Select your meals for the week</p>
       </div>
-
-      {error && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <div>{error}</div>
-        </div>
-      )}
-
-      {saveSuccess && (
-        <div className="flex items-start gap-2.5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
-          <CheckCircle className="h-4 w-4 shrink-0 mt-0.5" />
-          <div>{saveSuccess}</div>
-        </div>
-      )}
 
       {/* Week Navigation */}
       <div className="flex items-center justify-between">
