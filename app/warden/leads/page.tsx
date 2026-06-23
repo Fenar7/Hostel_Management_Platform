@@ -7,12 +7,18 @@ import { Plus, X } from "lucide-react";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+interface LeadNote {
+  note: string;
+  createdAt: string;
+  author: { id: string; phone: string };
+}
+
 interface Lead {
   id: string;
   phone: string;
   source: string;
   status: string;
-  notes: string | null;
+  notes: LeadNote[];
   createdAt: string;
   hostelId: string | null;
 }
@@ -163,19 +169,6 @@ export default function WardenLeadsPage() {
     }
   };
 
-  const parseNotes = (notes: string | null): Array<{ text: string; createdAt: string; author: string }> => {
-    if (!notes) return [];
-    try {
-      const parsed = JSON.parse(notes);
-      if (Array.isArray(parsed)) return parsed;
-      return [];
-    } catch {
-      if (notes.trim().length > 0) {
-        return [{ text: notes, createdAt: "", author: "Unknown" }];
-      }
-      return [];
-    }
-  };
 
   const formatISTDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -237,8 +230,7 @@ export default function WardenLeadsPage() {
       ) : (
         <div className="space-y-3">
           {filteredLeads.map((lead) => {
-            const parsedNotes = parseNotes(lead.notes);
-            const initialNote = parsedNotes.length > 0 ? parsedNotes[0].text : null;
+            const initialNote = lead.notes && lead.notes.length > 0 ? lead.notes[0].note : null;
 
             return (
               <div
@@ -378,16 +370,16 @@ export default function WardenLeadsPage() {
             {/* Timeline */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold">Notes Thread</h3>
-              {parseNotes(selectedLead.notes).length === 0 ? (
+              {!selectedLead.notes || selectedLead.notes.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No notes yet.</p>
               ) : (
                 <div className="space-y-2">
-                  {parseNotes(selectedLead.notes).map((entry, i) => (
+                  {selectedLead.notes.map((entry, i) => (
                     <div key={i} className="rounded-md border p-3 text-sm">
-                      <p>{entry.text}</p>
+                      <p>{entry.note}</p>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="rounded bg-muted px-1.5 py-0.5 font-medium">
-                          {entry.author}
+                          {entry.author?.phone || "Unknown User"}
                         </span>
                         {entry.createdAt && <span>{formatISTDate(entry.createdAt)}</span>}
                       </div>

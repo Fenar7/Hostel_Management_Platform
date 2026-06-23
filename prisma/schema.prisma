@@ -37,6 +37,7 @@ model User {
   paymentsVerified Payment[]          @relation("VerifiedPayments")
   refundsProcessed RefundInvoice[]    @relation("ProcessedRefunds")
   documentsUploaded Document[]        @relation("UploadedDocuments")
+  leadNotes       LeadNote[]
 }
 
 model Warden {
@@ -61,21 +62,21 @@ model Tenant {
   userId                 String?        @unique
   user                   User?          @relation(fields: [userId], references: [id])
   fullName               String
-  dateOfBirth            DateTime
-  gender                 String
-  placeOfBirth           String
-  permanentAddress       String
-  emergencyContactName   String
-  relationship           String
-  emergencyContactNumber String
-  parentGuardianName     String
-  parentGuardianContact  String
-  occupationType         OccupationType
+  dateOfBirth            DateTime?
+  gender                 String?
+  placeOfBirth           String?
+  permanentAddress       String?
+  emergencyContactName   String?
+  relationship           String?
+  emergencyContactNumber String?
+  parentGuardianName     String?
+  parentGuardianContact  String?
+  occupationType         OccupationType?
   collegeName            String?
   courseOrBranch         String?
   companyName            String?
   designation            String?
-  purposeOfStay          String
+  purposeOfStay          String?
   photoUrl               String?
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
@@ -440,7 +441,19 @@ model Lead {
   phone     String
   source    LeadSource
   status    LeadStatus @default(NEW)
-  notes     String?
+  notes     LeadNote[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+}
+
+model LeadNote {
+  id        String   @id @default(uuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  note      String
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([leadId])
 }

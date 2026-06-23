@@ -3,9 +3,9 @@ import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleApiError, ValidationError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import { isPastFoodCutoff } from "@/lib/dates/food-cutoff";
-import { getStartOfDayIST, addDays } from "@/lib/dates";
 import { UserRole, StayStatus } from "@prisma/client";
 import { toggleSchema } from "@/lib/validation/food";
+import { updateFoodOrder, getFoodOrdersInRange, getActiveStayForFoodOrdering } from "@/services/food/food.service";
 
 /**
  * GET /api/tenant/food-orders
@@ -22,30 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.TENANT]);
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!tenant) {
-      throw new NotFoundError("Tenant profile not found");
-    }
-
-    // Find active/extended stay
-    const stay = await prisma.stay.findFirst({
-      where: {
-        tenantId: tenant.id,
-        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-      },
-      select: { id: true, foodPlan: true, status: true },
-    });
-
-    if (!stay) {
-      throw new ForbiddenError("No active stay found. Food ordering is only available for active residents.");
-    }
-
-    if (stay.foodPlan === "NOT_INCLUDED") {
-      throw new ForbiddenError("Food ordering is not available on your stay plan");
-    }
+    const stay = await getActiveStayForFoodOrdering(session.user.id);
 
     // Validate query params
     const { searchParams } = new URL(request.url);
@@ -67,56 +44,7 @@ export async function GET(request: NextRequest) {
       throw new ValidationError("endDate must be on or after startDate");
     }
 
-    // Fetch existing food orders for this stay in the date range
-    const existingOrders = await prisma.foodOrder.findMany({
-      where: {
-        stayId: stay.id,
-        forDate: { gte: startDate, lte: endDate },
-      },
-      select: {
-        forDate: true,
-        breakfast: true,
-        lunch: true,
-        dinner: true,
-        confirmedAt: true,
-        lockedAt: true,
-      },
-    });
-
-    // Build a map for quick lookup
-    const orderMap = new Map(
-      existingOrders.map((o) => [o.forDate.toISOString(), o])
-    );
-
-    // Generate a full list of days in the range
-    const days: {
-      forDate: string;
-      breakfast: boolean;
-      lunch: boolean;
-      dinner: boolean;
-      isEditable: boolean;
-      confirmedAt: string | null;
-      lockedAt: string | null;
-    }[] = [];
-
-    let current = new Date(startDate);
-    while (current <= endDate) {
-      const isoDate = current.toISOString();
-      const existing = orderMap.get(isoDate);
-      const isEditable = !isPastFoodCutoff(current);
-
-      days.push({
-        forDate: isoDate,
-        breakfast: existing?.breakfast ?? false,
-        lunch: existing?.lunch ?? false,
-        dinner: existing?.dinner ?? false,
-        isEditable,
-        confirmedAt: existing?.confirmedAt?.toISOString() ?? null,
-        lockedAt: existing?.lockedAt?.toISOString() ?? null,
-      });
-
-      current = addDays(current, 1);
-    }
+    const days = await getFoodOrdersInRange(stay.id, startDate, endDate);
 
     return NextResponse.json({
       stayId: stay.id,
@@ -147,30 +75,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.TENANT]);
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!tenant) {
-      throw new NotFoundError("Tenant profile not found");
-    }
-
-    // Find active/extended stay
-    const stay = await prisma.stay.findFirst({
-      where: {
-        tenantId: tenant.id,
-        status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED] },
-      },
-      select: { id: true, foodPlan: true, joiningDate: true },
-    });
-
-    if (!stay) {
-      throw new ForbiddenError("No active stay found. Food ordering is only available for active residents.");
-    }
-
-    if (stay.foodPlan === "NOT_INCLUDED") {
-      throw new ForbiddenError("Food ordering is not available on your stay plan");
-    }
+    const stay = await getActiveStayForFoodOrdering(session.user.id);
 
     const body = await request.json();
     const parseResult = toggleSchema.safeParse(body);
@@ -192,58 +97,10 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Invalid forDate format. Use YYYY-MM-DD or ISO 8601");
     }
 
-    // Ensure at least one meal is being set
-    if (breakfast === undefined && lunch === undefined && dinner === undefined) {
-      throw new ValidationError("At least one of breakfast, lunch, or dinner must be provided");
-    }
-
-    // 10 PM IST cutoff check
-    if (isPastFoodCutoff(forDate)) {
-      throw new ValidationError(
-        "Cannot modify food orders past the 10:00 PM IST cutoff. Orders for tomorrow must be placed before 10 PM tonight."
-      );
-    }
-
-    // Ensure the target date is within the stay period
-    const stayStart = getStartOfDayIST(stay.joiningDate ?? new Date());
-    const stayEnd = getStartOfDayIST(new Date());
-    // Soft check: allow ordering for today and future days within reasonable range
-
-    // Upsert with concurrent safety — use the unique [stayId, forDate] constraint
-    const existing = await prisma.foodOrder.findUnique({
-      where: {
-        stayId_forDate: { stayId: stay.id, forDate },
-      },
-    });
-
-    const updatedBreakfast = breakfast ?? existing?.breakfast ?? false;
-    const updatedLunch = lunch ?? existing?.lunch ?? false;
-    const updatedDinner = dinner ?? existing?.dinner ?? false;
-
-    const foodOrder = await prisma.foodOrder.upsert({
-      where: {
-        stayId_forDate: { stayId: stay.id, forDate },
-      },
-      create: {
-        stayId: stay.id,
-        forDate,
-        breakfast: updatedBreakfast,
-        lunch: updatedLunch,
-        dinner: updatedDinner,
-      },
-      update: {
-        breakfast: updatedBreakfast,
-        lunch: updatedLunch,
-        dinner: updatedDinner,
-      },
-      select: {
-        forDate: true,
-        breakfast: true,
-        lunch: true,
-        dinner: true,
-        confirmedAt: true,
-        lockedAt: true,
-      },
+    const foodOrder = await updateFoodOrder(stay.id, forDate, {
+      breakfast,
+      lunch,
+      dinner,
     });
 
     return NextResponse.json({

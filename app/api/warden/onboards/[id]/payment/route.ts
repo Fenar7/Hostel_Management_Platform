@@ -4,14 +4,9 @@ import { requireRole } from "@/lib/auth";
 import { resolveHostelId } from "@/lib/auth/resolve-hostel";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ForbiddenError, ValidationError } from "@/lib/errors";
-import { verifyAndGetFileType, compressImage } from "@/lib/image";
-import { uploadToStorage } from "@/lib/storage";
-import { UserRole, StayStatus, PaymentMode, PaymentStatus, DocumentType, DocumentOwnerType } from "@prisma/client";
 import { recordPaymentSchema } from "@/lib/validation/payment";
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
-
-
+import { recordPayment } from "@/services/payments/payment.service";
+import { UserRole } from "@prisma/client";
 
 export async function POST(
   request: NextRequest,
@@ -21,6 +16,7 @@ export async function POST(
     const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const { id: stayId } = await params;
 
+    // Fetch stay for auth check
     const stay = await prisma.stay.findUnique({
       where: { id: stayId },
     });
@@ -30,16 +26,10 @@ export async function POST(
     }
 
     const hostelId = await resolveHostelId(session, request, stay.hostelId);
-
     if (session.user.role !== UserRole.MAIN_ADMIN && stay.hostelId !== hostelId) {
       throw new ForbiddenError("You are not authorized to record payment for this stay");
     }
 
-    if (stay.status !== StayStatus.APPROVED_AWAITING_PAYMENT) {
-      throw new ValidationError(`Cannot record payment for stay in status: ${stay.status}`);
-    }
-
-    // Determine content type (FormData vs JSON)
     const contentType = request.headers.get("content-type") || "";
     let data: z.infer<typeof recordPaymentSchema>;
     let screenshotFile: File | null = null;
@@ -67,61 +57,14 @@ export async function POST(
       }
       data = parsed.data;
     }
-
-    const { amountPaid, paymentMode, transactionRefNo, receivedBy } = data;
-    const amountPaidPaise = Math.round(amountPaid * 100);
-
-    // If UPI/Bank transfer, ref no is required
-    if (
-      (paymentMode === PaymentMode.UPI || paymentMode === PaymentMode.BANK_TRANSFER) &&
-      !transactionRefNo?.trim()
-    ) {
-      throw new ValidationError("Transaction reference number is required for UPI or Bank Transfer payments");
-    }
-
-    let screenshotDocId: string | null = null;
-
-    // Handle screenshot upload if present
-    if (screenshotFile && typeof screenshotFile !== "string" && typeof screenshotFile.arrayBuffer === "function") {
-      const buffer = Buffer.from(await screenshotFile.arrayBuffer());
-      if (buffer.length > MAX_FILE_SIZE) {
-        throw new ValidationError("Screenshot file must be smaller than 5MB");
-      }
-
-      const fileType = verifyAndGetFileType(buffer);
-      if (fileType !== "jpg" && fileType !== "png") {
-        throw new ValidationError("Screenshot must be a JPEG or PNG image");
-      }
-
-      const compressed = await compressImage(buffer, "document");
-      const screenshotPath = `tenants/${stay.tenantId}/payment_screenshot_${Date.now()}.jpg`;
-      await uploadToStorage(compressed.data, screenshotPath, compressed.mimeType);
-
-      // Create Document record
-      const doc = await prisma.document.create({
-        data: {
-          ownerType: DocumentOwnerType.STAY,
-          stayId: stay.id,
-          documentType: DocumentType.PAYMENT_SCREENSHOT,
-          storagePath: screenshotPath,
-          fileSizeBytes: compressed.data.length,
-          uploadedByUserId: session.user.id,
-        },
-      });
-      screenshotDocId = doc.id;
-    }
-
-    // Create unverified Payment record (status PENDING)
-    const payment = await prisma.payment.create({
-      data: {
-        stayId: stay.id,
-        amountPaidPaise,
-        paymentMode,
-        transactionRefNo: transactionRefNo || null,
-        receivedBy: receivedBy || `User ${session.user.id}`,
-        paymentStatus: PaymentStatus.PENDING,
-        screenshotDocumentId: screenshotDocId,
-      },
+    const payment = await recordPayment({
+      stayId,
+      amountPaid: data.amountPaid,
+      paymentMode: data.paymentMode,
+      transactionRefNo: data.transactionRefNo,
+      receivedBy: data.receivedBy || `User ${session.user.id}`,
+      screenshotFile,
+      uploadedByUserId: session.user.id,
     });
 
     return NextResponse.json({
