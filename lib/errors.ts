@@ -40,7 +40,20 @@ export class ConflictError extends AppError {
   }
 }
 
+import { ZodError } from "zod";
+
 export function handleApiError(error: unknown) {
+  if (error instanceof ZodError) {
+    return Response.json(
+      { 
+        error: "Validation Error", 
+        code: "VALIDATION_ERROR",
+        details: error.errors.map(e => ({ path: e.path.join('.'), message: e.message }))
+      },
+      { status: 400 }
+    );
+  }
+
   if (error instanceof AppError) {
     return Response.json(
       { error: error.message, code: error.code },
