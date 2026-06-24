@@ -68,7 +68,7 @@ export async function POST(
 
       await prisma.onboardingRequest.update({
         where: { id },
-        data: updateData as any,
+        data: updateData as import("@prisma/client").Prisma.OnboardingRequestUpdateInput,
       });
 
       throw new ValidationError("Invalid access password");

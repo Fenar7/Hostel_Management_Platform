@@ -10,7 +10,7 @@ export function InitialPaymentForm({
   onSuccess,
   onError
 }: {
-  hostel: any;
+  hostel: { id: string; name: string } | null;
   paymentConfig: import("@prisma/client").HostelPaymentConfig | null;
   remainingBalance: number;
   onSuccess: (msg: string) => void;

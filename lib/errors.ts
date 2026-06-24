@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export class AppError extends Error {
   constructor(
     public code: string,
@@ -49,7 +48,7 @@ export function handleApiError(error: unknown) {
       { 
         error: "Validation Error", 
         code: "VALIDATION_ERROR",
-        details: error.issues.map((e: any) => ({ path: e.path.join('.'), message: e.message }))
+        details: error.issues.map((e) => ({ path: e.path.join('.'), message: e.message }))
       },
       { status: 400 }
     );

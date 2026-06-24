@@ -23,7 +23,7 @@ function RoommateAvatar({ photoUrl, fullName }: { photoUrl: string | null; fullN
   );
 }
 
-export function RoommatesCard({ roommates }: { roommates: any[] }) {
+export function RoommatesCard({ roommates }: { roommates: { id: string; fullName: string; occupationType: string | null; collegeName: string | null; companyName: string | null; designation: string | null; bedLabel: string | null; photoUrl: string | null }[] }) {
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
       <h2 className="text-lg font-bold flex items-center gap-2">

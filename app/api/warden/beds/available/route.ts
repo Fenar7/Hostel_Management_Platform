@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         label: bed.label,
       });
       return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, unknown[]>);
 
     return NextResponse.json(bedsByRoom);
   } catch (error) {

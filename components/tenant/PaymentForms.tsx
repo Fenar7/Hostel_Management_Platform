@@ -171,8 +171,8 @@ export function RentRenewalForm({
   onSuccess,
   onError
 }: {
-  stay: any;
-  paymentConfig: any;
+  stay: { id: string; monthlyRent: number; endDate: Date | string };
+  paymentConfig: import("@prisma/client").HostelPaymentConfig | null;
   nextDueDate: string | null;
   formatDate: (dateStr: string) => string;
   onSuccess: (msg: string) => void;
@@ -289,8 +289,8 @@ export function RentRenewalForm({
           <div className="rounded-lg border p-3 bg-muted/10 mb-4 text-xs">
             <span className="text-muted-foreground block">UPI ID</span>
             <span className="font-bold">{paymentConfig.upiId}</span>
-            {paymentConfig.qrCodeUrl && (
-              <img src={paymentConfig.qrCodeUrl} alt="QR" className="h-20 w-20 mt-2 object-contain rounded border" />
+            {paymentConfig.qrCodePath && (
+              <img src={paymentConfig.qrCodePath} alt="QR" className="h-20 w-20 mt-2 object-contain rounded border" />
             )}
           </div>
         )}

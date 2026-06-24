@@ -140,7 +140,7 @@ export async function POST(
         if (draftStay) {
           await prisma.tenant.update({
             where: { id: draftStay.tenantId },
-            data: updateData as any,
+            data: updateData as import("@prisma/client").Prisma.TenantUpdateInput,
           });
         }
       }

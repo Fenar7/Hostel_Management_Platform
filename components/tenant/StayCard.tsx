@@ -8,9 +8,9 @@ export function StayCard({
   bed,
   formatDate
 }: {
-  stay: any;
-  hostel: any;
-  bed: any;
+  stay: { status: string; joiningDate: Date | string; endDate: Date | string; monthlyRent: number; securityDeposit: number; foodPlan: string; durationType: string };
+  hostel: { name: string };
+  bed: { label: string; roomNumber?: string; sharingType?: string; room?: { roomNumber: string; floor: { name: string } } };
   formatDate: (dateStr: string) => string;
 }) {
   return (
@@ -60,14 +60,14 @@ export function StayCard({
           <span className="text-xs text-muted-foreground block">Joining Date</span>
           <span className="font-semibold flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-            {formatDate(stay.joiningDate)}
+            {formatDate(String(stay.joiningDate))}
           </span>
         </div>
         <div className="space-y-1">
           <span className="text-xs text-muted-foreground block">Check-out Date</span>
           <span className="font-semibold flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-            {formatDate(stay.endDate)}
+            {formatDate(String(stay.endDate))}
           </span>
         </div>
       </div>
