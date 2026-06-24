@@ -332,11 +332,21 @@ export default function OnboardDetailPage() {
           { label: tenant?.fullName ?? "Detail" },
         ]}
         actions={
-          stay?.status === "ACTIVE" ? (
-            <div className="rounded bg-green-500/10 border border-green-500/20 px-3 py-1.5 text-xs text-green-600 font-bold flex items-center gap-1.5">
-              <Check className="h-4 w-4" /> Activated &amp; Occupying Room {bed?.roomNumber}
-            </div>
-          ) : undefined
+          <div className="flex items-center gap-3">
+            {stay && stay.status !== "ONBOARDING_PENDING" && (
+              <a href={`/api/pdf/registration-form/${stay.id}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="h-8">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Registration Form
+                </Button>
+              </a>
+            )}
+            {stay?.status === "ACTIVE" && (
+              <div className="rounded bg-green-500/10 border border-green-500/20 px-3 py-1.5 text-xs text-green-600 font-bold flex items-center gap-1.5">
+                <Check className="h-4 w-4" /> Activated &amp; Occupying Room {bed?.roomNumber}
+              </div>
+            )}
+          </div>
         }
       />
       <div className="space-y-6 p-6 pb-12">
