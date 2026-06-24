@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter, useSearchParams } from "next/navigation";
 import { notify } from "@/lib/toast";
 import { DurationType, FoodPlan } from "@prisma/client";
@@ -39,11 +43,11 @@ export default function WardenOnboardPage() {
   );
   const [foodPlan, setFoodPlan] = useState<FoodPlan>(FoodPlan.NOT_INCLUDED);
   const [isNewAdmission, setIsNewAdmission] = useState(true);
-  const [admissionFee, setAdmissionFee] = useState(0);
-  const [monthlyRent, setMonthlyRent] = useState(0);
-  const [securityDeposit, setSecurityDeposit] = useState(0);
-  const [foodCharges, setFoodCharges] = useState(0);
-  const [discount, setDiscount] = useState(0);
+  const [admissionFee, setAdmissionFee] = useState("0");
+  const [monthlyRent, setMonthlyRent] = useState("0");
+  const [securityDeposit, setSecurityDeposit] = useState("0");
+  const [foodCharges, setFoodCharges] = useState("0");
+  const [discount, setDiscount] = useState("0");
   const [availableBeds, setAvailableBeds] = useState<AvailableBed[]>([]);
   const [selectedBedId, setSelectedBedId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -78,7 +82,7 @@ export default function WardenOnboardPage() {
   }, [selectedHostelId]);
 
   const totalPayable =
-    admissionFee + monthlyRent + securityDeposit + foodCharges - discount;
+    (parseFloat(admissionFee) || 0) + (parseFloat(monthlyRent) || 0) + (parseFloat(securityDeposit) || 0) + (parseFloat(foodCharges) || 0) - (parseFloat(discount) || 0);
 
   const handlePhoneValidation = (): boolean => {
     if (!PHONE_REGEX.test(phone)) {
@@ -159,11 +163,11 @@ export default function WardenOnboardPage() {
         durationType,
         foodPlan,
         isNewAdmission,
-        admissionFee,
-        monthlyRent,
-        securityDeposit,
-        foodCharges,
-        discount,
+        admissionFee: parseFloat(admissionFee) || 0,
+        monthlyRent: parseFloat(monthlyRent) || 0,
+        securityDeposit: parseFloat(securityDeposit) || 0,
+        foodCharges: parseFloat(foodCharges) || 0,
+        discount: parseFloat(discount) || 0,
       };
 
       if (selectedHostelId) {
@@ -294,24 +298,19 @@ export default function WardenOnboardPage() {
                 Choose which hostel to onboard this tenant into.
               </p>
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="hostel-select">
-                  Hostel
-                </label>
-                <select
-                  id="hostel-select"
-                  value={selectedHostelId}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    setSelectedHostelId(e.target.value)
-                  }
-                  className={selectClass}
-                >
-                  <option value="">-- Select a Hostel --</option>
-                  {hostels.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      {h.name} ({h.accommodationType === "MENS" ? "Men" : "Women"})
-                    </option>
-                  ))}
-                </select>
+                <Label htmlFor="hostel-select">Hostel</Label>
+                <Select value={selectedHostelId} onValueChange={(val) => setSelectedHostelId(val || "")}>
+                  <SelectTrigger id="hostel-select" className={selectClass}>
+                    <SelectValue placeholder="-- Select a Hostel --" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hostels.map((h) => (
+                      <SelectItem key={h.id} value={h.id}>
+                        {h.name} ({h.accommodationType === "MENS" ? "Men" : "Women"})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -349,7 +348,7 @@ export default function WardenOnboardPage() {
                 <label className="text-sm font-medium" htmlFor="phone-input">
                   Phone Number
                 </label>
-                <input
+                <Input
                   id="phone-input"
                   type="tel"
                   placeholder="+91XXXXXXXXXX"
@@ -389,7 +388,7 @@ export default function WardenOnboardPage() {
                 <label className="text-sm font-medium" htmlFor="phone-input-2">
                   Phone Number
                 </label>
-                <input
+                <Input
                   id="phone-input-2"
                   type="tel"
                   placeholder="+91XXXXXXXXXX"
@@ -441,7 +440,7 @@ export default function WardenOnboardPage() {
                   >
                     Joining Date
                   </label>
-                  <input
+                  <Input
                     id="joining-date"
                     type="date"
                     value={joiningDate}
@@ -457,7 +456,7 @@ export default function WardenOnboardPage() {
                   <label className="text-sm font-medium" htmlFor="end-date">
                     End Date
                   </label>
-                  <input
+                  <Input
                     id="end-date"
                     type="date"
                     value={endDate}
@@ -544,14 +543,14 @@ export default function WardenOnboardPage() {
                   >
                     Admission Fee (₹)
                   </label>
-                  <input
+                  <Input
                     id="admission-fee"
                     type="number"
                     step="0.01"
                     min="0"
                     value={admissionFee}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setAdmissionFee(parseFloat(e.target.value) || 0)
+                      setAdmissionFee(e.target.value)
                     }
                     className={inputClass}
                   />
@@ -563,14 +562,14 @@ export default function WardenOnboardPage() {
                   >
                     Monthly Rent (₹)
                   </label>
-                  <input
+                  <Input
                     id="monthly-rent"
                     type="number"
                     step="0.01"
                     min="0"
                     value={monthlyRent}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setMonthlyRent(parseFloat(e.target.value) || 0)
+                      setMonthlyRent(e.target.value)
                     }
                     className={inputClass}
                   />
@@ -582,14 +581,14 @@ export default function WardenOnboardPage() {
                   >
                     Security Deposit (₹)
                   </label>
-                  <input
+                  <Input
                     id="security-deposit"
                     type="number"
                     step="0.01"
                     min="0"
                     value={securityDeposit}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setSecurityDeposit(parseFloat(e.target.value) || 0)
+                      setSecurityDeposit(e.target.value)
                     }
                     className={inputClass}
                   />
@@ -601,14 +600,14 @@ export default function WardenOnboardPage() {
                   >
                     Food Charges (₹)
                   </label>
-                  <input
+                  <Input
                     id="food-charges"
                     type="number"
                     step="0.01"
                     min="0"
                     value={foodCharges}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setFoodCharges(parseFloat(e.target.value) || 0)
+                      setFoodCharges(e.target.value)
                     }
                     className={inputClass}
                   />
@@ -617,62 +616,45 @@ export default function WardenOnboardPage() {
                   <label className="text-sm font-medium" htmlFor="discount">
                     Discount (₹)
                   </label>
-                  <input
+                  <Input
                     id="discount"
                     type="number"
                     step="0.01"
                     min="0"
                     value={discount}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setDiscount(parseFloat(e.target.value) || 0)
+                      setDiscount(e.target.value)
                     }
                     className={inputClass}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="duration-type"
-                  >
-                    Duration Type
-                  </label>
-                  <select
-                    id="duration-type"
-                    value={durationType}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setDurationType(e.target.value as DurationType)
-                    }
-                    className={selectClass}
-                  >
-                    <option value={DurationType.MONTHLY}>Monthly</option>
-                    <option value={DurationType.WEEKLY}>Weekly</option>
-                    <option value={DurationType.DAILY}>Daily</option>
-                    <option value={DurationType.CUSTOM}>Custom</option>
-                  </select>
+                  <Label htmlFor="duration-type">Duration Type</Label>
+                  <Select value={durationType} onValueChange={(val) => setDurationType(val as DurationType)}>
+                    <SelectTrigger id="duration-type" className={selectClass}>
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={DurationType.MONTHLY}>Monthly</SelectItem>
+                      <SelectItem value={DurationType.WEEKLY}>Weekly</SelectItem>
+                      <SelectItem value={DurationType.DAILY}>Daily</SelectItem>
+                      <SelectItem value={DurationType.CUSTOM}>Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <label className="text-sm font-medium" htmlFor="food-plan">
-                    Food Plan
-                  </label>
-                  <select
-                    id="food-plan"
-                    value={foodPlan}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                      setFoodPlan(e.target.value as FoodPlan)
-                    }
-                    className={selectClass}
-                  >
-                    <option value={FoodPlan.NOT_INCLUDED}>Not Included</option>
-                    <option value={FoodPlan.BREAKFAST_ONLY}>
-                      Breakfast Only
-                    </option>
-                    <option value={FoodPlan.BREAKFAST_DINNER}>
-                      Breakfast &amp; Dinner
-                    </option>
-                    <option value={FoodPlan.BLD}>
-                      Breakfast, Lunch &amp; Dinner
-                    </option>
-                  </select>
+                  <Label htmlFor="food-plan">Food Plan</Label>
+                  <Select value={foodPlan} onValueChange={(val) => setFoodPlan(val as FoodPlan)}>
+                    <SelectTrigger id="food-plan" className={selectClass}>
+                      <SelectValue placeholder="Select food plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={FoodPlan.NOT_INCLUDED}>Not Included</SelectItem>
+                      <SelectItem value={FoodPlan.BREAKFAST_ONLY}>Breakfast Only</SelectItem>
+                      <SelectItem value={FoodPlan.BREAKFAST_DINNER}>Breakfast &amp; Dinner</SelectItem>
+                      <SelectItem value={FoodPlan.BLD}>Breakfast, Lunch &amp; Dinner</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -701,13 +683,9 @@ export default function WardenOnboardPage() {
               </div>
 
               <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={isNewAdmission}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setIsNewAdmission(e.target.checked)
-                  }
-                  className="rounded"
+                  onCheckedChange={(checked) => setIsNewAdmission(!!checked)}
                 />
                 New Admission
               </label>
@@ -784,13 +762,9 @@ export default function WardenOnboardPage() {
               </div>
 
               <label className="flex items-center gap-2 text-sm font-medium cursor-pointer rounded-lg border p-3">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={confirmed}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setConfirmed(e.target.checked)
-                  }
-                  className="rounded"
+                  onCheckedChange={(checked) => setConfirmed(!!checked)}
                 />
                 I confirm all the details above are correct and I am authorized to onboard this tenant.
               </label>
