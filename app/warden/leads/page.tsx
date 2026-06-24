@@ -87,6 +87,11 @@ export default function WardenLeadsPage() {
       notify.error("Phone number is required");
       return;
     }
+    const PHONE_REGEX = /^\+91[0-9]{10}$/;
+    if (!PHONE_REGEX.test(logPhone.trim())) {
+      notify.error("Please enter a valid Indian phone number (e.g., +91XXXXXXXXXX)");
+      return;
+    }
     try {
       setLogLoading(true);
       const res = await fetch("/api/warden/leads", {

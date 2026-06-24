@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -42,11 +43,11 @@ export default function WardenOnboardPage() {
   );
   const [foodPlan, setFoodPlan] = useState<FoodPlan>(FoodPlan.NOT_INCLUDED);
   const [isNewAdmission, setIsNewAdmission] = useState(true);
-  const [admissionFee, setAdmissionFee] = useState(0);
-  const [monthlyRent, setMonthlyRent] = useState(0);
-  const [securityDeposit, setSecurityDeposit] = useState(0);
-  const [foodCharges, setFoodCharges] = useState(0);
-  const [discount, setDiscount] = useState(0);
+  const [admissionFee, setAdmissionFee] = useState("0");
+  const [monthlyRent, setMonthlyRent] = useState("0");
+  const [securityDeposit, setSecurityDeposit] = useState("0");
+  const [foodCharges, setFoodCharges] = useState("0");
+  const [discount, setDiscount] = useState("0");
   const [availableBeds, setAvailableBeds] = useState<AvailableBed[]>([]);
   const [selectedBedId, setSelectedBedId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,7 +82,7 @@ export default function WardenOnboardPage() {
   }, [selectedHostelId]);
 
   const totalPayable =
-    admissionFee + monthlyRent + securityDeposit + foodCharges - discount;
+    (parseFloat(admissionFee) || 0) + (parseFloat(monthlyRent) || 0) + (parseFloat(securityDeposit) || 0) + (parseFloat(foodCharges) || 0) - (parseFloat(discount) || 0);
 
   const handlePhoneValidation = (): boolean => {
     if (!PHONE_REGEX.test(phone)) {
@@ -162,11 +163,11 @@ export default function WardenOnboardPage() {
         durationType,
         foodPlan,
         isNewAdmission,
-        admissionFee,
-        monthlyRent,
-        securityDeposit,
-        foodCharges,
-        discount,
+        admissionFee: parseFloat(admissionFee) || 0,
+        monthlyRent: parseFloat(monthlyRent) || 0,
+        securityDeposit: parseFloat(securityDeposit) || 0,
+        foodCharges: parseFloat(foodCharges) || 0,
+        discount: parseFloat(discount) || 0,
       };
 
       if (selectedHostelId) {
@@ -549,7 +550,7 @@ export default function WardenOnboardPage() {
                     min="0"
                     value={admissionFee}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setAdmissionFee(parseFloat(e.target.value) || 0)
+                      setAdmissionFee(e.target.value)
                     }
                     className={inputClass}
                   />
@@ -568,7 +569,7 @@ export default function WardenOnboardPage() {
                     min="0"
                     value={monthlyRent}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setMonthlyRent(parseFloat(e.target.value) || 0)
+                      setMonthlyRent(e.target.value)
                     }
                     className={inputClass}
                   />
@@ -587,7 +588,7 @@ export default function WardenOnboardPage() {
                     min="0"
                     value={securityDeposit}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setSecurityDeposit(parseFloat(e.target.value) || 0)
+                      setSecurityDeposit(e.target.value)
                     }
                     className={inputClass}
                   />
@@ -606,7 +607,7 @@ export default function WardenOnboardPage() {
                     min="0"
                     value={foodCharges}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setFoodCharges(parseFloat(e.target.value) || 0)
+                      setFoodCharges(e.target.value)
                     }
                     className={inputClass}
                   />
@@ -622,7 +623,7 @@ export default function WardenOnboardPage() {
                     min="0"
                     value={discount}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setDiscount(parseFloat(e.target.value) || 0)
+                      setDiscount(e.target.value)
                     }
                     className={inputClass}
                   />
@@ -682,13 +683,9 @@ export default function WardenOnboardPage() {
               </div>
 
               <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                <Input
-                  type="checkbox"
+                <Checkbox
                   checked={isNewAdmission}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setIsNewAdmission(e.target.checked)
-                  }
-                  className="rounded"
+                  onCheckedChange={(checked) => setIsNewAdmission(!!checked)}
                 />
                 New Admission
               </label>
@@ -765,13 +762,9 @@ export default function WardenOnboardPage() {
               </div>
 
               <label className="flex items-center gap-2 text-sm font-medium cursor-pointer rounded-lg border p-3">
-                <Input
-                  type="checkbox"
+                <Checkbox
                   checked={confirmed}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setConfirmed(e.target.checked)
-                  }
-                  className="rounded"
+                  onCheckedChange={(checked) => setConfirmed(!!checked)}
                 />
                 I confirm all the details above are correct and I am authorized to onboard this tenant.
               </label>
