@@ -92,7 +92,7 @@ interface UserItem {
     designation: string | null;
     purposeOfStay: string;
     photoUrl: string | null;
-    stays: Array<any>;
+    stays: { hostel: { name: string }, status: string }[];
   } | null;
 }
 

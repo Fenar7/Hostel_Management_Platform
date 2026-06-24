@@ -25,7 +25,7 @@ export const verifySchema = z.object({
 
 export const progressSchema = z.object({
   step: z.coerce.number().int().min(0).max(4),
-  data: z.record(z.string(), z.any()),
+  data: z.record(z.string(), z.unknown()),
 });
 
 export const validateSchema = z.object({

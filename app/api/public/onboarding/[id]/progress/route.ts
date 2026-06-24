@@ -111,7 +111,7 @@ export async function POST(
       const updateData: Record<string, unknown> = {};
 
       if (data.fullName) updateData.fullName = data.fullName;
-      if (data.dateOfBirth) updateData.dateOfBirth = new Date(data.dateOfBirth);
+      if (data.dateOfBirth) updateData.dateOfBirth = new Date(String(data.dateOfBirth));
       if (data.gender) updateData.gender = data.gender;
       if (data.placeOfBirth) updateData.placeOfBirth = data.placeOfBirth;
       if (data.permanentAddress) updateData.permanentAddress = data.permanentAddress;

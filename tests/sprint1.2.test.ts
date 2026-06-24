@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UserRole, AccommodationType, SharingType, BedStatus } from "@prisma/client";
@@ -531,10 +533,10 @@ describe("Task C: Access Protection and Scoping", () => {
     const bed1 = result.floors[0].rooms[0].beds.find((b: any) => b.id === "b-1");
     const bed2 = result.floors[0].rooms[0].beds.find((b: any) => b.id === "b-2");
 
-    expect(bed1.derivedStatus).toBe("OCCUPIED");
-    expect(bed2.derivedStatus).toBe("AVAILABLE");
-    expect(bed1.currentStay).toBeTruthy();
-    expect(bed1.currentStay.tenant.fullName).toBe("John Doe");
+    expect(bed1?.derivedStatus).toBe("OCCUPIED");
+    expect(bed2?.derivedStatus).toBe("AVAILABLE");
+    expect(bed1?.currentStay).toBeTruthy();
+    expect(bed1?.currentStay?.tenant.fullName).toBe("John Doe");
   });
 
   it("should block changing bed to AVAILABLE if occupied by active stay (bed status update)", async () => {

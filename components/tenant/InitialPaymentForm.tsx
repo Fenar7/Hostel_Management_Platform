@@ -11,7 +11,7 @@ export function InitialPaymentForm({
   onError
 }: {
   hostel: any;
-  paymentConfig: any;
+  paymentConfig: import("@prisma/client").HostelPaymentConfig | null;
   remainingBalance: number;
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
@@ -121,9 +121,9 @@ export function InitialPaymentForm({
                 <span className="text-xs text-muted-foreground block uppercase">Hostel Merchant Name</span>
                 <span className="font-bold text-foreground">{hostel?.name}</span>
               </div>
-              {paymentConfig?.qrCodeUrl && (
+              {paymentConfig?.qrCodePath && (
                 <div className="sm:col-span-2 flex justify-center pt-2">
-                  <img src={paymentConfig.qrCodeUrl} alt="UPI QR Code" className="h-40 w-40 object-contain rounded-lg border" />
+                  <img src={paymentConfig.qrCodePath} alt="UPI QR Code" className="h-40 w-40 object-contain rounded-lg border" />
                 </div>
               )}
             </div>

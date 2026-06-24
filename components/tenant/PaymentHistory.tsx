@@ -1,6 +1,6 @@
 import { FileText } from "lucide-react";
 
-export function PaymentHistory({ payments, formatDate }: { payments: any[]; formatDate: (dateStr: string) => string }) {
+export function PaymentHistory({ payments, formatDate }: { payments: { id: string; amountPaise: number; paymentStatus: string; createdAt: string; paymentMode: string; transactionRefNo: string | null; receiptUrl: string | null }[]; formatDate: (dateStr: string) => string }) {
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
       <h2 className="text-lg font-bold flex items-center gap-2">
@@ -20,7 +20,7 @@ export function PaymentHistory({ payments, formatDate }: { payments: any[]; form
             <tbody>
               {payments.map((pmt) => (
                 <tr key={pmt.id} className="border-b last:border-0">
-                  <td className="py-2.5 font-semibold">₹ {pmt.amountPaid.toLocaleString("en-IN")}</td>
+                  <td className="py-2.5 font-semibold">₹ {(pmt.amountPaise / 100).toLocaleString("en-IN")}</td>
                   <td className="py-2.5 text-muted-foreground">{formatDate(pmt.createdAt)}</td>
                   <td className="py-2.5 text-muted-foreground hidden sm:table-cell max-w-24 truncate">{pmt.transactionRefNo || "—"}</td>
                   <td className="py-2.5 text-right">

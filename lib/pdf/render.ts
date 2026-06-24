@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { renderToBuffer } from "@react-pdf/renderer";
 import React from "react";
 import { PaymentReceiptDocument, ReceiptData } from "./templates/payment-receipt";
@@ -10,7 +9,8 @@ import { RefundInvoiceDocument, RefundInvoiceData } from "./templates/refund-inv
  */
 export async function renderPaymentReceipt(data: ReceiptData): Promise<Buffer> {
   const element = React.createElement(PaymentReceiptDocument, { data });
-  const buffer = await renderToBuffer(element as any);
+  // @ts-expect-error react-pdf typing mismatch
+  const buffer = await renderToBuffer(element);
   return buffer as unknown as Buffer;
 }
 
@@ -19,7 +19,8 @@ export async function renderPaymentReceipt(data: ReceiptData): Promise<Buffer> {
  */
 export async function renderRegistrationForm(data: RegistrationFormData): Promise<Buffer> {
   const element = React.createElement(RegistrationFormDocument, { data });
-  const buffer = await renderToBuffer(element as any);
+  // @ts-expect-error react-pdf typing mismatch
+  const buffer = await renderToBuffer(element);
   return buffer as unknown as Buffer;
 }
 
@@ -28,6 +29,7 @@ export async function renderRegistrationForm(data: RegistrationFormData): Promis
  */
 export async function renderRefundInvoice(data: RefundInvoiceData): Promise<Buffer> {
   const element = React.createElement(RefundInvoiceDocument, { data });
-  const buffer = await renderToBuffer(element as any);
+  // @ts-expect-error react-pdf typing mismatch
+  const buffer = await renderToBuffer(element);
   return buffer as unknown as Buffer;
 }

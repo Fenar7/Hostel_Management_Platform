@@ -391,7 +391,7 @@ export async function getFullHierarchy(hostelId: string) {
   const stayByBedId = new Map(activeStays.map((s) => [s.bedId, s]));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function enrichBeds(beds: any[]) {
+  function enrichBeds(beds: { bedType: string | null; id: string; roomId: string; label: string; status: string; currentStays?: { id: string; tenant: { fullName: string; phone: string; user: { email: string | null } } }[] }[]) {
     return beds.map((bed) => ({
       ...bed,
       derivedStatus: occupiedBedIds.has(bed.id) ? "OCCUPIED" : bed.status,

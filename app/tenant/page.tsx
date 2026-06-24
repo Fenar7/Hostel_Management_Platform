@@ -70,7 +70,7 @@ interface RoommateDetails {
   bedLabel: string;
 }
 
-interface PaymentConfig {
+interface HostelPaymentConfig {
   upiId: string | null;
   qrCodeUrl: string | null;
 }
@@ -109,7 +109,7 @@ export default function TenantDashboardPage() {
   const [roommates, setRoommates] = useState<RoommateDetails[]>([]);
   const [nextDueDate, setNextDueDate] = useState<string | null>(null);
 
-  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
+  const [paymentConfig, setHostelPaymentConfig] = useState<import("@prisma/client").HostelPaymentConfig | null>(null);
 
   // Upload Payment State
   const [uploadAmount, setUploadAmount] = useState("");
@@ -136,7 +136,7 @@ export default function TenantDashboardPage() {
           const pcRes = await fetch(`/api/public/hostels/${data.hostel.id}/payment-config`);
           if (pcRes.ok) {
             const pcData = await pcRes.json();
-            setPaymentConfig(pcData);
+            setHostelPaymentConfig(pcData);
           }
         } catch { /* non-critical */ }
       }
