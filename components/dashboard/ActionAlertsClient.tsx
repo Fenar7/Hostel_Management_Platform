@@ -3,29 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertCircle, ChevronRight, CheckCircle2, IndianRupee } from "lucide-react";
+import useSWR from "swr";
 import { cn } from "@/lib/utils";
 
 export function ActionAlertsClient({ role }: { role: "WARDEN" | "MAIN_ADMIN" }) {
-  const [counts, setCounts] = useState({ pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0 });
-  const [loading, setLoading] = useState(true);
+  const { data: counts, isLoading } = useSWR(
+    "/api/warden/action-counts",
+    (url: string) => fetch(url).then(res => res.json()),
+    { refreshInterval: 60000, dedupingInterval: 10000 }
+  );
 
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const res = await fetch("/api/warden/action-counts");
-        if (res.ok) {
-          setCounts(await res.json());
-        }
-      } catch (err) {}
-      setLoading(false);
-    };
-
-    fetchCounts();
-    const interval = setInterval(fetchCounts, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (loading) return null;
+  if (isLoading || !counts) return null;
 
   const totalActions = counts.pendingReviews + counts.pendingPayments;
   

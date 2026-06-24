@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
+import useSWR from "swr";
 import {
   Home,
   Building2,
@@ -184,25 +185,13 @@ function SidebarContent({
   const pathname = usePathname();
   const router = useRouter();
   const groups = NAV_CONFIG[role] ?? [];
-  const [counts, setCounts] = useState({ pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0 });
+  const { data: counts = { pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0 } } = useSWR(
+    role === "WARDEN" || role === "MAIN_ADMIN" ? "/api/warden/action-counts" : null,
+    (url: string) => fetch(url).then(res => res.json()),
+    { refreshInterval: 60000, dedupingInterval: 10000 }
+  );
 
-  useEffect(() => {
-    if (role !== "WARDEN" && role !== "MAIN_ADMIN") return;
-    
-    const fetchCounts = async () => {
-      try {
-        const res = await fetch("/api/warden/action-counts");
-        if (res.ok) {
-          const data = await res.json();
-          setCounts(data);
-        }
-      } catch (err) {}
-    };
 
-    fetchCounts();
-    const interval = setInterval(fetchCounts, 60000);
-    return () => clearInterval(interval);
-  }, [role]);
 
   const handleLogout = useCallback(async () => {
     try {

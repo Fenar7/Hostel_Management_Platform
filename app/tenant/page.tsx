@@ -140,8 +140,8 @@ export default function TenantDashboardPage() {
           }
         } catch { /* non-critical */ }
       }
-    } catch (err: any) {
-      notify.error(err.message || "An unexpected error occurred");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -190,8 +190,8 @@ export default function TenantDashboardPage() {
       setUploadAmount("");
       setUploadRef("");
       fetchStayDetails();
-    } catch (err: any) {
-      notify.error(err.message);
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg);
     } finally {
       setUploading(false);
     }

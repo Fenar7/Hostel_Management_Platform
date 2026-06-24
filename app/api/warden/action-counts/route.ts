@@ -7,9 +7,13 @@ export async function GET(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
 
+    if (session.user.role === UserRole.WARDEN && !session.user.warden?.hostelId) {
+      return NextResponse.json({ error: "Warden not assigned to a hostel" }, { status: 403 });
+    }
+
     // Construct common where clause for warden
     const baseWhere = session.user.role === UserRole.WARDEN 
-      ? { hostelId: session.user.warden?.hostelId } 
+      ? { hostelId: session.user.warden!.hostelId } 
       : {};
 
     const [pendingReviews, pendingPayments, rentDueSoon] = await Promise.all([

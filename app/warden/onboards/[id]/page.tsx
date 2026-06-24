@@ -132,8 +132,8 @@ export default function OnboardDetailPage() {
       setBed(data.bed);
       setPayments(data.payments);
       setUpiId(data.upiId || null);
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred while loading details");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred while loading details");
     } finally {
       setLoading(false);
     }
@@ -156,8 +156,8 @@ export default function OnboardDetailPage() {
       notify.success("Profile approved. Payment request ready.");
       setShowPaymentRequest(true);
       await fetchDetails();
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred during approval");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred during approval");
     } finally {
       setProcessingApprove(false);
     }
@@ -176,8 +176,8 @@ export default function OnboardDetailPage() {
       }
       notify.success("Registration request rejected successfully.");
       router.push("/warden/onboards");
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred during rejection");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred during rejection");
     } finally {
       setProcessingReject(false);
     }
@@ -225,8 +225,8 @@ export default function OnboardDetailPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       
       await fetchDetails();
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred while recording payment");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred while recording payment");
     } finally {
       setProcessingPayment(false);
     }
@@ -254,8 +254,8 @@ export default function OnboardDetailPage() {
       }
 
       await fetchDetails();
-    } catch (err: any) {
-      notify.error(err.message || "An error occurred during verification");
+    } catch (err) { const errorMsg = err instanceof Error ? err.message : String(err);
+      notify.error(errorMsg || "An error occurred during verification");
     } finally {
       setProcessingVerify(null);
     }
