@@ -32,6 +32,7 @@ async function main() {
   await prisma.tenant.deleteMany();
   await prisma.hostel.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.organization.deleteMany();
 
   // Clean Supabase Auth users to start fresh
   console.log('Cleaning auth.users...');
@@ -52,13 +53,24 @@ async function main() {
     return data.user.id;
   }
 
-  // 1. Create Hostel
+  // 1. Create Organization
+  console.log('Creating organization...');
+  const org = await prisma.organization.create({
+    data: {
+      name: 'Anywhere Node HQ',
+      domain: 'anywherenode.com',
+      brandColor: '#0F172A',
+    },
+  });
+
+  // 2. Create Hostel
   console.log('Creating hostel...');
   const hostel = await prisma.hostel.create({
     data: {
       name: 'Hostel Alpha',
       address: '123 Main Road, Mumbai',
       accommodationType: AccommodationType.MENS,
+      organizationId: org.id,
     },
   });
 
@@ -107,6 +119,7 @@ async function main() {
       email: 'admin@anywherenode.com',
       passwordSetAt: new Date(),
       role: UserRole.MAIN_ADMIN,
+      organizationId: org.id,
     },
   });
 
@@ -121,6 +134,7 @@ async function main() {
       email: 'warden@anywherenode.com',
       passwordSetAt: null, // Test first-login flow
       role: UserRole.WARDEN,
+      organizationId: org.id,
     },
   });
 
@@ -142,6 +156,7 @@ async function main() {
       email: 'tenant@anywherenode.com',
       passwordSetAt: null, // Test first-login flow
       role: UserRole.TENANT,
+      organizationId: org.id,
     },
   });
 
