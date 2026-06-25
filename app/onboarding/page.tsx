@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Shield, ArrowRight } from "lucide-react";
 
@@ -64,19 +65,16 @@ function OnboardingEntryInner() {
 
         <div className="rounded-lg border bg-card shadow-sm p-6 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="phone-input">
+            <label className="text-sm font-medium mb-1.5 block" htmlFor="phone-input">
               Phone Number
             </label>
-            <input
+            <PhoneInput
               id="phone-input"
-              type="tel"
-              placeholder="+91XXXXXXXXXX"
               value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value);
+              onChange={(val) => {
+                setPhone(val);
                 setError("");
               }}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
 

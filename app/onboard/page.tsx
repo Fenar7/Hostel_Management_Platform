@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Loader2, Camera, Upload, AlertCircle, CheckCircle, ArrowLeft, ArrowRight, Shield, User, Briefcase, FileText } from "lucide-react";
 
 interface OnboardingData {
@@ -614,13 +615,10 @@ function OnboardContent() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-semibold">Emergency Contact Number</label>
-                  <input
-                    type="text"
-                    placeholder="+91XXXXXXXXXX"
+                  <label className="text-sm font-semibold mb-1.5 block">Emergency Contact Number</label>
+                  <PhoneInput
                     value={emergencyContactNumber}
-                    onChange={(e) => setEmergencyContactNumber(e.target.value)}
-                    className="mt-1.5 flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm focus:outline-none"
+                    onChange={(val) => setEmergencyContactNumber(val)}
                   />
                 </div>
 
@@ -636,13 +634,10 @@ function OnboardContent() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="text-sm font-semibold">Parent / Guardian Contact</label>
-                  <input
-                    type="text"
-                    placeholder="+91XXXXXXXXXX"
+                  <label className="text-sm font-semibold mb-1.5 block">Parent / Guardian Contact</label>
+                  <PhoneInput
                     value={parentGuardianContact}
-                    onChange={(e) => setParentGuardianContact(e.target.value)}
-                    className="mt-1.5 flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm focus:outline-none"
+                    onChange={(val) => setParentGuardianContact(val)}
                   />
                 </div>
               </div>

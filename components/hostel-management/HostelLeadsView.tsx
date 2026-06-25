@@ -8,7 +8,7 @@ import { Plus, X, Loader2, FileText, MessageCircle } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, LEAD_SOURCE_COLORS } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -308,12 +308,10 @@ export default function HostelLeadsView({ hostelId, baseRoute }: { hostelId: str
             <div className="space-y-4">
               <div className="space-y-1">
                 <Label htmlFor="phone">Phone Number</Label>
-                <Input
+                <PhoneInput
                   id="phone"
-                  type="text"
-                  placeholder="+91..."
                   value={logPhone}
-                  onChange={(e) => setLogPhone(e.target.value)}
+                  onChange={(val) => setLogPhone(val)}
                 />
               </div>
               <div className="space-y-1">

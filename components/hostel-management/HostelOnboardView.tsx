@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -348,16 +349,14 @@ export default function HostelOnboardView({ hostelId, baseRoute }: { hostelId: s
                 <label className="text-sm font-medium" htmlFor="phone-input">
                   Phone Number
                 </label>
-                <Input
+                <PhoneInput
                   id="phone-input"
-                  type="tel"
-                  placeholder="+91XXXXXXXXXX"
                   value={phone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setPhone(e.target.value);
+                  onChange={(val) => {
+                    setPhone(val);
                     setPhoneError("");
                   }}
-                  className={`${inputClass} ${phoneError ? "border-red-500" : ""}`}
+                  error={!!phoneError}
                 />
                 {phoneError && (
                   <p className="text-xs text-red-600">{phoneError}</p>
@@ -388,16 +387,14 @@ export default function HostelOnboardView({ hostelId, baseRoute }: { hostelId: s
                 <label className="text-sm font-medium" htmlFor="phone-input-2">
                   Phone Number
                 </label>
-                <Input
+                <PhoneInput
                   id="phone-input-2"
-                  type="tel"
-                  placeholder="+91XXXXXXXXXX"
                   value={phone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setPhone(e.target.value);
+                  onChange={(val) => {
+                    setPhone(val);
                     setPhoneError("");
                   }}
-                  className={`${inputClass} ${phoneError ? "border-red-500" : ""}`}
+                  error={!!phoneError}
                 />
                 {phoneError && (
                   <p className="text-xs text-red-600">{phoneError}</p>
