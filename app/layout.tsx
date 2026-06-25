@@ -7,7 +7,7 @@ const sans = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const heading = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-heading", weight: ["600", "700", "800"] });
 
 export const metadata: Metadata = {
-  title: "NextHome | Hostel Management",
+  title: "Anywhere Node | Hostel Management",
   description: "Next-generation hostel management platform",
 };
 

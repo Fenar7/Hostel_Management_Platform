@@ -29,7 +29,7 @@ export function Navbar({ userName, role }: NavbarProps) {
           <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
             <span className="text-[10px] font-bold text-primary-foreground">NH</span>
           </div>
-          <span className="text-lg font-bold tracking-tight">NextHome</span>
+          <span className="text-lg font-bold tracking-tight">Anywhere Node</span>
         </Link>
 
         {role === "MAIN_ADMIN" && (

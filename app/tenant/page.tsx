@@ -225,7 +225,7 @@ export default function TenantDashboardPage() {
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              NextHome
+              Anywhere Node
             </span>
             <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider">Tenant</Badge>
           </div>
@@ -241,7 +241,7 @@ export default function TenantDashboardPage() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground text-3xl">
               🏠
             </div>
-            <h2 className="text-2xl font-bold">Welcome to NextHome!</h2>
+            <h2 className="text-2xl font-bold">Welcome to Anywhere Node!</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
               You are currently logged in, but there is no active stay registered for your account. Please contact your hostel warden to initiate onboarding.
             </p>

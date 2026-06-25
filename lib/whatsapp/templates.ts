@@ -13,7 +13,7 @@
  */
 export function onboardingLink(registrationUrl: string, name?: string): string {
   const nameSuffix = name ? ` ${name}` : "";
-  return `Hello${nameSuffix}, welcome to NextHome. Please complete your registration here: ${registrationUrl}`;
+  return `Hello${nameSuffix}, welcome to Anywhere Node. Please complete your registration here: ${registrationUrl}`;
 }
 
 /**
@@ -26,7 +26,7 @@ export function onboardingLinkWithPassword(
 ): string {
   const greeting = name ? `Hello ${name}` : "Hello";
   return (
-    `${greeting}, welcome to NextHome! Your onboarding is ready.\n\n` +
+    `${greeting}, welcome to Anywhere Node! Your onboarding is ready.\n\n` +
     `🔗 Link: ${registrationUrl}\n` +
     `🔑 Access Password: ${tempPassword}\n\n` +
     `Please use the link and password above to complete your registration. ` +
@@ -59,12 +59,12 @@ export function applicationApprovedPaymentRequest(params: {
 }): string {
   const { name, amount, paymentUrl, upiId, breakdown } = params;
   const formattedAmount = amount.toLocaleString("en-IN");
-  const upiDisplay = upiId || "payment@nexthome";
+  const upiDisplay = upiId || "payments@anywherenode.com";
 
   if (breakdown) {
     const roomLabel = breakdown.roomBedLabel ?? "your room";
     return (
-      `Hello ${name}! Your registration for ${roomLabel} in NextHome Hostel has been approved!\n\n` +
+      `Hello ${name}! Your registration for ${roomLabel} in Anywhere Node Hostel has been approved!\n\n` +
       `Due Amount: \u20B9${formattedAmount}\n` +
       `Breakdown:\n` +
       `- Admission Fee: \u20B9${breakdown.admissionFee.toLocaleString("en-IN")}\n` +

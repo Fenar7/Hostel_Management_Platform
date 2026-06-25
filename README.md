@@ -1,4 +1,4 @@
-# NextHome Hostel Management Platform
+# Anywhere Node Hostel Management Platform
 
 A premium Next.js SaaS platform for modern hostel management.
 

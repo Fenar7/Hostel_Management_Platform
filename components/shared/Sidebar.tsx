@@ -222,7 +222,7 @@ function SidebarContent({
               </span>
             </div>
             <span className="text-base font-extrabold tracking-tight truncate">
-              NextHome
+              Anywhere Node
             </span>
           </Link>
         )}
