@@ -30,7 +30,7 @@ model User {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   organizationId  String?
-  organization    Organization? @relation(fields: [organizationId], references: [id])
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Inverse relations
   warden          Warden?
@@ -40,6 +40,8 @@ model User {
   refundsProcessed RefundInvoice[]    @relation("ProcessedRefunds")
   documentsUploaded Document[]        @relation("UploadedDocuments")
   leadNotes       LeadNote[]
+
+  @@index([organizationId])
 }
 
 model Warden {
@@ -108,7 +110,7 @@ model Hostel {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   organizationId    String?
-  organization      Organization?     @relation(fields: [organizationId], references: [id])
+  organization      Organization?     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Inverse relations
   warden            Warden?
@@ -117,6 +119,8 @@ model Hostel {
   stays             Stay[]
   leads             Lead[]
   onboardingRequests OnboardingRequest[]
+
+  @@index([organizationId])
 }
 
 model HostelPaymentConfig {
@@ -451,7 +455,9 @@ model Lead {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
 }
 
 model LeadNote {
