@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   X,
@@ -20,7 +20,6 @@ import {
   ExternalLink
 } from "lucide-react";
 
-import { StayLifecycleModal } from "@/components/warden/StayLifecycleModal";
 
 type Bed = {
   id: string;
@@ -186,7 +185,7 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
   const [data, setData] = useState<HostelHierarchy | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStayId, setSelectedStayId] = useState<string | null>(null);
+  const router = useRouter();
   const searchParams = useSearchParams();
   
   function loadData() {
@@ -278,17 +277,13 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
       ) : (
         <div className="space-y-5">
           {data.floors.map((floor) => (
-            <FloorSection key={floor.id} floor={floor} onBedClick={(stayId) => setSelectedStayId(stayId)} />
+            <FloorSection key={floor.id} floor={floor} onBedClick={(stayId) => {
+              if (stayId) {
+                router.push(`${baseRoute}/stays/${stayId}`);
+              }
+            }} />
           ))}
         </div>
-      )}
-
-      {selectedStayId && (
-        <StayLifecycleModal
-          stayId={selectedStayId}
-          onClose={() => setSelectedStayId(null)}
-          onSuccess={loadData}
-        />
       )}
     </div>
   );
