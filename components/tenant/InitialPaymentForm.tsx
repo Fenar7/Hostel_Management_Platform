@@ -24,15 +24,15 @@ export function InitialPaymentForm({
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!screenshotFile) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setScreenshotFile(file);
+    if (file) {
+      setPreviewUrl(URL.createObjectURL(file));
+    } else {
       setPreviewUrl(null);
-      return;
     }
-    const url = URL.createObjectURL(screenshotFile);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [screenshotFile]);
+  };
 
   const handleUploadReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +123,7 @@ export function InitialPaymentForm({
               </div>
               {paymentConfig?.qrCodePath && (
                 <div className="sm:col-span-2 flex justify-center pt-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={paymentConfig.qrCodePath} alt="UPI QR Code" className="h-40 w-40 object-contain rounded-lg border" />
                 </div>
               )}
@@ -199,7 +200,7 @@ export function InitialPaymentForm({
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setScreenshotFile(e.target.files?.[0] || null)}
+                      onChange={handleFileChange}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       required
                     />
