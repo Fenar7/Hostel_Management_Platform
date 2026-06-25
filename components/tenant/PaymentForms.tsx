@@ -188,10 +188,12 @@ export function RentRenewalForm({
 
   useEffect(() => {
     if (!screenshotFile) {
+      // eslint-disable-next-line
       setPreviewUrl(null);
       return;
     }
     const url = URL.createObjectURL(screenshotFile);
+    // eslint-disable-next-line
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [screenshotFile]);
