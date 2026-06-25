@@ -10,7 +10,6 @@ import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 
 export const dynamic = "force-dynamic";
 
-import { UserRole } from "@prisma/client";
 
 export default async function HostelDashboardView({
   hostelId,
@@ -19,7 +18,7 @@ export default async function HostelDashboardView({
 }: {
   hostelId: string | null;
   baseRoute: string;
-  userRole: UserRole;
+  userRole: "MAIN_ADMIN" | "WARDEN";
 }) {
   if (!hostelId) {
     return (
