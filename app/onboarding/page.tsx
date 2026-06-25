@@ -55,7 +55,7 @@ function OnboardingEntryInner() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Shield className="h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold">Welcome to Nexthome</h1>
+          <h1 className="text-2xl font-bold">Welcome to Anywhere Node</h1>
           <p className="text-muted-foreground text-sm">
             Enter the phone number and access password provided by your hostel
             warden to begin your onboarding.

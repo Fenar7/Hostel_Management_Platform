@@ -98,13 +98,13 @@ async function main() {
 
   // 3. Create Main Admin User
   console.log('Seeding Admin Auth...');
-  const adminAuthId = await createAuthUser('admin@nexthome.com', 'password123');
+  const adminAuthId = await createAuthUser('admin@anywherenode.com', 'password123');
 
   await prisma.user.create({
     data: {
       supabaseAuthId: adminAuthId,
       phone: '+919999999999',
-      email: 'admin@nexthome.com',
+      email: 'admin@anywherenode.com',
       passwordSetAt: new Date(),
       role: UserRole.MAIN_ADMIN,
     },
@@ -112,13 +112,13 @@ async function main() {
 
   // 4. Create Warden User
   console.log('Seeding Warden Auth...');
-  const wardenAuthId = await createAuthUser('warden@nexthome.com', 'password123');
+  const wardenAuthId = await createAuthUser('warden@anywherenode.com', 'password123');
 
   const wardenUser = await prisma.user.create({
     data: {
       supabaseAuthId: wardenAuthId,
       phone: '+918888888888',
-      email: 'warden@nexthome.com',
+      email: 'warden@anywherenode.com',
       passwordSetAt: null, // Test first-login flow
       role: UserRole.WARDEN,
     },
@@ -133,13 +133,13 @@ async function main() {
 
   // 5. Create Tenant User
   console.log('Seeding Tenant Auth...');
-  const tenantAuthId = await createAuthUser('tenant@nexthome.com', 'password123');
+  const tenantAuthId = await createAuthUser('tenant@anywherenode.com', 'password123');
 
   const tenantUser = await prisma.user.create({
     data: {
       supabaseAuthId: tenantAuthId,
       phone: '+917777777777',
-      email: 'tenant@nexthome.com',
+      email: 'tenant@anywherenode.com',
       passwordSetAt: null, // Test first-login flow
       role: UserRole.TENANT,
     },
@@ -166,9 +166,9 @@ async function main() {
   });
 
   console.log('Seeding complete! Log in with:');
-  console.log('Admin:   admin@nexthome.com   / password123');
-  console.log('Warden:  warden@nexthome.com  / password123');
-  console.log('Tenant:  tenant@nexthome.com  / password123');
+  console.log('Admin:   admin@anywherenode.com   / password123');
+  console.log('Warden:  warden@anywherenode.com  / password123');
+  console.log('Tenant:  tenant@anywherenode.com  / password123');
 }
 
 main()

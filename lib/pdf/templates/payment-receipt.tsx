@@ -152,7 +152,7 @@ export function PaymentReceiptDocument({ data }: { data: ReceiptData }) {
         {/* Footer */}
         <View style={receiptStyles.footer}>
           <Text style={receiptStyles.footerText}>
-            {data.hostelName} — NextHome Hostel Management
+            {data.hostelName} — Anywhere Node Hostel Management
           </Text>
           <Text style={receiptStyles.footerText}>
             Receipt: {data.receiptNumber}

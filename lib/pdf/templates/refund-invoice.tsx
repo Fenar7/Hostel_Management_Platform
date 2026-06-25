@@ -199,7 +199,7 @@ export function RefundInvoiceDocument({ data }: { data: RefundInvoiceData }) {
 
         {/* Footer */}
         <View style={s.footer}>
-          <Text style={s.footerText}>{data.hostelName} — NextHome Hostel Management</Text>
+          <Text style={s.footerText}>{data.hostelName} — Anywhere Node Hostel Management</Text>
           <Text style={s.footerText}>Refund Invoice</Text>
         </View>
       </Page>

@@ -107,7 +107,7 @@ describe("requireHostelAccess", () => {
         warden: null,
         tenant: null,
         phone: "1234567890",
-        email: "admin@nexthome.com",
+        email: "admin@anywherenode.com",
         passwordSetAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),

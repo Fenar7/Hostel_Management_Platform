@@ -343,7 +343,7 @@ export function RegistrationFormDocument({ data }: { data: RegistrationFormData 
 
         {/* Footer */}
         <View style={s.footer}>
-          <Text style={s.footerText}>{data.hostelName} — NextHome Hostel Management</Text>
+          <Text style={s.footerText}>{data.hostelName} — Anywhere Node Hostel Management</Text>
           <Text style={s.footerText}>Page 1 of 2</Text>
         </View>
       </Page>
@@ -375,7 +375,7 @@ export function RegistrationFormDocument({ data }: { data: RegistrationFormData 
         </View>
 
         <View style={s.footer}>
-          <Text style={s.footerText}>{data.hostelName} — NextHome Hostel Management</Text>
+          <Text style={s.footerText}>{data.hostelName} — Anywhere Node Hostel Management</Text>
           <Text style={s.footerText}>Page 2 of 2</Text>
         </View>
       </Page>
