@@ -8,10 +8,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.MAIN_ADMIN]);
+    const session = await requireRole([UserRole.MAIN_ADMIN]);
 
     const stays = await prisma.stay.findMany({
       where: {
+        hostel: { organizationId: session.user.organizationId },
         status: {
           in: [
             StayStatus.ONBOARDING_PENDING,
@@ -34,7 +35,11 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const onboardingRequests = await prisma.onboardingRequest.findMany();
+    const onboardingRequests = await prisma.onboardingRequest.findMany({
+      where: {
+        hostel: { organizationId: session.user.organizationId },
+      },
+    });
 
     const mapped = stays.map((stay) => {
       const matchingReq = onboardingRequests.find(
