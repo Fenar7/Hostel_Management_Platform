@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Loader2, Shield, X, CheckCircle, AlertCircle } from "lucide-react";
 
 interface AssignWardenModalProps {
@@ -105,13 +106,10 @@ export function AssignWardenModal({ hostelId, hostelName, open, onClose, onSucce
 
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium">Phone Number *</label>
-                  <input
-                    type="tel"
-                    placeholder="+91XXXXXXXXXX"
+                  <label className="text-sm font-medium mb-1.5 block">Phone Number *</label>
+                  <PhoneInput
                     value={phone}
-                    onChange={(e) => { setPhone(e.target.value); setError(""); }}
-                    className="mt-1.5 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    onChange={(val) => { setPhone(val); setError(""); }}
                   />
                 </div>
 

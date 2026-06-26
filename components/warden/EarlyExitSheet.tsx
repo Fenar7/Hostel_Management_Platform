@@ -40,26 +40,26 @@ export default function EarlyExitSheet({
   } | null>(null);
 
   useEffect(() => {
+    async function fetchEstimate(dateStr: string) {
+      setEstimating(true);
+      try {
+        const res = await fetch(`/api/warden/stays/${stayId}/refund-estimate?exitDate=${dateStr}`);
+        if (res.ok) {
+          const data = await res.json();
+          setEstimateData(data);
+          setRefundAmount((data.suggestedRefund / 100).toFixed(2));
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setEstimating(false);
+      }
+    }
+
     if (open && exitDate) {
       fetchEstimate(exitDate);
     }
-  }, [open, exitDate]);
-
-  async function fetchEstimate(dateStr: string) {
-    setEstimating(true);
-    try {
-      const res = await fetch(`/api/warden/stays/${stayId}/refund-estimate?exitDate=${dateStr}`);
-      if (res.ok) {
-        const data = await res.json();
-        setEstimateData(data);
-        setRefundAmount((data.suggestedRefund / 100).toFixed(2));
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setEstimating(false);
-    }
-  };
+  }, [open, exitDate, stayId]);;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

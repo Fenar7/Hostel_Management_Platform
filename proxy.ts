@@ -23,8 +23,17 @@ function getRequiredRole(pathname: string): UserRole | null {
   return null;
 }
 
-function createSupabaseClient(request: NextRequest) {
-  return createServerClient(
+function updateSession(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const rememberMeCookie = request.cookies.get("remember_me");
+  const maxAge = rememberMeCookie ? 30 * 24 * 60 * 60 : undefined;
+
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -32,19 +41,32 @@ function createSupabaseClient(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll() {
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const finalMaxAge = options.maxAge === 0 ? 0 : (maxAge !== undefined ? maxAge : options.maxAge);
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              maxAge: finalMaxAge,
+            })
+          });
         },
       },
     }
   );
+
+  return { supabase, supabaseResponse };
 }
 
 function redirectToLogin(request: NextRequest): NextResponse {
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
   const response = NextResponse.redirect(loginUrl);
-  response.cookies.set("sb-auth-token", "", { maxAge: 0, path: "/" });
-  response.cookies.set("supabase-auth-token", "", { maxAge: 0, path: "/" });
+  // Clear the remember_me cookie. We rely on the /login page mounting to call supabase.auth.signOut() to clear the chunked session cookies properly.
+  response.cookies.set("remember_me", "", { maxAge: 0, path: "/" });
   return response;
 }
 
@@ -69,7 +91,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const supabase = createSupabaseClient(request);
+  const { supabase, supabaseResponse } = updateSession(request);
 
   let supabaseUserId: string | null = null;
   try {
@@ -85,11 +107,11 @@ export async function proxy(request: NextRequest) {
       }
       return redirectToLogin(request);
     }
-    return NextResponse.next();
+    return supabaseResponse;
   }
 
   if (!requiredRole) {
-    return NextResponse.next();
+    return supabaseResponse;
   }
 
   let dbUser: { role: UserRole; passwordSetAt: Date | null } | null = null;
@@ -99,7 +121,7 @@ export async function proxy(request: NextRequest) {
       select: { role: true, passwordSetAt: true },
     });
   } catch {
-    return NextResponse.next();
+    return supabaseResponse;
   }
 
   if (!dbUser) {
@@ -127,7 +149,7 @@ export async function proxy(request: NextRequest) {
   // MAIN_ADMIN is a superuser — treat as having all role permissions
   if (dbUser.role === UserRole.MAIN_ADMIN) {
     console.log(`[Proxy Log] Main Admin bypass for route: ${pathname}`);
-    return NextResponse.next();
+    return supabaseResponse;
   }
 
   if (dbUser.role !== requiredRole) {
@@ -139,7 +161,7 @@ export async function proxy(request: NextRequest) {
   }
 
   console.log(`[Proxy Log] Allowing route to proceed: ${pathname}`);
-  return NextResponse.next();
+  return supabaseResponse;
 }
 
 export const config = {

@@ -32,27 +32,66 @@ export async function POST(
       throw new NotFoundError("Warden not found or access denied");
     }
 
-    if (!warden.user.supabaseAuthId) {
-      throw new ValidationError("Warden has no linked authentication account");
+    if (data.password && data.password.length < 6) {
+      throw new ValidationError("Password must be at least 6 characters long.");
     }
 
-    // Update Supabase Auth password
     const supabase = createAdminClient();
-    const { error: authError } = await supabase.auth.admin.updateUserById(
-      warden.user.supabaseAuthId,
-      { password: data.password }
-    );
+    
+    let activeSupabaseAuthId = warden.user.supabaseAuthId;
 
-    if (authError) {
-      throw new ConflictError(
-        `Failed to update password: ${authError.message}`
+    // Helper to create a brand new Supabase Auth user if missing, or link to an orphaned one
+    const createAuthUser = async () => {
+      const { data: newAuthData, error } = await supabase.auth.admin.createUser({
+        phone: warden.user.phone,
+        email: warden.user.email?.toLowerCase() || undefined,
+        password: data.password,
+        phone_confirm: true,
+        email_confirm: !!warden.user.email,
+      });
+
+      if (error) {
+        if (error.message.toLowerCase().includes("already registered")) {
+          const { data: listData } = await supabase.auth.admin.listUsers();
+          const orphanedUser = listData?.users?.find(
+            (u) => u.phone === warden.user.phone || u.phone === warden.user.phone.replace(/^\+/, "")
+          );
+
+          if (orphanedUser) {
+            const { error: updateError } = await supabase.auth.admin.updateUserById(
+              orphanedUser.id,
+              { password: data.password }
+            );
+            if (updateError) throw new ConflictError(`Failed to update orphaned user password: ${updateError.message}`);
+            return orphanedUser.id;
+          }
+        }
+        throw new ConflictError(`Failed to create missing auth user: ${error.message}`);
+      }
+
+      return newAuthData.user.id;
+    };
+
+    if (!activeSupabaseAuthId) {
+      activeSupabaseAuthId = await createAuthUser();
+    } else {
+      const { error: authError } = await supabase.auth.admin.updateUserById(
+        activeSupabaseAuthId,
+        { password: data.password }
       );
+
+      if (authError && authError.message.toLowerCase().includes("user not found")) {
+        activeSupabaseAuthId = await createAuthUser();
+      } else if (authError) {
+        throw new ConflictError(`Failed to update password: ${authError.message}`);
+      }
     }
 
-    // Update passwordSetAt timestamp
+    // Update passwordSetAt timestamp and supabaseAuthId
     await prisma.user.update({
       where: { id: warden.user.id },
       data: {
+        supabaseAuthId: activeSupabaseAuthId,
         passwordSetAt: new Date(),
         plainTextPassword: data.password,
       },

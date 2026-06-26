@@ -1,5 +1,13 @@
-import { redirect } from 'next/navigation';
+import HostelDashboardView from "@/components/hostel-management/HostelDashboardView";
 
-export default function HostelIdPage({ params }: { params: { id: string } }) {
-  redirect(`/admin/hostels/${params.id}/builder`);
+export default async function HostelIdPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  
+  return (
+    <HostelDashboardView 
+      hostelId={id} 
+      baseRoute={`/admin/hostels/${id}`} 
+      userRole="MAIN_ADMIN" 
+    />
+  );
 }

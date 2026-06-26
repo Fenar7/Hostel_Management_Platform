@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -92,11 +93,19 @@ interface UserItem {
     designation: string | null;
     purposeOfStay: string;
     photoUrl: string | null;
-    stays: { hostel: { name: string }, status: string }[];
+    stays: { 
+      hostel: { name: string };
+      status: string;
+      bed?: {
+        label: string;
+        room: { roomNumber: string };
+      } | null;
+    }[];
   } | null;
 }
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -104,11 +113,12 @@ export default function AdminUsersPage() {
   const debouncedQuery = useDebounce(searchQuery, 300);
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
 
-  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
+
 
   const [resetModal, setResetModal] = useState<{ id: string; phone: string } | null>(null);
   const [resetLoading, setResetLoading] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [customPassword, setCustomPassword] = useState("");
   const [copied, setCopied] = useState(false);
 
   const [showLightboxUrl, setShowLightboxUrl] = useState<string | null>(null);
@@ -136,6 +146,8 @@ export default function AdminUsersPage() {
       setResetLoading(true);
       const res = await fetch(`/api/admin/users/${resetModal.id}/reset-password`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customPassword: customPassword.trim() || undefined }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -248,7 +260,7 @@ export default function AdminUsersPage() {
                       <TableRow 
                         key={u.id}
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setSelectedUser(u)}
+                        onClick={() => router.push(`/admin/users/${u.id}`)}
                       >
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -281,9 +293,23 @@ export default function AdminUsersPage() {
                             {u.role === "WARDEN" && u.warden?.hostel?.name && (
                               <span>Hostel: {u.warden.hostel.name}</span>
                             )}
-                            {u.role === "TENANT" && u.tenant && (
-                              <span>Gender: {u.tenant.gender}</span>
-                            )}
+                            {u.role === "TENANT" && u.tenant && (() => {
+                              const activeStay = u.tenant.stays?.find(s => ['ACTIVE', 'EXTENDED', 'APPROVED_AWAITING_PAYMENT'].includes(s.status)) || u.tenant.stays?.[0];
+                              
+                              if (activeStay) {
+                                return (
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-semibold text-foreground">{activeStay.hostel.name}</span>
+                                    {activeStay.bed ? (
+                                      <span>Room {activeStay.bed.room.roomNumber} &middot; Bed {activeStay.bed.label}</span>
+                                    ) : (
+                                      <span>{activeStay.status}</span>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              return <span>No properties</span>;
+                            })()}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
@@ -298,7 +324,7 @@ export default function AdminUsersPage() {
                             >
                               <Key className="h-4 w-4 mr-1" /> Reset Pwd
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setSelectedUser(u)}>
+                            <Button variant="ghost" size="icon" onClick={() => router.push(`/admin/users/${u.id}`)}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </div>
@@ -317,13 +343,14 @@ export default function AdminUsersPage() {
         if (!resetLoading) {
           setResetModal(null);
           setNewPassword("");
+          setCustomPassword("");
         }
       }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Reset Password</AlertDialogTitle>
             <AlertDialogDescription>
-              This will overwrite the user's current password with a new randomly generated secure password. They will be forced to change it upon next login.
+              You can optionally enter a custom password below. If left blank, a secure random password will be generated automatically.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -350,8 +377,18 @@ export default function AdminUsersPage() {
               </div>
             </div>
           ) : (
-            <div className="py-2">
+            <div className="py-4 space-y-4">
               <p className="text-sm">User Phone: <span className="font-mono font-bold">{resetModal?.phone}</span></p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Custom Password (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Leave blank for auto-generated password"
+                  className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={customPassword}
+                  onChange={(e) => setCustomPassword(e.target.value)}
+                />
+              </div>
             </div>
           )}
 
@@ -360,6 +397,7 @@ export default function AdminUsersPage() {
               <Button onClick={() => {
                 setResetModal(null);
                 setNewPassword("");
+                setCustomPassword("");
               }}>Done</Button>
             ) : (
               <>
@@ -378,94 +416,7 @@ export default function AdminUsersPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Detail Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="w-full max-w-3xl rounded-2xl bg-background shadow-2xl border my-auto">
-            <div className="flex items-center justify-between p-6 border-b bg-muted/30 rounded-t-2xl">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => {
-                  if (selectedUser.tenant?.photoUrl) {
-                    setShowLightboxUrl(selectedUser.tenant.photoUrl);
-                  }
-                }}>
-                  {selectedUser.tenant?.photoUrl ? (
-                    <AvatarImage src={selectedUser.tenant.photoUrl} className="object-cover" />
-                  ) : null}
-                  <AvatarFallback className="text-xl">{getInitials(selectedUser.tenant?.fullName || 'U')}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="text-2xl font-bold flex items-center gap-3">
-                    {selectedUser.tenant?.fullName || (selectedUser.role === 'MAIN_ADMIN' ? 'Super Admin' : 'Unknown')}
-                    {getRoleBadge(selectedUser.role)}
-                  </h3>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1 font-mono"><Phone className="h-3 w-3" /> {selectedUser.phone}</span>
-                    {selectedUser.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {selectedUser.email}</span>}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="text-muted-foreground hover:text-foreground p-2 bg-background rounded-full border shadow-sm"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <div className="p-6">
-              {selectedUser.role === "TENANT" && selectedUser.tenant ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2"><User className="h-4 w-4" /> Personal Info</h4>
-                      <div className="bg-muted/30 rounded-xl p-4 border border-border/50 space-y-3 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Gender</span><span className="font-medium">{selectedUser.tenant.gender}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">DOB</span><span className="font-medium">{selectedUser.tenant.dateOfBirth}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Birthplace</span><span className="font-medium">{selectedUser.tenant.placeOfBirth}</span></div>
-                      </div>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2"><Shield className="h-4 w-4" /> Emergency Contact</h4>
-                      <div className="bg-muted/30 rounded-xl p-4 border border-border/50 space-y-3 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Name</span><span className="font-medium">{selectedUser.tenant.emergencyContactName}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Relation</span><span className="font-medium">{selectedUser.tenant.relationship}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span className="font-medium font-mono">{selectedUser.tenant.emergencyContactNumber}</span></div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-3 uppercase tracking-wider text-muted-foreground flex items-center gap-2"><Briefcase className="h-4 w-4" /> Occupation Info</h4>
-                      <div className="bg-muted/30 rounded-xl p-4 border border-border/50 space-y-3 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Type</span><span className="font-medium">{selectedUser.tenant.occupationType}</span></div>
-                        {selectedUser.tenant.occupationType === "STUDENT" ? (
-                          <>
-                            <div className="flex justify-between"><span className="text-muted-foreground">College</span><span className="font-medium">{selectedUser.tenant.collegeName}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Course</span><span className="font-medium">{selectedUser.tenant.courseOrBranch}</span></div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Company</span><span className="font-medium">{selectedUser.tenant.companyName}</span></div>
-                            <div className="flex justify-between"><span className="text-muted-foreground">Designation</span><span className="font-medium">{selectedUser.tenant.designation}</span></div>
-                          </>
-                        )}
-                        <div className="flex justify-between"><span className="text-muted-foreground">Purpose</span><span className="font-medium">{selectedUser.tenant.purposeOfStay}</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Shield className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                  <p>Staff accounts do not have detailed profiles.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Lightbox Modal */}
       {showLightboxUrl && (

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createClient as createSupabaseServerClient } from "@/lib/auth/server";
+import { createClient as createSupabaseServerClient, createAdminClient } from "@/lib/auth/server";
 import { authenticateUser } from "@/services/auth/auth.service";
 import { handleApiError } from "@/lib/errors";
 import { loginSchema } from "@/lib/validation/auth";
+import { prisma } from "@/lib/db";
 
 
 
@@ -28,15 +29,66 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Helper to normalize phone for DB lookup
+    const normalizePhone = (p: string) => p.replace(/^\+91/, "").replace(/^\+/, "").trim();
+    
+    // 1. Look up user in Prisma first to tolerate formatting differences
+    let dbUser = null;
+    if (isEmail) {
+      dbUser = await prisma.user.findUnique({ where: { email: identifier.toLowerCase() } });
+    } else {
+      // Try exact match first
+      dbUser = await prisma.user.findUnique({ where: { phone: identifier } });
+      if (!dbUser) {
+        // Try normalized match
+        const norm = normalizePhone(identifier);
+        dbUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { phone: norm },
+              { phone: `+91${norm}` },
+              { phone: `+${norm}` }
+            ]
+          }
+        });
+      }
+    }
+
+    if (!dbUser) {
+      return NextResponse.json(
+        { error: "Invalid credentials", code: "UNAUTHORIZED" },
+        { status: 401 }
+      );
+    }
+
     const supabase = await createSupabaseServerClient();
-    const authData = isEmail
-      ? { email: identifier.toLowerCase() }
-      : { phone: identifier };
+    
+    // 2. Fetch the exact phone/email from Supabase using their Auth ID to ensure we use the exact string Supabase expects
+    // Note: We always prefer EMAIL here, even if they logged in with their phone number, 
+    // because Phone Auth is often disabled in Supabase project settings.
+    let authIdentifier = {};
+    if (dbUser.supabaseAuthId) {
+      const { data: authDataObj } = await createAdminClient().auth.admin.getUserById(dbUser.supabaseAuthId);
+      if (authDataObj?.user) {
+        if (authDataObj.user.email) {
+          authIdentifier = { email: authDataObj.user.email };
+        } else if (authDataObj.user.phone) {
+          authIdentifier = { phone: authDataObj.user.phone };
+        } else {
+          // fallback
+          authIdentifier = dbUser.email ? { email: dbUser.email } : { phone: dbUser.phone };
+        }
+      } else {
+        authIdentifier = dbUser.email ? { email: dbUser.email } : { phone: dbUser.phone };
+      }
+    } else {
+      authIdentifier = dbUser.email ? { email: dbUser.email } : { phone: dbUser.phone };
+    }
 
     const { data, error } = await supabase.auth.signInWithPassword({
-      ...authData,
+      ...authIdentifier,
       password,
-    });
+    } as any);
 
     if (error || !data.session) {
       // Auth failed — clean up the remember_me cookie
@@ -48,7 +100,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await authenticateUser({ identifier, password });
+    const result = await authenticateUser({ identifier: isEmail ? dbUser.email! : dbUser.phone, password });
 
     return NextResponse.json({
       role: result.user.role,

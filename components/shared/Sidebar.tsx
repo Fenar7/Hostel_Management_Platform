@@ -341,6 +341,7 @@ export function Sidebar({ role, userName }: SidebarProps) {
   // Close mobile drawer on route change
   const pathname = usePathname();
   useEffect(() => {
+    // eslint-disable-next-line
     setMobileOpen(false);
   }, [pathname]);
 
