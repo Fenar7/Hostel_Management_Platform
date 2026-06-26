@@ -22,10 +22,6 @@ export async function POST(
       throw new NotFoundError("User not found or access denied");
     }
 
-    if (!user.supabaseAuthId) {
-      throw new ValidationError("User has no linked authentication account");
-    }
-
     let customPassword = undefined;
     try {
       const body = await request.json();
@@ -34,26 +30,53 @@ export async function POST(
       // ignore empty body
     }
 
+    if (customPassword && customPassword.length < 6) {
+      throw new ValidationError("Custom password must be at least 6 characters long.");
+    }
+
     // Use custom password or generate a secure random password
     const tempPassword = customPassword || (crypto.randomBytes(4).toString("hex") + "A1!");
 
-    // Update Supabase Auth password
     const supabase = createAdminClient();
-    const { error: authError } = await supabase.auth.admin.updateUserById(
-      user.supabaseAuthId,
-      { password: tempPassword }
-    );
+    
+    let activeSupabaseAuthId = user.supabaseAuthId;
 
-    if (authError) {
-      throw new ConflictError(
-        `Failed to update password: ${authError.message}`
+    // Helper to create a brand new Supabase Auth user if missing
+    const createAuthUser = async () => {
+      const { data, error } = await supabase.auth.admin.createUser({
+        phone: user.phone,
+        email: user.email?.toLowerCase() || undefined,
+        password: tempPassword,
+        phone_confirm: true,
+        email_confirm: !!user.email,
+      });
+      if (error) throw new ConflictError(`Failed to create missing auth user: ${error.message}`);
+      return data.user.id;
+    };
+
+    if (!activeSupabaseAuthId) {
+      // Scenario 1: User never had an auth account
+      activeSupabaseAuthId = await createAuthUser();
+    } else {
+      // Scenario 2: User has an auth account, try updating it
+      const { error: authError } = await supabase.auth.admin.updateUserById(
+        activeSupabaseAuthId,
+        { password: tempPassword }
       );
+
+      // Scenario 3: The auth account was deleted manually in Supabase dashboard
+      if (authError && authError.message.toLowerCase().includes("user not found")) {
+        activeSupabaseAuthId = await createAuthUser();
+      } else if (authError) {
+        throw new ConflictError(`Failed to update password: ${authError.message}`);
+      }
     }
 
-    // Update passwordSetAt timestamp
+    // Update passwordSetAt timestamp and the (possibly new) supabaseAuthId
     await prisma.user.update({
       where: { id: user.id },
       data: {
+        supabaseAuthId: activeSupabaseAuthId,
         passwordSetAt: new Date(),
         plainTextPassword: tempPassword,
       },
