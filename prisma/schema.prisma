@@ -498,7 +498,7 @@ model Organization {
 // ==========================================
 
 enum ServiceRequestType {
-  FOOD_UPGRADE
+  FOOD_PLAN_UPGRADE
   ROOM_CHANGE
   FINE
   OTHER
