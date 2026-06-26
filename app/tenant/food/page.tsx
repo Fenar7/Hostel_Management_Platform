@@ -70,7 +70,7 @@ export default function TenantFoodPage() {
       setLoading(true);
       setFoodNotIncluded(false);
       const startDate = toISODate(weekStart);
-      const endDate = toISODate(weekEnd);
+      const endDate = toISODate(addDays(weekStart, 6));
       const res = await fetch(`/api/tenant/food-orders?startDate=${startDate}&endDate=${endDate}`);
       if (!res.ok) {
         const err = await res.json();
@@ -88,7 +88,7 @@ export default function TenantFoodPage() {
     } finally {
       setLoading(false);
     }
-  }, [weekStart, weekEnd]);
+  }, [weekStart]);
 
   useEffect(() => {
     loadData();
