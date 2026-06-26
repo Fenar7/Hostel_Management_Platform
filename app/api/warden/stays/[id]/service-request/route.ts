@@ -6,11 +6,15 @@ import { handleApiError, NotFoundError, ForbiddenError } from "@/lib/errors";
 import { rupeesToPaise } from "@/lib/money";
 import { UserRole, ServiceRequestType } from "@prisma/client";
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 
 const createServiceRequestSchema = z.object({
   type: z.nativeEnum(ServiceRequestType),
   amount: z.number().positive(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: z.object({
+    foodPlan: z.string(),
+    days: z.number().int().positive(),
+  }),
 });
 
 export async function POST(
@@ -38,15 +42,34 @@ export async function POST(
       throw new ForbiddenError("You are not authorized to access this stay");
     }
 
+    // Prevent duplicate requests
+    const existingPending = await prisma.serviceRequest.findFirst({
+      where: {
+        stayId: stay.id,
+        type: validatedData.type,
+        status: "PENDING_PAYMENT",
+      }
+    });
+
+    if (existingPending) {
+      return NextResponse.json(
+        { error: "A pending request of this type already exists for this stay." },
+        { status: 409 }
+      );
+    }
+
     const serviceRequest = await prisma.serviceRequest.create({
       data: {
         stayId: stay.id,
         type: validatedData.type,
         amountPaise: rupeesToPaise(validatedData.amount),
-        metadata: validatedData.metadata || {},
+        metadata: validatedData.metadata,
         status: "PENDING_PAYMENT",
       },
     });
+
+    revalidatePath(`/admin/hostels/${stay.hostelId}/stays/${stay.id}`);
+    revalidatePath(`/warden/stays/${stay.id}`);
 
     return NextResponse.json({
       success: true,

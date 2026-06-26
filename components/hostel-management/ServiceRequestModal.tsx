@@ -1,21 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Plus, ExternalLink } from "lucide-react";
+import { Loader2, Plus, ExternalLink, Copy } from "lucide-react";
 
 export function ServiceRequestModal({ stayId, tenantPhone }: { stayId: string; tenantPhone?: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [foodType, setFoodType] = useState("BREAKFAST_DINNER");
   const [duration, setDuration] = useState("30");
   const [amount, setAmount] = useState("");
   const [generatedLink, setGeneratedLink] = useState("");
+  const [paymentLink, setPaymentLink] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,20 +39,30 @@ export function ServiceRequestModal({ stayId, tenantPhone }: { stayId: string; t
       });
 
       if (!res.ok) {
-        throw new Error("Failed to create service request");
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Failed to create service request");
       }
 
       const data = await res.json();
       
       toast.success("Service request initiated successfully!");
+      router.refresh();
       
-      // WhatsApp message logic
+      // Deep link to exact service request
       const siteUrl = window.location.origin;
-      const paymentLink = `${siteUrl}/tenant`; // Could be a specific ad-hoc payment page, but tenant portal works
-      const text = `Hi, your request for a Food Plan Upgrade (${foodType.replace("_", " ")}) for ${duration} days has been initiated. Please pay ₹${amount} and upload proof here: ${paymentLink}`;
+      const exactPaymentLink = `${siteUrl}/tenant/service-requests/${data.serviceRequest.id}`;
+      setPaymentLink(exactPaymentLink);
+
+      const text = `Hi, your request for a Food Plan Upgrade (${foodType.replace("_", " ")}) for ${duration} days has been initiated. Please pay ₹${amount} and upload proof here: ${exactPaymentLink}`;
       
-      const whatsappUrl = `https://wa.me/${tenantPhone?.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(text)}`;
-      setGeneratedLink(whatsappUrl);
+      if (tenantPhone) {
+        let phoneNum = tenantPhone.replace(/[^0-9]/g, "");
+        if (phoneNum.length === 10) {
+          phoneNum = `91${phoneNum}`;
+        }
+        const whatsappUrl = `https://wa.me/${phoneNum}?text=${encodeURIComponent(text)}`;
+        setGeneratedLink(whatsappUrl);
+      }
 
     } catch (err: any) {
       toast.error(err.message || "An error occurred");
@@ -59,7 +72,13 @@ export function ServiceRequestModal({ stayId, tenantPhone }: { stayId: string; t
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => {
+      setOpen(v);
+      if (!v) {
+        setGeneratedLink("");
+        setPaymentLink("");
+      }
+    }}>
       <DialogTrigger className="w-full mt-3 flex items-center justify-center rounded-md border bg-muted/30 px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
         <Plus className="h-4 w-4 mr-2" /> Upgrade Food Plan
       </DialogTrigger>
@@ -68,7 +87,7 @@ export function ServiceRequestModal({ stayId, tenantPhone }: { stayId: string; t
           <DialogTitle>Initiate Food Plan Upgrade</DialogTitle>
         </DialogHeader>
 
-        {!generatedLink ? (
+        {!generatedLink && !paymentLink ? (
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label>Food Plan Type</Label>
@@ -116,19 +135,39 @@ export function ServiceRequestModal({ stayId, tenantPhone }: { stayId: string; t
           <div className="space-y-6 mt-4 text-center">
             <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
               <p className="font-semibold">Request Created!</p>
-              <p className="text-sm mt-1">Send the payment link to the tenant via WhatsApp.</p>
+              <p className="text-sm mt-1">Send the payment link to the tenant.</p>
             </div>
-            <Button 
-              className="w-full" 
-              onClick={() => {
-                window.open(generatedLink, "_blank");
-                setOpen(false);
-                setGeneratedLink("");
-              }}
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Open WhatsApp
-            </Button>
+            
+            <div className="flex flex-col gap-3">
+              {generatedLink ? (
+                <Button 
+                  className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white" 
+                  onClick={() => {
+                    window.open(generatedLink, "_blank");
+                    setOpen(false);
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Send via WhatsApp
+                </Button>
+              ) : (
+                <div className="p-3 bg-amber-50 text-amber-800 text-sm rounded-lg border border-amber-200">
+                  No valid phone number found for this tenant to send a WhatsApp message.
+                </div>
+              )}
+              
+              <Button 
+                variant="outline"
+                className="w-full" 
+                onClick={() => {
+                  navigator.clipboard.writeText(paymentLink);
+                  toast.success("Link copied to clipboard!");
+                }}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Payment Link
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>
