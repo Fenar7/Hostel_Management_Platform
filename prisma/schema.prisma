@@ -20,26 +20,26 @@ enum UserRole {
 }
 
 model User {
-  id              String   @id @default(uuid())
-  supabaseAuthId  String   @unique
-  phone           String   @unique
-  email           String?  @unique
+  id                String       @id @default(uuid())
+  supabaseAuthId    String       @unique
+  phone             String       @unique
+  email             String?      @unique
   passwordSetAt     DateTime?
   plainTextPassword String?
   role              UserRole
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Inverse relations
-  warden          Warden?
-  tenant          Tenant?
-  statusEvents    StayStatusEvent[]
-  paymentsVerified Payment[]          @relation("VerifiedPayments")
-  refundsProcessed RefundInvoice[]    @relation("ProcessedRefunds")
+  warden            Warden?
+  tenant            Tenant?
+  statusEvents      StayStatusEvent[]
+  paymentsVerified  Payment[]         @relation("VerifiedPayments")
+  refundsProcessed  RefundInvoice[]   @relation("ProcessedRefunds")
   documentsUploaded Document[]        @relation("UploadedDocuments")
-  leadNotes       LeadNote[]
+  leadNotes         LeadNote[]
 
   @@index([organizationId])
 }
@@ -62,9 +62,9 @@ enum OccupationType {
 }
 
 model Tenant {
-  id                     String         @id @default(uuid())
-  userId                 String?        @unique
-  user                   User?          @relation(fields: [userId], references: [id])
+  id                     String          @id @default(uuid())
+  userId                 String?         @unique
+  user                   User?           @relation(fields: [userId], references: [id])
   fullName               String
   dateOfBirth            DateTime?
   gender                 String?
@@ -82,12 +82,12 @@ model Tenant {
   designation            String?
   purposeOfStay          String?
   photoUrl               String?
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
 
   // Inverse relations
-  stays                  Stay[]
-  documents              Document[]
+  stays     Stay[]
+  documents Document[]
 }
 
 // ==========================================
@@ -113,24 +113,24 @@ model Hostel {
   organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Inverse relations
-  warden            Warden?
-  paymentConfig     HostelPaymentConfig?
-  floors            Floor[]
-  stays             Stay[]
-  leads             Lead[]
+  warden             Warden?
+  paymentConfig      HostelPaymentConfig?
+  floors             Floor[]
+  stays              Stay[]
+  leads              Lead[]
   onboardingRequests OnboardingRequest[]
 
   @@index([organizationId])
 }
 
 model HostelPaymentConfig {
-  id           String   @id @default(uuid())
-  hostelId     String   @unique
-  hostel       Hostel   @relation(fields: [hostelId], references: [id], onDelete: Cascade)
-  upiId        String?
-  qrCodePath   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         String   @id @default(uuid())
+  hostelId   String   @unique
+  hostel     Hostel   @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  upiId      String?
+  qrCodePath String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Location {
@@ -141,9 +141,9 @@ model Location {
 }
 
 model Floor {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   hostelId  String
-  hostel    Hostel   @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  hostel    Hostel @relation(fields: [hostelId], references: [id], onDelete: Cascade)
   name      String
   sortOrder Int
   flats     Flat[]
@@ -151,24 +151,24 @@ model Floor {
 }
 
 model Flat {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   floorId   String
-  floor     Floor    @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  floor     Floor   @relation(fields: [floorId], references: [id], onDelete: Cascade)
   name      String
-  isPrivate Boolean  @default(false)
+  isPrivate Boolean @default(false)
   rooms     Room[]
 }
 
 model Room {
-  id         String    @id @default(uuid())
-  flatId     String?
-  flat       Flat?     @relation(fields: [flatId], references: [id], onDelete: Cascade)
-  floorId    String?
-  floor      Floor?    @relation(fields: [floorId], references: [id], onDelete: Cascade)
-  roomNumber String
+  id          String      @id @default(uuid())
+  flatId      String?
+  flat        Flat?       @relation(fields: [flatId], references: [id], onDelete: Cascade)
+  floorId     String?
+  floor       Floor?      @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  roomNumber  String
   sharingType SharingType
-  isPrivate  Boolean   @default(false)
-  beds       Bed[]
+  isPrivate   Boolean     @default(false)
+  beds        Bed[]
 
   // Note: Exactly one of Room.flatId or Room.floorId must be set.
   // Enforced via application level validation.
@@ -198,12 +198,12 @@ enum BedStatus {
 }
 
 model Bed {
-  id        String    @id @default(uuid())
-  roomId    String
-  room      Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  label     String
-  bedType   BedType?
-  status    BedStatus @default(AVAILABLE)
+  id      String    @id @default(uuid())
+  roomId  String
+  room    Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  label   String
+  bedType BedType?
+  status  BedStatus @default(AVAILABLE)
 
   // Inverse relations
   stays              Stay[]
@@ -221,24 +221,24 @@ enum OnboardingRequestStatus {
 }
 
 model OnboardingRequest {
-  id                     String                  @id @default(uuid())
-  phone                  String
-  hostelId               String
-  hostel                 Hostel                  @relation(fields: [hostelId], references: [id])
-  bedId                  String
-  bed                    Bed                     @relation(fields: [bedId], references: [id])
-  wardenId               String
-  warden                 Warden                  @relation(fields: [wardenId], references: [id])
-  status                 OnboardingRequestStatus @default(PENDING)
-  tempPasswordHash       String?
-  onboardingCurrentStep  Int                     @default(0)
-  failedAttempts         Int                     @default(0)
-  lockedUntil            DateTime?
-  createdAt              DateTime                @default(now())
+  id                    String                  @id @default(uuid())
+  phone                 String
+  hostelId              String
+  hostel                Hostel                  @relation(fields: [hostelId], references: [id])
+  bedId                 String
+  bed                   Bed                     @relation(fields: [bedId], references: [id])
+  wardenId              String
+  warden                Warden                  @relation(fields: [wardenId], references: [id])
+  status                OnboardingRequestStatus @default(PENDING)
+  tempPasswordHash      String?
+  onboardingCurrentStep Int                     @default(0)
+  failedAttempts        Int                     @default(0)
+  lockedUntil           DateTime?
+  createdAt             DateTime                @default(now())
+  // Note: Unique index on phone where status = PENDING should be enforced at db/migration or application level.
 
   @@index([phone])
   @@index([phone, status])
-  // Note: Unique index on phone where status = PENDING should be enforced at db/migration or application level.
 }
 
 enum StayStatus {
@@ -266,37 +266,40 @@ enum FoodPlan {
 }
 
 model Stay {
-  id                  String       @id @default(uuid())
-  tenantId            String
-  tenant              Tenant       @relation(fields: [tenantId], references: [id])
-  bedId               String
-  bed                 Bed          @relation(fields: [bedId], references: [id])
-  hostelId            String       // denormalized for speed
-  hostel              Hostel       @relation(fields: [hostelId], references: [id])
-  status              StayStatus
-  durationType        DurationType
-  joiningDate         DateTime
-  endDate             DateTime
-  isNewAdmission      Boolean
-  admissionFeePaise   Int
-  monthlyRentPaise    Int
+  id                   String       @id @default(uuid())
+  tenantId             String
+  tenant               Tenant       @relation(fields: [tenantId], references: [id])
+  bedId                String
+  bed                  Bed          @relation(fields: [bedId], references: [id])
+  hostelId             String // denormalized for speed
+  hostel               Hostel       @relation(fields: [hostelId], references: [id])
+  status               StayStatus
+  durationType         DurationType
+  joiningDate          DateTime
+  endDate              DateTime
+  isNewAdmission       Boolean
+  admissionFeePaise    Int
+  monthlyRentPaise     Int
   securityDepositPaise Int
-  foodChargesPaise    Int
-  foodPlan            FoodPlan     @default(NOT_INCLUDED)
-  totalPayablePaise   Int
-  discountPaise       Int
-  marketingExecutive  String?
-  leadSource          String?
-  commissionStatus    String?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  foodChargesPaise     Int
+  foodPlan             FoodPlan     @default(NOT_INCLUDED)
+  foodPlanStartDate    DateTime?
+  foodPlanEndDate      DateTime?
+  totalPayablePaise    Int
+  discountPaise        Int
+  marketingExecutive   String?
+  leadSource           String?
+  commissionStatus     String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   // Inverse relations
-  statusEvents        StayStatusEvent[]
-  payments            Payment[]
-  refundInvoices      RefundInvoice[]
-  foodOrders          FoodOrder[]
-  documents           Document[]
+  statusEvents    StayStatusEvent[]
+  payments        Payment[]
+  refundInvoices  RefundInvoice[]
+  foodOrders      FoodOrder[]
+  documents       Document[]
+  serviceRequests ServiceRequest[]
 
   // Indexes
   @@index([bedId, status])
@@ -334,40 +337,43 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id                    String        @id @default(uuid())
-  stayId                String
-  stay                  Stay          @relation(fields: [stayId], references: [id], onDelete: Cascade)
-  amountPaidPaise       Int
-  paymentMode           PaymentMode
-  transactionRefNo      String?
-  receivedBy            String?
-  paymentStatus         PaymentStatus
-  verifiedByUserId      String?
-  verifiedByUser        User?         @relation("VerifiedPayments", fields: [verifiedByUserId], references: [id])
-  verifiedAt            DateTime?
-  screenshotDocumentId  String?       @unique
-  screenshotDocument    Document?     @relation("PaymentScreenshot", fields: [screenshotDocumentId], references: [id])
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  receiptNumber         Int           @unique @default(autoincrement())
+  id                   String        @id @default(uuid())
+  stayId               String
+  stay                 Stay          @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  amountPaidPaise      Int
+  paymentMode          PaymentMode
+  transactionRefNo     String?
+  receivedBy           String?
+  paymentStatus        PaymentStatus
+  notes                String?
+  verifiedByUserId     String?
+  verifiedByUser       User?         @relation("VerifiedPayments", fields: [verifiedByUserId], references: [id])
+  verifiedAt           DateTime?
+  screenshotDocumentId String?       @unique
+  screenshotDocument   Document?     @relation("PaymentScreenshot", fields: [screenshotDocumentId], references: [id])
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  receiptNumber        Int           @unique @default(autoincrement())
+
+  serviceRequest ServiceRequest?
 
   @@index([stayId])
 }
 
 model RefundInvoice {
-  id                String    @id @default(uuid())
-  stayId            String
-  stay              Stay      @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  id                  String   @id @default(uuid())
+  stayId              String
+  stay                Stay     @relation(fields: [stayId], references: [id], onDelete: Cascade)
   originalAmountPaise Int
-  daysUsed          Int
-  daysRemaining     Int
-  refundAmountPaise Int
-  processedByUserId String
-  processedByUser   User      @relation("ProcessedRefunds", fields: [processedByUserId], references: [id])
-  notes             String?
-  pdfDocumentId     String    @unique
-  pdfDocument       Document  @relation("RefundInvoicePDF", fields: [pdfDocumentId], references: [id])
-  createdAt         DateTime  @default(now())
+  daysUsed            Int
+  daysRemaining       Int
+  refundAmountPaise   Int
+  processedByUserId   String
+  processedByUser     User     @relation("ProcessedRefunds", fields: [processedByUserId], references: [id])
+  notes               String?
+  pdfDocumentId       String   @unique
+  pdfDocument         Document @relation("RefundInvoicePDF", fields: [pdfDocumentId], references: [id])
+  createdAt           DateTime @default(now())
 }
 
 // ==========================================
@@ -424,8 +430,8 @@ model Document {
   createdAt        DateTime          @default(now())
 
   // Inverse 1-1 relations for screenshots/refunds
-  paymentScreenshot Payment?         @relation("PaymentScreenshot")
-  refundInvoicePDF  RefundInvoice?   @relation("RefundInvoicePDF")
+  paymentScreenshot Payment?       @relation("PaymentScreenshot")
+  refundInvoicePDF  RefundInvoice? @relation("RefundInvoicePDF")
 
   @@index([ownerType, tenantId])
   @@index([ownerType, stayId])
@@ -445,15 +451,15 @@ enum LeadStatus {
 }
 
 model Lead {
-  id        String     @id @default(uuid())
-  hostelId  String?
-  hostel    Hostel?    @relation(fields: [hostelId], references: [id])
-  phone     String
-  source    LeadSource
-  status    LeadStatus @default(NEW)
-  notes     LeadNote[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             String       @id @default(uuid())
+  hostelId       String?
+  hostel         Hostel?      @relation(fields: [hostelId], references: [id])
+  phone          String
+  source         LeadSource
+  status         LeadStatus   @default(NEW)
+  notes          LeadNote[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -477,15 +483,51 @@ model LeadNote {
 // ==========================================
 
 model Organization {
-  id          String   @id @default(uuid())
-  name        String
-  domain      String?  @unique
-  brandColor  String?
-  logoUrl     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String
+  domain     String?  @unique
+  brandColor String?
+  logoUrl    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  hostels     Hostel[]
-  users       User[]
-  leads       Lead[]
+  hostels Hostel[]
+  users   User[]
+  leads   Lead[]
+}
+
+// ==========================================
+// Service Request (Ad-hoc Billing) Models
+// ==========================================
+
+enum ServiceRequestType {
+  FOOD_PLAN_UPGRADE
+  ROOM_CHANGE
+  FINE
+  OTHER
+}
+
+enum ServiceRequestStatus {
+  PENDING_PAYMENT
+  PAYMENT_UPLOADED
+  VERIFIED
+  REJECTED
+  REVOKED
+}
+
+model ServiceRequest {
+  id          String               @id @default(uuid())
+  stayId      String
+  stay        Stay                 @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  type        ServiceRequestType
+  amountPaise Int
+  metadata    Json?
+  status      ServiceRequestStatus @default(PENDING_PAYMENT)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  paymentId String?  @unique
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  @@index([stayId, status])
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Loader2, ChevronLeft, ChevronRight,
@@ -70,7 +70,7 @@ export default function TenantFoodPage() {
       setLoading(true);
       setFoodNotIncluded(false);
       const startDate = toISODate(weekStart);
-      const endDate = toISODate(weekEnd);
+      const endDate = toISODate(addDays(weekStart, 6));
       const res = await fetch(`/api/tenant/food-orders?startDate=${startDate}&endDate=${endDate}`);
       if (!res.ok) {
         const err = await res.json();
@@ -88,7 +88,7 @@ export default function TenantFoodPage() {
     } finally {
       setLoading(false);
     }
-  }, [weekStart, weekEnd]);
+  }, [weekStart]);
 
   useEffect(() => {
     loadData();
@@ -185,9 +185,7 @@ export default function TenantFoodPage() {
               </p>
             </div>
             <div className="pt-4">
-              <Link href="/tenant">
-                <Button variant="outline">Back to Dashboard</Button>
-              </Link>
+              <Link href="/tenant" className={buttonVariants({ variant: "outline" })}>Back to Dashboard</Link>
             </div>
           </div>
         ) : data ? (

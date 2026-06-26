@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,7 @@ interface PaymentItem {
   amountPaid: number;
   paymentMode: string;
   transactionRefNo: string | null;
+  notes?: string | null;
   paymentStatus: string;
   createdAt: string;
 }
@@ -75,6 +76,15 @@ interface HostelPaymentConfig {
   qrCodeUrl: string | null;
 }
 
+interface ServiceRequestItem {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  createdAt: string;
+  metadata?: any;
+}
+
 interface ApiResponse {
   tenant: TenantDetails | null;
   stay: StayDetails | null;
@@ -83,6 +93,7 @@ interface ApiResponse {
   payments: PaymentItem[];
   roommates: RoommateDetails[];
   nextDueDate: string | null;
+  pendingServiceRequests?: ServiceRequestItem[];
 }
 
 function formatDate(dateStr: string) {
@@ -108,6 +119,7 @@ export default function TenantDashboardPage() {
   const [payments, setPayments] = useState<PaymentItem[]>([]);
   const [roommates, setRoommates] = useState<RoommateDetails[]>([]);
   const [nextDueDate, setNextDueDate] = useState<string | null>(null);
+  const [pendingServiceRequests, setPendingServiceRequests] = useState<ServiceRequestItem[]>([]);
 
   const [paymentConfig, setHostelPaymentConfig] = useState<import("@prisma/client").HostelPaymentConfig | null>(null);
 
@@ -130,6 +142,7 @@ export default function TenantDashboardPage() {
       setPayments(data.payments || []);
       setRoommates(data.roommates || []);
       setNextDueDate(data.nextDueDate || null);
+      setPendingServiceRequests(data.pendingServiceRequests || []);
 
       if (data.hostel?.id) {
         try {
@@ -210,6 +223,9 @@ export default function TenantDashboardPage() {
     .reduce((sum, p) => sum + p.amountPaid, 0);
 
   const remainingBalance = stay ? stay.totalPayable - verifiedPaid : 0;
+
+  const pendingRequests = pendingServiceRequests.filter((r) => r.status === "PENDING_PAYMENT");
+  const revokedRequests = pendingServiceRequests.filter((r) => r.status === "REVOKED");
 
   let daysUntilDue = null;
   if (nextDueDate) {
@@ -319,6 +335,40 @@ export default function TenantDashboardPage() {
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* PENDING SERVICE REQUESTS BANNER */}
+            {pendingRequests.map((req) => (
+              <div key={req.id} className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-3 text-orange-800 dark:text-orange-300">
+                  <AlertCircle className="h-6 w-6 shrink-0" />
+                  <div>
+                    <h4 className="font-semibold">Pending Payment Required</h4>
+                    <p className="text-sm">You have an unpaid {req.type.replace(/_/g, ' ').toLowerCase()} of ₹{req.amount}. Please clear this immediately.</p>
+                  </div>
+                </div>
+                <Link href={`/tenant/service-requests/${req.id}`} className={buttonVariants({ variant: "default", className: "shrink-0 bg-orange-600 hover:bg-orange-700 text-white shadow-sm" })}>
+                  Pay Now
+                </Link>
+              </div>
+            ))}
+
+            {/* REVOKED SERVICE REQUESTS BANNER */}
+            {revokedRequests.map((req) => (
+              <div key={req.id} className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+                <AlertCircle className="h-6 w-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                <div className="flex-1 text-red-800 dark:text-red-300">
+                  <h4 className="font-semibold">Food Plan Revoked</h4>
+                  <p className="text-sm mt-0.5">
+                    Your request for a food plan upgrade has been revoked. A refund of <strong>₹{req.amount}</strong> was processed.
+                  </p>
+                  {req.metadata?.revocation?.reason && (
+                    <p className="text-xs mt-1.5 opacity-80 italic">
+                      Reason: {req.metadata.revocation.reason}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+
             {/* HERO CARD */}
             <Card className="overflow-hidden border-0 shadow-xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 ring-1 ring-border/50">
               <div className="h-32 bg-gradient-to-r from-primary/80 to-blue-600/80"></div>
@@ -470,35 +520,49 @@ export default function TenantDashboardPage() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {payments.map((p) => (
-                                <TableRow key={p.id}>
-                                  <TableCell className="font-medium text-xs whitespace-nowrap">{formatDate(p.createdAt)}</TableCell>
-                                  <TableCell>₹ {p.amountPaid.toLocaleString("en-IN")}</TableCell>
-                                  <TableCell className="text-xs text-muted-foreground">{p.transactionRefNo || "-"}</TableCell>
-                                  <TableCell className="text-right">
-                                    {p.paymentStatus === "PAID" ? (
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Verified</Badge>
-                                    ) : p.paymentStatus === "PENDING" ? (
-                                      <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Verifying</Badge>
-                                    ) : (
-                                      <Badge variant="outline">{p.paymentStatus}</Badge>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {p.paymentStatus === "PAID" && (
-                                      <a 
-                                        href={`/api/pdf/receipt/${p.id}`} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="text-xs font-medium text-primary hover:underline flex items-center justify-end gap-1"
-                                      >
-                                        <Download className="h-3 w-3" />
-                                        Receipt
-                                      </a>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              {payments.map((p) => {
+                                const isNegative = p.amountPaid < 0;
+                                return (
+                                  <TableRow key={p.id}>
+                                    <TableCell className="font-medium text-xs whitespace-nowrap">{formatDate(p.createdAt)}</TableCell>
+                                    <TableCell className={isNegative ? "text-red-600 dark:text-red-400 font-semibold" : ""}>
+                                      {isNegative ? `-₹ ${Math.abs(p.amountPaid).toLocaleString("en-IN")}` : `₹ ${p.amountPaid.toLocaleString("en-IN")}`}
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                      {p.transactionRefNo || "-"}
+                                      {isNegative && p.notes && (
+                                        <span className="block text-[10px] text-red-500 dark:text-red-400 mt-0.5 font-medium">
+                                          (Refund: {p.notes})
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {p.paymentStatus === "PAID" ? (
+                                        <Badge variant="outline" className={isNegative ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-300 dark:border-red-900" : "bg-green-50 text-green-700 border-green-200"}>
+                                          {isNegative ? "Refunded" : "Verified"}
+                                        </Badge>
+                                      ) : p.paymentStatus === "PENDING" ? (
+                                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Verifying</Badge>
+                                      ) : (
+                                        <Badge variant="outline">{p.paymentStatus}</Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {p.paymentStatus === "PAID" && !isNegative && (
+                                        <a 
+                                          href={`/api/pdf/receipt/${p.id}`} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-xs font-medium text-primary hover:underline flex items-center justify-end gap-1"
+                                        >
+                                          <Download className="h-3 w-3" />
+                                          Receipt
+                                        </a>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
                             </TableBody>
                           </Table>
                         </div>
@@ -573,10 +637,8 @@ export default function TenantDashboardPage() {
                           Manage your breakfast, lunch, and dinner preferences for the upcoming week.
                         </p>
                       </div>
-                      <Link href="/tenant/food" passHref>
-                        <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md mt-4 text-base font-semibold">
-                          Manage Food Orders
-                        </Button>
+                      <Link href="/tenant/food" className={buttonVariants({ size: "lg", className: "bg-amber-600 hover:bg-amber-700 text-white rounded-full px-8 shadow-md mt-4 text-base font-semibold" })}>
+                        Manage Food Orders
                       </Link>
                     </CardContent>
                   </Card>

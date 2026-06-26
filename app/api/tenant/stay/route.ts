@@ -5,19 +5,10 @@ import { handleApiError } from "@/lib/errors";
 import { getSignedUrl } from "@/lib/storage";
 import { paiseToRupees } from "@/lib/money";
 import { calculateMonthlyNextDueDate } from "@/lib/dates";
-import { UserRole, StayStatus, DurationType, PaymentStatus } from "@prisma/client";
+import { UserRole, StayStatus, DurationType, PaymentStatus, ServiceRequestStatus, Prisma } from "@prisma/client";
 
 const STAY_PRIORITY_STATUSES = [StayStatus.ACTIVE, StayStatus.EXTENDED];
 const FALLBACK_STATUSES = [StayStatus.APPROVED_AWAITING_PAYMENT, StayStatus.ONBOARDING_PENDING];
-
-const stayQueryInclude = {
-  bed: {
-    include: {
-      room: true,
-    },
-  },
-  payments: true,
-} as const;
 
 function calculateNextDueDate(
   joiningDate: Date,
@@ -70,7 +61,28 @@ export async function GET(request: NextRequest) {
         tenantId: tenant.id,
         status: { in: STAY_PRIORITY_STATUSES },
       },
-      include: stayQueryInclude,
+      include: {
+        bed: {
+          include: {
+            room: true,
+          },
+        },
+        payments: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        serviceRequests: {
+          where: {
+            status: {
+              in: [ServiceRequestStatus.PENDING_PAYMENT, ServiceRequestStatus.REVOKED],
+            },
+          },
+          orderBy: {
+            updatedAt: "desc",
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 
@@ -80,7 +92,28 @@ export async function GET(request: NextRequest) {
           tenantId: tenant.id,
           status: { in: FALLBACK_STATUSES },
         },
-        include: stayQueryInclude,
+        include: {
+          bed: {
+            include: {
+              room: true,
+            },
+          },
+          payments: {
+            orderBy: {
+              createdAt: "desc",
+            },
+          },
+          serviceRequests: {
+            where: {
+              status: {
+                in: [ServiceRequestStatus.PENDING_PAYMENT, ServiceRequestStatus.REVOKED],
+              },
+            },
+            orderBy: {
+              updatedAt: "desc",
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
       });
     }
@@ -207,11 +240,20 @@ export async function GET(request: NextRequest) {
         amountPaid: paiseToRupees(p.amountPaidPaise),
         paymentMode: p.paymentMode,
         transactionRefNo: p.transactionRefNo,
+        notes: p.notes,
         paymentStatus: p.paymentStatus,
         createdAt: p.createdAt,
       })),
       roommates,
       nextDueDate,
+      pendingServiceRequests: stay.serviceRequests.map((sr) => ({
+        id: sr.id,
+        type: sr.type,
+        amount: paiseToRupees(sr.amountPaise),
+        status: sr.status,
+        createdAt: sr.createdAt,
+        metadata: sr.metadata,
+      })),
     });
   } catch (error) {
     return handleApiError(error);
