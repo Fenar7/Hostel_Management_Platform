@@ -41,7 +41,7 @@ export async function POST(
     
     let activeSupabaseAuthId = user.supabaseAuthId;
 
-    // Helper to create a brand new Supabase Auth user if missing
+    // Helper to create a brand new Supabase Auth user if missing, or link to an orphaned one
     const createAuthUser = async () => {
       const { data, error } = await supabase.auth.admin.createUser({
         phone: user.phone,
@@ -50,7 +50,27 @@ export async function POST(
         phone_confirm: true,
         email_confirm: !!user.email,
       });
-      if (error) throw new ConflictError(`Failed to create missing auth user: ${error.message}`);
+
+      if (error) {
+        if (error.message.toLowerCase().includes("already registered")) {
+          // It's an orphaned user. Let's find them by phone and just update their password.
+          const { data: listData } = await supabase.auth.admin.listUsers();
+          const orphanedUser = listData?.users?.find(
+            (u) => u.phone === user.phone || u.phone === user.phone.replace(/^\+/, "")
+          );
+
+          if (orphanedUser) {
+            const { error: updateError } = await supabase.auth.admin.updateUserById(
+              orphanedUser.id,
+              { password: tempPassword }
+            );
+            if (updateError) throw new ConflictError(`Failed to update orphaned user password: ${updateError.message}`);
+            return orphanedUser.id;
+          }
+        }
+        throw new ConflictError(`Failed to create missing auth user: ${error.message}`);
+      }
+
       return data.user.id;
     };
 
