@@ -53,7 +53,7 @@ export default async function WardenServiceRequestVerificationPage({
     id: serviceRequest.id,
     type: serviceRequest.type,
     amount: serviceRequest.amountPaise / 100,
-    metadata: serviceRequest.metadata,
+    metadata: serviceRequest.metadata as Record<string, unknown> | null,
     status: serviceRequest.status,
     tenantName: serviceRequest.stay.tenant.fullName,
     roomNumber: serviceRequest.stay.bed.room.roomNumber,

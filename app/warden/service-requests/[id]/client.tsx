@@ -11,7 +11,7 @@ interface VerificationData {
   id: string;
   type: string;
   amount: number;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
   status: string;
   tenantName: string;
   roomNumber: string;
