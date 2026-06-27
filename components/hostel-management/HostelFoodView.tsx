@@ -113,7 +113,9 @@ export default function HostelFoodView({
       setLoading(true);
       const params = new URLSearchParams({ weekStart });
       if (hostelId) params.append("hostelId", hostelId);
-      const res = await fetch(`/api/warden/food-week?${params}`);
+      const res = await fetch(`/api/warden/food-week?${params}`, {
+        cache: "no-store",
+      });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to load food data");
