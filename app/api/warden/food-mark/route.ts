@@ -8,16 +8,20 @@ import { UserRole, StayStatus } from "@prisma/client";
 /**
  * POST /api/warden/food-mark
  *
- * Allows wardens and admins to toggle meal attendance for a specific stay/date.
- * Unlike the tenant endpoint, this bypasses the cutoff restriction — wardens
- * can mark attendance at any time (e.g. at the kitchen door).
+ * Allows wardens and admins to toggle any meal for a specific stay/date.
+ * Bypasses the 10 PM cutoff — wardens can mark at the kitchen door at any time.
+ *
+ * Supported meal fields: breakfast, lunch, dinner, tea, cutFruits, gymDiet
  *
  * Body:
- *   - stayId: string  (UUID of the Stay)
- *   - forDate: string (YYYY-MM-DD)
+ *   - stayId:     string   (UUID of the Stay)
+ *   - forDate:    string   (YYYY-MM-DD)
  *   - breakfast?: boolean
- *   - lunch?: boolean
- *   - dinner?: boolean
+ *   - lunch?:     boolean
+ *   - dinner?:    boolean
+ *   - tea?:       boolean
+ *   - cutFruits?: boolean
+ *   - gymDiet?:   boolean
  *
  * Access: WARDEN or MAIN_ADMIN
  */
@@ -27,7 +31,16 @@ export async function POST(request: NextRequest) {
     const hostelId = await resolveHostelId(session, request);
 
     const body = await request.json();
-    const { stayId, forDate: forDateRaw, breakfast, lunch, dinner } = body;
+    const {
+      stayId,
+      forDate: forDateRaw,
+      breakfast,
+      lunch,
+      dinner,
+      tea,
+      cutFruits,
+      gymDiet,
+    } = body;
 
     if (!stayId || typeof stayId !== "string") {
       throw new ValidationError("stayId is required");
@@ -35,8 +48,15 @@ export async function POST(request: NextRequest) {
     if (!forDateRaw || typeof forDateRaw !== "string") {
       throw new ValidationError("forDate is required (YYYY-MM-DD)");
     }
-    if (breakfast === undefined && lunch === undefined && dinner === undefined) {
-      throw new ValidationError("At least one of breakfast, lunch, or dinner must be provided");
+    if (
+      breakfast === undefined &&
+      lunch === undefined &&
+      dinner === undefined &&
+      tea === undefined &&
+      cutFruits === undefined &&
+      gymDiet === undefined
+    ) {
+      throw new ValidationError("At least one meal field must be provided");
     }
 
     // Parse date in IST
@@ -45,7 +65,7 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Invalid forDate format. Use YYYY-MM-DD");
     }
 
-    // Verify the stay belongs to this hostel
+    // Verify the stay belongs to this hostel and is active
     const stay = await prisma.stay.findFirst({
       where: {
         id: stayId,
@@ -59,38 +79,43 @@ export async function POST(request: NextRequest) {
       throw new NotFoundError("Stay not found or not active in this hostel");
     }
 
-    // Get existing order to merge fields
+    // Get existing order to merge only the provided fields
     const existing = await prisma.foodOrder.findUnique({
       where: { stayId_forDate: { stayId, forDate } },
     });
 
-    const updatedBreakfast = breakfast !== undefined ? breakfast : (existing?.breakfast ?? false);
-    const updatedLunch = lunch !== undefined ? lunch : (existing?.lunch ?? false);
-    const updatedDinner = dinner !== undefined ? dinner : (existing?.dinner ?? false);
-
-    const foodOrder = await prisma.foodOrder.upsert({
+    const updated = await prisma.foodOrder.upsert({
       where: { stayId_forDate: { stayId, forDate } },
       create: {
         stayId,
         forDate,
-        breakfast: updatedBreakfast,
-        lunch: updatedLunch,
-        dinner: updatedDinner,
+        breakfast: breakfast ?? false,
+        lunch: lunch ?? false,
+        dinner: dinner ?? false,
+        tea: tea ?? false,
+        cutFruits: cutFruits ?? false,
+        gymDiet: gymDiet ?? false,
       },
       update: {
-        breakfast: updatedBreakfast,
-        lunch: updatedLunch,
-        dinner: updatedDinner,
+        ...(breakfast !== undefined && { breakfast }),
+        ...(lunch !== undefined && { lunch }),
+        ...(dinner !== undefined && { dinner }),
+        ...(tea !== undefined && { tea }),
+        ...(cutFruits !== undefined && { cutFruits }),
+        ...(gymDiet !== undefined && { gymDiet }),
       },
     });
 
     return NextResponse.json({
       success: true,
       foodOrder: {
-        forDate: foodOrder.forDate.toISOString(),
-        breakfast: foodOrder.breakfast,
-        lunch: foodOrder.lunch,
-        dinner: foodOrder.dinner,
+        forDate: updated.forDate.toISOString(),
+        breakfast: updated.breakfast,
+        lunch: updated.lunch,
+        dinner: updated.dinner,
+        tea: updated.tea,
+        cutFruits: updated.cutFruits,
+        gymDiet: updated.gymDiet,
       },
     });
   } catch (error) {

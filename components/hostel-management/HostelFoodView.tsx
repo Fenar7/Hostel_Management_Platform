@@ -1,107 +1,88 @@
 "use client";
 
-import { useEffect, useState, useCallback, useOptimistic, useTransition } from "react";
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import {
-  ChevronLeft, ChevronRight, Coffee, Sun, Moon,
-  Search, Lock, Unlock, Download, Users, TrendingUp, TrendingDown,
+  ChevronLeft, ChevronRight, Download, Bell,
+  Calendar, Search, Plus, ArrowRight, Maximize2,
 } from "lucide-react";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────────
 interface ResidentFoodEntry {
   stayId: string;
   tenantName: string;
-  tenantPhotoUrl: string | null;
   roomNumber: string;
   bedLabel: string;
   foodPlan: string;
   breakfast: boolean;
   lunch: boolean;
   dinner: boolean;
+  tea: boolean;
+  cutFruits: boolean;
+  gymDiet: boolean;
   hasOrder: boolean;
-  confirmedAt: string | null;
-  lockedAt: string | null;
 }
 
-interface FoodStatsResponse {
-  date: string;
-  hostelId: string;
-  lockingStatus: "OPEN" | "LOCKED";
-  summary: {
-    totalResidents: number;
-    breakfastCount: number;
-    lunchCount: number;
-    dinnerCount: number;
-  };
+interface DayData {
+  date: string; // YYYY-MM-DD in IST
+  dayName: string; // "Mon"
+  dayNumber: number; // 1-31
+  isToday: boolean;
   residents: ResidentFoodEntry[];
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function toISODate(date: Date): string {
+interface TodaySummary {
+  totalResidents: number;
+  eligibleResidents: number;
+  breakfastCount: number;
+  lunchCount: number;
+  dinnerCount: number;
+  teaCount: number;
+}
+
+interface WeekData {
+  weekStart: string;
+  weekDays: DayData[];
+  todaySummary: TodaySummary;
+  hostelId: string;
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────────
+function getMondayOfWeek(d: Date): string {
+  const date = new Date(d);
+  const day = date.getDay(); // 0=Sun
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  date.setDate(diff);
   return date.toISOString().split("T")[0];
 }
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
+function shiftWeek(weekStart: string, delta: number): string {
+  const d = new Date(`${weekStart}T00:00:00.000+05:30`);
+  d.setDate(d.getDate() + delta * 7);
+  return d.toISOString().split("T")[0];
 }
 
-function formatFoodPlanLabel(plan: string) {
-  const labels: Record<string, string> = {
-    BREAKFAST_ONLY: "Bfast Only",
-    BREAKFAST_DINNER: "Bfast + Dinner",
-    BLD: "Bfast, Lunch & Dinner",
-    NOT_INCLUDED: "No Plan",
-  };
-  return labels[plan] ?? plan;
-}
-
-function formatDisplayDate(dateStr: string) {
-  const d = new Date(`${dateStr}T00:00:00.000+05:30`);
-  return d.toLocaleDateString("en-IN", {
+function formatHeaderDate(): string {
+  return new Date().toLocaleDateString("en-IN", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 }
 
-// ─── Meal Check Cell ──────────────────────────────────────────────────────────
-function MealCheckbox({
-  checked,
-  disabled,
-  isLocked,
-  onChange,
-}: {
-  checked: boolean;
-  disabled: boolean;
-  isLocked: boolean;
-  onChange: (val: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={() => !disabled && onChange(!checked)}
-      className={cn(
-        "size-[22px] rounded-[4px] border flex items-center justify-center transition-all mx-auto",
-        checked
-          ? "bg-[#282828] border-[#282828]"
-          : "bg-[#f8f7f7] border-[#dedede]",
-        disabled && !checked && "opacity-50 cursor-not-allowed",
-        !disabled && "hover:border-[#282828] cursor-pointer"
-      )}
-      title={isLocked ? "Orders locked — warden can still mark attendance" : "Toggle meal"}
-    >
-      {checked && (
-        <svg viewBox="0 0 10 8" className="size-3 text-white fill-current" xmlns="http://www.w3.org/2000/svg">
-          <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        </svg>
-      )}
-    </button>
-  );
-}
+// ─── Meal columns definition ────────────────────────────────────────────────────
+const MEAL_COLS = [
+  { key: "breakfast" as const, label: "Break Fast" },
+  { key: "lunch"     as const, label: "Lunch"      },
+  { key: "dinner"    as const, label: "Dinner"     },
+  { key: "tea"       as const, label: "Tea"        },
+  { key: "cutFruits" as const, label: "Cut Fruits" },
+  { key: "gymDiet"   as const, label: "Gym Diet"   },
+] as const;
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+type MealKey = typeof MEAL_COLS[number]["key"];
+
+// ─── Main Component ──────────────────────────────────────────────────────────────
 export default function HostelFoodView({
   hostelId,
   baseRoute,
@@ -109,66 +90,71 @@ export default function HostelFoodView({
   hostelId: string | null;
   baseRoute: string;
 }) {
-  const [data, setData] = useState<FoodStatsResponse | null>(null);
+  const [weekStart, setWeekStart] = useState<string>(() => getMondayOfWeek(new Date()));
+  const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(() => toISODate(new Date()));
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterType, setFilterType] = useState<"ALL" | "ELIGIBLE" | "ORDERED">("ALL");
-  const [toggling, setToggling] = useState<string | null>(null); // stayId+meal key
+  const [search, setSearch] = useState("");
+  const [toggling, setToggling] = useState<string | null>(null);
 
+  // ── Fetch weekly data ──────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `/api/warden/food-stats?date=${selectedDate}${hostelId ? `&hostelId=${hostelId}` : ""}`
-      );
+      const params = new URLSearchParams({ weekStart });
+      if (hostelId) params.append("hostelId", hostelId);
+      const res = await fetch(`/api/warden/food-week?${params}`);
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed to load food stats");
+        throw new Error(err.error || "Failed to load food data");
       }
-      const json = await res.json();
-      setData(json);
+      setWeekData(await res.json());
     } catch (e: unknown) {
-      notify.error(e instanceof Error ? e.message : "An unexpected error occurred");
+      notify.error(e instanceof Error ? e.message : "An error occurred");
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, hostelId]);
+  }, [weekStart, hostelId]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const prevDay = () => setSelectedDate((d) => toISODate(addDays(new Date(`${d}T00:00:00.000+05:30`), -1)));
-  const nextDay = () => setSelectedDate((d) => toISODate(addDays(new Date(`${d}T00:00:00.000+05:30`), 1)));
-  const goToday = () => setSelectedDate(toISODate(new Date()));
-  const isToday = selectedDate === toISODate(new Date());
-
-  // ─── Toggle a meal for a resident (warden override) ────────────────────────
-  const handleToggleMeal = async (
+  // ── Toggle a meal (optimistic) ─────────────────────────────────────────────────
+  const handleToggle = async (
     stayId: string,
-    meal: "breakfast" | "lunch" | "dinner",
+    date: string,
+    meal: MealKey,
     currentVal: boolean
   ) => {
-    const key = `${stayId}-${meal}`;
+    const key = `${stayId}-${date}-${meal}`;
     if (toggling === key) return;
 
+    const newVal = !currentVal;
+
     // Optimistic update
-    setData((prev) => {
+    setWeekData((prev) => {
       if (!prev) return prev;
-      const newResidents = prev.residents.map((r) => {
-        if (r.stayId !== stayId) return r;
-        const updated = { ...r, [meal]: !currentVal, hasOrder: true };
-        return updated;
+      const todayStr = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const newDays = prev.weekDays.map((day) => {
+        if (day.date !== date) return day;
+        return {
+          ...day,
+          residents: day.residents.map((r) =>
+            r.stayId === stayId ? { ...r, [meal]: newVal, hasOrder: true } : r
+          ),
+        };
       });
-      const breakfastCount = newResidents.filter((r) => r.breakfast).length;
-      const lunchCount = newResidents.filter((r) => r.lunch).length;
-      const dinnerCount = newResidents.filter((r) => r.dinner).length;
-      return {
-        ...prev,
-        residents: newResidents,
-        summary: { ...prev.summary, breakfastCount, lunchCount, dinnerCount },
-      };
+      // Update today summary if this is today
+      let todaySummary = prev.todaySummary;
+      if (date === todayStr) {
+        const delta = newVal ? 1 : -1;
+        todaySummary = {
+          ...todaySummary,
+          breakfastCount: meal === "breakfast" ? todaySummary.breakfastCount + delta : todaySummary.breakfastCount,
+          lunchCount: meal === "lunch" ? todaySummary.lunchCount + delta : todaySummary.lunchCount,
+          dinnerCount: meal === "dinner" ? todaySummary.dinnerCount + delta : todaySummary.dinnerCount,
+          teaCount: meal === "tea" ? todaySummary.teaCount + delta : todaySummary.teaCount,
+        };
+      }
+      return { ...prev, weekDays: newDays, todaySummary };
     });
 
     setToggling(key);
@@ -176,471 +162,434 @@ export default function HostelFoodView({
       const res = await fetch("/api/warden/food-mark", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stayId,
-          forDate: selectedDate,
-          [meal]: !currentVal,
-        }),
+        body: JSON.stringify({ stayId, forDate: date, [meal]: newVal }),
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update");
-      }
+      if (!res.ok) throw new Error((await res.json()).error || "Failed to update");
     } catch (e: unknown) {
-      // Revert on error
       notify.error(e instanceof Error ? e.message : "Failed to update meal");
-      await loadData();
+      await loadData(); // revert on error
     } finally {
       setToggling(null);
     }
   };
 
-  // ─── Filter ────────────────────────────────────────────────────────────────
-  const filteredResidents = data?.residents.filter((r) => {
-    const matchesSearch =
-      r.tenantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.roomNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!matchesSearch) return false;
-    if (filterType === "ELIGIBLE") return r.foodPlan !== "NOT_INCLUDED";
-    if (filterType === "ORDERED") return r.hasOrder;
-    return true;
-  }) ?? [];
+  // ── Filter residents by search ─────────────────────────────────────────────────
+  const filterResidents = (residents: ResidentFoodEntry[]) => {
+    if (!search.trim()) return residents;
+    const q = search.toLowerCase();
+    return residents.filter(
+      (r) =>
+        r.tenantName.toLowerCase().includes(q) ||
+        r.roomNumber.toLowerCase().includes(q)
+    );
+  };
 
-  // ─── Stats ─────────────────────────────────────────────────────────────────
-  const stats = data?.summary;
-  const eligibleCount = data?.residents.filter((r) => r.foodPlan !== "NOT_INCLUDED").length ?? 0;
+  // ── Derived state ──────────────────────────────────────────────────────────────
+  const s = weekData?.todaySummary;
+  const eligible = s?.eligibleResidents ?? 1;
 
   const STAT_CARDS = [
-    {
-      label: "Breakfast",
-      value: stats?.breakfastCount ?? 0,
-      pct: eligibleCount > 0 ? Math.round(((stats?.breakfastCount ?? 0) / eligibleCount) * 100) : 0,
-      icon: Coffee,
-      color: "text-[#d97706]",
-      bgColor: "bg-[#fffbeb]",
-    },
-    {
-      label: "Lunch",
-      value: stats?.lunchCount ?? 0,
-      pct: eligibleCount > 0 ? Math.round(((stats?.lunchCount ?? 0) / eligibleCount) * 100) : 0,
-      icon: Sun,
-      color: "text-[#ea580c]",
-      bgColor: "bg-[#fff7ed]",
-    },
-    {
-      label: "Dinner",
-      value: stats?.dinnerCount ?? 0,
-      pct: eligibleCount > 0 ? Math.round(((stats?.dinnerCount ?? 0) / eligibleCount) * 100) : 0,
-      icon: Moon,
-      color: "text-[#4f46e5]",
-      bgColor: "bg-[#eef2ff]",
-    },
-    {
-      label: "Total Residents",
-      value: stats?.totalResidents ?? 0,
-      pct: null,
-      icon: Users,
-      color: "text-[#0891b2]",
-      bgColor: "bg-[#ecfeff]",
-    },
+    { label: "Breakfast", count: s?.breakfastCount ?? 0, pct: Math.round(((s?.breakfastCount ?? 0) / eligible) * 100) },
+    { label: "Lunch",     count: s?.lunchCount     ?? 0, pct: Math.round(((s?.lunchCount     ?? 0) / eligible) * 100) },
+    { label: "Dinner",    count: s?.dinnerCount    ?? 0, pct: Math.round(((s?.dinnerCount    ?? 0) / eligible) * 100) },
+    { label: "Tea",       count: s?.teaCount       ?? 0, pct: Math.round(((s?.teaCount       ?? 0) / eligible) * 100) },
   ];
 
-  const FILTER_TABS = [
-    { id: "ALL" as const, label: "All Residents", count: data?.residents.length ?? 0 },
-    { id: "ELIGIBLE" as const, label: "Active Food Plans", count: eligibleCount },
-    { id: "ORDERED" as const, label: "Ordered Today", count: data?.residents.filter((r) => r.hasOrder).length ?? 0 },
-  ];
+  const isCurrentWeek = weekStart === getMondayOfWeek(new Date());
 
+  const firstDay = weekData?.weekDays?.[0];
+  const weekLabel = firstDay
+    ? `${firstDay.dayName} ${firstDay.dayNumber}`
+    : "—";
+
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 px-4 py-5 w-full max-w-[1400px] mx-auto bg-white dark:bg-black min-h-screen">
+    <div className="min-h-screen bg-white">
 
-      {/* ── Page Header ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between pb-5 border-b border-[#dedede]">
+      {/* ── Page Header ────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6 pb-5 border-b border-[#dedede]">
         <div>
-          <h1 className="text-[24px] font-bold tracking-tight text-black dark:text-white">Food Dashboard</h1>
-          <p className="text-[#767676] text-[14px] mt-0.5">{formatDisplayDate(selectedDate)}</p>
+          <h1 className="text-[28px] sm:text-[32px] font-bold text-[#222] leading-tight">
+            Food Dashboard
+          </h1>
+          <p className="text-[16px] sm:text-[18px] text-[#767676] mt-1">{formatHeaderDate()}</p>
         </div>
-        <div className="flex items-center gap-2 self-start flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Bell */}
           <button
-            onClick={goToday}
-            disabled={isToday}
-            className="h-10 px-4 rounded-[6px] border border-[#dedede] text-[14px] font-semibold text-[#767676] hover:text-black hover:border-[#c0c0c0] transition-colors flex items-center gap-2 disabled:opacity-40"
+            onClick={() => notify.info("No new notifications")}
+            className="size-[44px] rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:border-black hover:text-black transition-colors"
           >
-            Today
+            <Bell className="size-5" />
           </button>
+          {/* Manage Meals Pricing */}
           <button
-            onClick={async () => {
-              if (!data) return;
-              notify.success("Export feature coming soon!");
-            }}
-            className="h-10 px-4 rounded-[6px] border border-[#dedede] text-[14px] font-semibold text-[#767676] hover:text-black hover:border-[#c0c0c0] transition-colors flex items-center gap-2"
+            onClick={() => notify.info("Meal pricing management — coming soon")}
+            className="h-[44px] px-4 rounded-[6px] border border-[#dedede] text-[14px] font-semibold text-black hover:bg-[#f9f9f9] transition-colors flex items-center gap-2 whitespace-nowrap"
           >
-            <Download className="size-4" />
-            Export Order
+            Manage Meals Pricing <Plus className="size-4" />
           </button>
+          {/* On Board a User */}
+          <Link
+            href={`${baseRoute}/onboard`}
+            className="h-[44px] px-4 rounded-[6px] bg-[#282828] text-white text-[14px] font-semibold flex items-center gap-2 hover:bg-black transition-colors whitespace-nowrap"
+          >
+            On Board a User <ArrowRight className="size-4" />
+          </Link>
         </div>
       </div>
 
-      {/* ── Date Navigation ── */}
-      <div className="py-4 flex items-center gap-3">
-        <button
-          onClick={prevDay}
-          className="size-9 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:text-black hover:border-[#c0c0c0] transition-colors"
-        >
-          <ChevronLeft className="size-4" />
-        </button>
-        <button
-          onClick={nextDay}
-          className="size-9 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:text-black hover:border-[#c0c0c0] transition-colors"
-        >
-          <ChevronRight className="size-4" />
-        </button>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-          className="h-9 px-3 rounded-[6px] border border-[#dedede] text-[13px] font-semibold text-black focus:outline-none focus:border-[#282828] bg-white cursor-pointer"
-        />
-        {/* Locking status */}
-        {data && (
-          <span className={cn(
-            "inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full ml-2",
-            data.lockingStatus === "OPEN"
-              ? "bg-[#dcfce7] text-[#15803d]"
-              : "bg-[#fef3c7] text-[#b45309]"
-          )}>
-            {data.lockingStatus === "OPEN"
-              ? <><Unlock className="size-3" /> Orders OPEN</>
-              : <><Lock className="size-3" /> Orders LOCKED</>
-            }
-          </span>
-        )}
-        {data && data.lockingStatus === "LOCKED" && (
-          <span className="text-[12px] text-[#a1a1a1] hidden sm:inline">
-            Cutoff passed — wardens can still mark attendance
-          </span>
-        )}
-      </div>
-
-      {/* ── Meal Count Stats ── */}
+      {/* ── Meal Counts (Today) ─────────────────────────────────────────────────── */}
       <div className="mb-6">
-        <h2 className="text-[16px] font-bold text-black dark:text-white mb-3">Meal Counts (Today)</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-[20px] font-bold text-black">Meal Counts (Today)</h2>
+          <div className="flex items-center gap-2">
+            <button className="h-[38px] px-4 rounded-[6px] border border-[#dedede] text-[13px] font-semibold text-black hover:bg-[#f9f9f9] transition-colors flex items-center gap-2">
+              Today <Calendar className="size-4 text-[#767676]" />
+            </button>
+            <button
+              onClick={() => notify.info("Export coming soon!")}
+              className="h-[38px] px-4 rounded-[6px] border border-[#dedede] text-[13px] font-semibold text-black hover:bg-[#f9f9f9] transition-colors flex items-center gap-2"
+            >
+              Export Order <Download className="size-4 text-[#767676]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Stat Cards — 4 in a row */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {loading
             ? Array(4).fill(0).map((_, i) => (
-                <div key={i} className="rounded-[7px] border border-[#dedede] p-4 animate-pulse">
-                  <div className="h-4 w-20 bg-[#f2f2f2] rounded mb-4" />
-                  <div className="h-8 w-12 bg-[#f2f2f2] rounded" />
-                </div>
+                <div
+                  key={i}
+                  className="h-[127px] rounded-[7px] border border-[#dedede] animate-pulse bg-[#fafafa]"
+                />
               ))
-            : STAT_CARDS.map((s) => {
-                const Icon = s.icon;
-                const isUp = s.pct !== null && s.pct >= 50;
+            : STAT_CARDS.map((card) => {
+                const isUp = card.pct >= 50;
                 return (
-                  <div key={s.label} className="rounded-[7px] border border-[#dedede] bg-white p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <p className="text-[14px] font-semibold text-black dark:text-white">{s.label}</p>
-                      <div className={cn("size-8 rounded-[6px] flex items-center justify-center", s.bgColor)}>
-                        <Icon className={cn("size-4", s.color)} />
-                      </div>
+                  <div
+                    key={card.label}
+                    className="h-[127px] rounded-[7px] border border-[#dedede] bg-white px-5 pt-5 pb-4 relative flex flex-col justify-between overflow-hidden"
+                  >
+                    {/* Label + Trend arrow */}
+                    <div className="flex items-start justify-between">
+                      <p className="text-[17px] font-semibold text-black">{card.label}</p>
+                      {/* Diagonal arrow — top right */}
+                      <svg
+                        viewBox="0 0 20 20"
+                        className={cn("size-5 shrink-0 mt-0.5", !isUp && "rotate-[90deg]")}
+                        fill="none"
+                      >
+                        <path
+                          d="M4 16L16 4M16 4H8M16 4V12"
+                          stroke="#282828"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </div>
+                    {/* Count + % */}
                     <div className="flex items-end justify-between">
-                      <p className="text-[30px] font-bold text-black dark:text-white leading-none">{s.value}</p>
-                      {s.pct !== null && (
-                        <div className={cn(
-                          "flex items-center gap-0.5 text-[13px] font-semibold",
-                          isUp ? "text-[#15803d]" : "text-[#767676]"
-                        )}>
-                          {isUp ? <TrendingUp className="size-3.5" /> : <TrendingDown className="size-3.5" />}
-                          {s.pct}%
-                        </div>
-                      )}
+                      <p className="text-[32px] font-semibold text-black leading-none">{card.count}</p>
+                      <p className="text-[14px] text-[#767676] mb-0.5">{card.pct}%</p>
                     </div>
                   </div>
                 );
-              })
-          }
+              })}
         </div>
       </div>
 
-      {/* ── Attendance Table ── */}
-      <h2 className="text-[16px] font-bold text-black dark:text-white mb-3">Meal Attendance</h2>
+      {/* ── Meal Attendance ─────────────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-[20px] font-bold text-black mb-4">Meal Attendance</h2>
 
-      {/* Filter + Search */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
-        <div className="flex items-center gap-1">
-          {FILTER_TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setFilterType(t.id)}
-              className={cn(
-                "h-9 px-3 rounded-[6px] text-[13px] font-semibold transition-all flex items-center gap-2",
-                filterType === t.id
-                  ? "bg-[#282828] text-white"
-                  : "border border-[#dedede] text-[#767676] hover:text-black hover:border-[#c0c0c0] bg-white"
-              )}
-            >
-              {t.label}
-              <span className={cn(
-                "text-[11px] px-1.5 py-0.5 rounded-full",
-                filterType === t.id ? "bg-white/20 text-white" : "bg-[#f2f2f2] text-[#767676]"
-              )}>
-                {t.count}
-              </span>
-            </button>
-          ))}
-        </div>
-        <div className="relative w-full sm:w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#a1a1a1]" />
-          <input
-            type="text"
-            placeholder="Search by name or room..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 rounded-[6px] border border-[#dedede] bg-white text-[13px] text-black placeholder:text-[#a1a1a1] outline-none focus:border-[#282828] transition-colors"
-          />
-        </div>
-      </div>
+        {/* Table + Right Panel container */}
+        <div className="flex rounded-[12px] border border-[#dedede] overflow-hidden">
 
-      {/* Table */}
-      {loading ? (
-        <TableSkeleton />
-      ) : (
-        <>
-          {/* Desktop Table */}
-          <div className="hidden md:block rounded-[7px] border border-[#dedede] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px]">
+          {/* ── Main Table ── */}
+          <div className="flex-1 overflow-x-auto min-w-0">
+            {loading ? (
+              <LoadingSkeleton />
+            ) : (
+              <table className="w-full min-w-[780px] border-collapse">
+                {/* Header */}
                 <thead>
-                  <tr className="border-b border-[#f2f2f2] bg-[#fafafa]">
-                    <th className="px-4 py-3 text-[12px] font-semibold text-[#767676] uppercase tracking-wide text-left">Resident</th>
-                    <th className="px-4 py-3 text-[12px] font-semibold text-[#767676] uppercase tracking-wide text-left">Room</th>
-                    <th className="px-4 py-3 text-[12px] font-semibold text-[#767676] uppercase tracking-wide text-left">Food Plan</th>
-                    <th className="px-4 py-3 text-[12px] font-semibold text-[#767676] uppercase tracking-wide text-center">Breakfast</th>
-                    <th className="px-4 py-3 text-[12px] font-semibold text-[#767676] uppercase tracking-wide text-center">Lunch</th>
-                    <th className="px-4 py-3 text-[12px] font-semibold text-[#767676] uppercase tracking-wide text-center">Dinner</th>
-                    <th className="px-4 py-3 text-[12px] font-semibold text-[#767676] uppercase tracking-wide text-center">Status</th>
+                  <tr className="border-b border-[#dedede]">
+                    <th className="px-5 py-[18px] text-left text-[18px] font-semibold text-black whitespace-nowrap w-[130px]">
+                      Date
+                    </th>
+                    <th className="px-4 py-[18px] text-left text-[18px] font-semibold text-black whitespace-nowrap">
+                      Tenant
+                    </th>
+                    {MEAL_COLS.map((col) => (
+                      <th
+                        key={col.key}
+                        className="px-2 py-[18px] text-center text-[15px] font-semibold text-black whitespace-nowrap w-[88px]"
+                      >
+                        {col.label}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
+
+                {/* Body */}
                 <tbody>
-                  {filteredResidents.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-16 text-center text-[14px] text-[#a1a1a1] font-medium">
-                        {searchQuery ? "No residents match your search" : "No residents in this list"}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredResidents.map((r) => {
-                      const hasNoPlan = r.foodPlan === "NOT_INCLUDED";
-                      const isLocked = data?.lockingStatus === "LOCKED";
+                  {(() => {
+                    const rows: React.ReactNode[] = [];
+                    let globalIdx = 0;
+
+                    for (let di = 0; di < (weekData?.weekDays.length ?? 0); di++) {
+                      const day = weekData!.weekDays[di];
+                      const residents = filterResidents(day.residents);
+                      if (residents.length === 0) continue;
+
+                      residents.forEach((r, ri) => {
+                        const isFirstInDay = ri === 0;
+                        const isFirstOverall = globalIdx === 0;
+                        const hasNoPlan = r.foodPlan === "NOT_INCLUDED";
+
+                        rows.push(
+                          <tr
+                            key={`${day.date}-${r.stayId}`}
+                            className={cn(
+                              "border-b border-[#f5f5f5] last:border-0 hover:bg-[#fafafa] transition-colors",
+                              isFirstInDay && !isFirstOverall && "border-t-[2px] border-t-[#e8e8e8]"
+                            )}
+                          >
+                            {/* Date cell — only on first resident row of that day */}
+                            <td className="px-5 py-[14px] align-top">
+                              {isFirstInDay ? (
+                                <div className="flex items-center gap-2.5 pt-0.5">
+                                  <span className="text-[16px] font-medium text-[#767676] w-[28px]">
+                                    {day.dayName}
+                                  </span>
+                                  <div
+                                    className={cn(
+                                      "size-[34px] rounded-full flex items-center justify-center text-[14px] font-semibold",
+                                      day.isToday
+                                        ? "bg-[#282828] text-white"
+                                        : "bg-transparent text-[#282828] border border-[#e0e0e0]"
+                                    )}
+                                  >
+                                    {day.dayNumber}
+                                  </div>
+                                </div>
+                              ) : null}
+                            </td>
+
+                            {/* Tenant */}
+                            <td className="px-4 py-[14px]">
+                              <p className="text-[15px] font-semibold text-black">
+                                {r.tenantName}{" "}
+                                <span className="font-normal text-[#767676]">
+                                  ({r.roomNumber} {r.bedLabel})
+                                </span>
+                              </p>
+                            </td>
+
+                            {/* Meal checkboxes */}
+                            {MEAL_COLS.map((col) => {
+                              const val = r[col.key];
+                              const tKey = `${r.stayId}-${day.date}-${col.key}`;
+                              const isProcessing = toggling === tKey;
+                              return (
+                                <td key={col.key} className="py-[14px] text-center">
+                                  <button
+                                    onClick={() =>
+                                      !hasNoPlan &&
+                                      handleToggle(r.stayId, day.date, col.key, val)
+                                    }
+                                    disabled={hasNoPlan || isProcessing}
+                                    className={cn(
+                                      "size-[22px] rounded-[4px] border flex items-center justify-center mx-auto transition-all",
+                                      hasNoPlan
+                                        ? "bg-[#f8f7f7] border-[#e8e8e8] opacity-30 cursor-not-allowed"
+                                        : val
+                                          ? "bg-[#282828] border-[#282828] cursor-pointer"
+                                          : "bg-[#f8f7f7] border-[#dedede] hover:border-[#828282] cursor-pointer",
+                                      isProcessing && "opacity-50 cursor-wait"
+                                    )}
+                                  >
+                                    {val && !hasNoPlan && (
+                                      <svg
+                                        viewBox="0 0 10 8"
+                                        className="size-[9px]"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                      >
+                                        <path
+                                          d="M1 4L3.5 6.5L9 1"
+                                          stroke="white"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                      </svg>
+                                    )}
+                                  </button>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                        globalIdx++;
+                      });
+                    }
+
+                    if (rows.length === 0) {
                       return (
-                        <tr
-                          key={r.stayId}
-                          className="border-b border-[#f2f2f2] last:border-0 bg-white hover:bg-[#fafafa] transition-colors"
-                        >
-                          {/* Resident */}
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="size-9 rounded-full bg-[#e0e0e0] flex items-center justify-center text-[12px] font-bold text-[#5c5c5c] shrink-0">
-                                {r.tenantName.slice(0, 2).toUpperCase()}
-                              </div>
-                              <p className="text-[14px] font-semibold text-black dark:text-white">{r.tenantName}</p>
-                            </div>
-                          </td>
-
-                          {/* Room */}
-                          <td className="px-4 py-3">
-                            <span className="text-[13px] font-medium text-[#767676]">{r.roomNumber}-{r.bedLabel}</span>
-                          </td>
-
-                          {/* Food Plan */}
-                          <td className="px-4 py-3">
-                            <span className={cn(
-                              "text-[11px] font-bold px-2.5 py-1 rounded-full",
-                              hasNoPlan
-                                ? "bg-[#f2f2f2] text-[#a1a1a1]"
-                                : r.foodPlan === "BLD"
-                                  ? "bg-[#dbeafe] text-[#1e40af]"
-                                  : "bg-[#f3e8ff] text-[#7e22ce]"
-                            )}>
-                              {formatFoodPlanLabel(r.foodPlan)}
-                            </span>
-                          </td>
-
-                          {/* Breakfast */}
-                          <td className="px-4 py-3 text-center">
-                            {hasNoPlan ? (
-                              <span className="text-[#dedede] font-bold">—</span>
-                            ) : (
-                              <MealCheckbox
-                                checked={r.breakfast}
-                                disabled={toggling === `${r.stayId}-breakfast`}
-                                isLocked={isLocked ?? false}
-                                onChange={(val) => handleToggleMeal(r.stayId, "breakfast", r.breakfast)}
-                              />
-                            )}
-                          </td>
-
-                          {/* Lunch */}
-                          <td className="px-4 py-3 text-center">
-                            {hasNoPlan ? (
-                              <span className="text-[#dedede] font-bold">—</span>
-                            ) : (
-                              <MealCheckbox
-                                checked={r.lunch}
-                                disabled={toggling === `${r.stayId}-lunch`}
-                                isLocked={isLocked ?? false}
-                                onChange={(val) => handleToggleMeal(r.stayId, "lunch", r.lunch)}
-                              />
-                            )}
-                          </td>
-
-                          {/* Dinner */}
-                          <td className="px-4 py-3 text-center">
-                            {hasNoPlan ? (
-                              <span className="text-[#dedede] font-bold">—</span>
-                            ) : (
-                              <MealCheckbox
-                                checked={r.dinner}
-                                disabled={toggling === `${r.stayId}-dinner`}
-                                isLocked={isLocked ?? false}
-                                onChange={(val) => handleToggleMeal(r.stayId, "dinner", r.dinner)}
-                              />
-                            )}
-                          </td>
-
-                          {/* Status */}
-                          <td className="px-4 py-3 text-center">
-                            {hasNoPlan ? (
-                              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#f2f2f2] text-[#a1a1a1]">
-                                INELIGIBLE
-                              </span>
-                            ) : r.hasOrder ? (
-                              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#dcfce7] text-[#15803d]">
-                                ORDERED
-                              </span>
-                            ) : (
-                              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#f2f2f2] text-[#767676]">
-                                NO ORDER
-                              </span>
-                            )}
+                        <tr>
+                          <td
+                            colSpan={8}
+                            className="py-20 text-center text-[14px] text-[#a1a1a1] font-medium"
+                          >
+                            {search
+                              ? `No residents match "${search}"`
+                              : "No active residents found for this week"}
                           </td>
                         </tr>
                       );
-                    })
-                  )}
+                    }
+
+                    return rows;
+                  })()}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          {/* Mobile Card List */}
-          <div className="md:hidden flex flex-col gap-3">
-            {filteredResidents.length === 0 ? (
-              <div className="py-16 text-center text-[14px] text-[#a1a1a1]">
-                {searchQuery ? "No residents match your search" : "No residents in this list"}
-              </div>
-            ) : (
-              filteredResidents.map((r) => {
-                const hasNoPlan = r.foodPlan === "NOT_INCLUDED";
-                const isLocked = data?.lockingStatus === "LOCKED";
-                return (
-                  <div key={r.stayId} className="rounded-[7px] border border-[#dedede] bg-white p-4">
-                    {/* Resident header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-full bg-[#e0e0e0] flex items-center justify-center text-[13px] font-bold text-[#5c5c5c]">
-                          {r.tenantName.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-[14px] font-bold text-black">{r.tenantName}</p>
-                          <p className="text-[12px] text-[#767676]">{r.roomNumber}-{r.bedLabel}</p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className={cn(
-                          "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                          hasNoPlan ? "bg-[#f2f2f2] text-[#a1a1a1]"
-                            : r.foodPlan === "BLD" ? "bg-[#dbeafe] text-[#1e40af]"
-                              : "bg-[#f3e8ff] text-[#7e22ce]"
-                        )}>
-                          {formatFoodPlanLabel(r.foodPlan)}
-                        </span>
-                        {!hasNoPlan && (
-                          <span className={cn(
-                            "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                            r.hasOrder ? "bg-[#dcfce7] text-[#15803d]" : "bg-[#f2f2f2] text-[#767676]"
-                          )}>
-                            {r.hasOrder ? "ORDERED" : "NO ORDER"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Meal toggles */}
-                    {!hasNoPlan && (
-                      <div className="flex gap-3 pt-3 border-t border-[#f2f2f2]">
-                        {(["breakfast", "lunch", "dinner"] as const).map((meal) => {
-                          const checked = r[meal];
-                          const icons = { breakfast: Coffee, lunch: Sun, dinner: Moon };
-                          const colors = { breakfast: "text-[#d97706]", lunch: "text-[#ea580c]", dinner: "text-[#4f46e5]" };
-                          const MealIcon = icons[meal];
-                          return (
-                            <button
-                              key={meal}
-                              onClick={() => handleToggleMeal(r.stayId, meal, checked)}
-                              disabled={toggling === `${r.stayId}-${meal}`}
-                              className={cn(
-                                "flex-1 h-10 rounded-[6px] border text-[12px] font-semibold flex items-center justify-center gap-1.5 transition-all",
-                                checked
-                                  ? "bg-[#282828] border-[#282828] text-white"
-                                  : "border-[#dedede] text-[#767676] hover:border-[#282828] hover:text-black"
-                              )}
-                            >
-                              <MealIcon className={cn("size-3.5", checked ? "text-white" : colors[meal])} />
-                              <span className="capitalize">{meal}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {hasNoPlan && (
-                      <div className="pt-3 border-t border-[#f2f2f2] text-center text-[12px] text-[#a1a1a1]">
-                        No food plan assigned
-                      </div>
-                    )}
-                  </div>
-                );
-              })
             )}
           </div>
 
-          {/* Results count */}
-          <p className="text-[12px] text-[#a1a1a1] mt-3">
-            Showing {filteredResidents.length} of {data?.residents.length ?? 0} residents
-          </p>
-        </>
-      )}
+          {/* ── Right Panel ──────────────────────────────────────────────────────── */}
+          <div className="w-[185px] shrink-0 border-l border-[#dedede] flex-col bg-white hidden lg:flex">
+
+            {/* Week nav arrows */}
+            <div className="flex items-center gap-2 px-3 py-[14px] border-b border-[#f0f0f0]">
+              <button
+                onClick={() => setWeekStart((w) => shiftWeek(w, -1))}
+                className="size-[32px] rounded-[5px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:border-black hover:text-black transition-colors"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <button
+                onClick={() => setWeekStart((w) => shiftWeek(w, 1))}
+                className="size-[32px] rounded-[5px] border border-[#dedede] flex items-center justify-center text-[#767676] hover:border-black hover:text-black transition-colors"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+
+            {/* Search tenant */}
+            <div className="px-3 py-3 border-b border-[#f0f0f0]">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[#a1a1a1]" />
+                <input
+                  type="text"
+                  placeholder="Search tenant"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-[32px] pl-8 pr-2 rounded-[5px] border border-[#dedede] text-[12px] text-black placeholder:text-[#a1a1a1] outline-none focus:border-[#282828] bg-white transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Week start label */}
+            <div className="px-4 py-3 border-b border-[#f0f0f0] flex items-center gap-2">
+              <Calendar className="size-4 text-[#767676] shrink-0" />
+              <span className="text-[13px] font-medium text-black">{weekLabel}</span>
+            </div>
+
+            {/* Export Order */}
+            <button
+              onClick={() => notify.info("Export coming soon!")}
+              className="px-4 py-3 border-b border-[#f0f0f0] flex items-center gap-2 text-[13px] font-medium text-black hover:bg-[#fafafa] transition-colors text-left w-full"
+            >
+              <Download className="size-4 text-[#767676] shrink-0" />
+              Export Order
+            </button>
+
+            {/* Expand */}
+            <button className="px-4 py-3 border-b border-[#f0f0f0] flex items-center gap-2 text-[13px] font-medium text-black hover:bg-[#fafafa] transition-colors text-left w-full">
+              <Maximize2 className="size-4 text-[#767676] shrink-0" />
+              Expand
+            </button>
+
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* This Week */}
+            <div className="px-4 py-3 border-t border-[#f0f0f0] flex items-center gap-2">
+              <Calendar className="size-4 text-[#767676] shrink-0" />
+              <button
+                onClick={() => setWeekStart(getMondayOfWeek(new Date()))}
+                className={cn(
+                  "text-[13px] font-medium transition-colors",
+                  isCurrentWeek ? "text-[#282828] font-semibold" : "text-black hover:underline"
+                )}
+              >
+                This Week
+              </button>
+            </div>
+
+            {/* Download Report */}
+            <button
+              onClick={() => notify.info("Download report coming soon!")}
+              className="px-4 py-3 border-t border-[#f0f0f0] flex items-center gap-2 text-[13px] font-medium text-black hover:bg-[#fafafa] transition-colors text-left w-full"
+            >
+              <Download className="size-4 text-[#767676] shrink-0" />
+              Download Report
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile: Right panel controls (shown on small screens) */}
+        <div className="lg:hidden flex items-center gap-2 mt-3 flex-wrap">
+          <button
+            onClick={() => setWeekStart((w) => shiftWeek(w, -1))}
+            className="size-9 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676]"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button
+            onClick={() => setWeekStart((w) => shiftWeek(w, 1))}
+            className="size-9 rounded-[6px] border border-[#dedede] flex items-center justify-center text-[#767676]"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+          <div className="relative flex-1 min-w-[160px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[#a1a1a1]" />
+            <input
+              type="text"
+              placeholder="Search tenant"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-9 pl-8 pr-2 rounded-[6px] border border-[#dedede] text-[13px] text-black placeholder:text-[#a1a1a1] outline-none focus:border-[#282828] bg-white"
+            />
+          </div>
+          <button
+            onClick={() => setWeekStart(getMondayOfWeek(new Date()))}
+            className="h-9 px-3 rounded-[6px] border border-[#dedede] text-[13px] font-medium text-black flex items-center gap-1.5"
+          >
+            <Calendar className="size-3.5 text-[#767676]" />
+            This Week
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ─── Table Skeleton ───────────────────────────────────────────────────────────
-function TableSkeleton() {
+// ─── Skeleton ────────────────────────────────────────────────────────────────────
+function LoadingSkeleton() {
   return (
-    <div className="rounded-[7px] border border-[#dedede] overflow-hidden">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex items-center gap-4 px-4 py-3.5 border-b border-[#f2f2f2] last:border-0 animate-pulse">
-          <div className="size-9 rounded-full bg-[#f2f2f2] shrink-0" />
-          <div className="flex-1 space-y-2">
-            <div className="h-3 w-32 rounded bg-[#f2f2f2]" />
-            <div className="h-3 w-20 rounded bg-[#f2f2f2]" />
-          </div>
-          <div className="h-6 w-20 rounded-full bg-[#f2f2f2]" />
-          {[...Array(3)].map((_, j) => (
-            <div key={j} className="size-6 rounded-[4px] bg-[#f2f2f2]" />
+    <div className="p-5 space-y-4">
+      {[...Array(7)].map((_, i) => (
+        <div key={i} className="flex items-center gap-5 animate-pulse">
+          <div className="w-[100px] h-5 rounded bg-[#f2f2f2]" />
+          <div className="flex-1 h-5 rounded bg-[#f2f2f2]" />
+          {[...Array(6)].map((_, j) => (
+            <div key={j} className="size-[22px] rounded-[4px] bg-[#f2f2f2] shrink-0" />
           ))}
-          <div className="h-6 w-16 rounded-full bg-[#f2f2f2]" />
         </div>
       ))}
     </div>
