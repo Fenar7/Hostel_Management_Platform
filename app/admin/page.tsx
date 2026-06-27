@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Building, Bed, Activity, TrendingUp, IndianRupee, Map, Plus } from "lucide-react";
+import { BedDouble, Users, CalendarCheck, IndianRupee, Bed, Clock, AlertCircle, Play, Ban } from "lucide-react";
 import { getAdminPortfolioStats } from "@/services/hostel/dashboard.service";
 import { requireRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
@@ -11,7 +11,7 @@ import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 // Modular Dashboard Components
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { StatusListCard } from "@/components/dashboard/StatusListCard";
+import { StatusListCard, StatusItem } from "@/components/dashboard/StatusListCard";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { TasksList } from "@/components/dashboard/TasksList";
 
@@ -21,93 +21,86 @@ export default async function AdminPage() {
   await requireRole([UserRole.MAIN_ADMIN]);
   const stats = await getAdminPortfolioStats();
 
+  const occupancyItems: StatusItem[] = [
+    { id: "1", label: "Bedspaces Available", value: stats.totalBeds - stats.totalOccupiedBeds, icon: Bed, iconColor: "text-green-500" },
+    { id: "2", label: "Bedspaces on Hold", value: 9, icon: Clock, iconColor: "text-yellow-500" },
+    { id: "3", label: "Bedspaces Reserved", value: 65, icon: CalendarCheck, iconColor: "text-blue-500" },
+    { id: "4", label: "Bedspaces Occupied", value: stats.totalOccupiedBeds, icon: BedDouble, iconColor: "text-red-500" },
+    { id: "5", label: "BedspacesBlocked", value: 3, icon: Ban, iconColor: "text-gray-500" },
+  ];
+
+  const bookingItems: StatusItem[] = [
+    { id: "1", label: "Onboarding Started", value: 32, icon: Play, iconColor: "text-black dark:text-white" },
+    { id: "2", label: "Submitted for Approval", value: 32, icon: AlertCircle, iconColor: "text-black dark:text-white" },
+    { id: "3", label: "Payment Pending", value: 32, icon: IndianRupee, iconColor: "text-black dark:text-white" },
+  ];
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12 w-full max-w-7xl mx-auto">
-      {/* Reusing the new DashboardHeader, with admin-specific title text */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between pb-6">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[var(--carbon-black)] dark:text-white">Admin Portfolio</h1>
-          <p className="text-muted-foreground font-medium mt-1">Global Overview</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/admin/hostels/new">
-            <Button variant="outline" className="font-semibold h-11 px-6 rounded-full border-2 border-[var(--cloud-grey)] text-[var(--carbon-black)] dark:text-white">
-              <Plus className="mr-2 h-4 w-4" /> Add Hostel
-            </Button>
-          </Link>
-          <Link href="/warden/onboard">
-            <Button className="font-semibold h-11 px-6 rounded-full bg-[var(--cta-green)] text-black hover:bg-[#4ae63a] dark:text-black">
-              On Board a User
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12 w-full max-w-[1400px] mx-auto p-6 bg-[#f9f9f9] dark:bg-black min-h-screen">
+      <DashboardHeader />
       
       <ActionAlertsClient role="MAIN_ADMIN" />
+
+      {/* Overview Title */}
+      <h2 className="text-[22px] font-bold text-black dark:text-white -mb-2 mt-2">Overview</h2>
 
       {/* Stats Grid */}
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
-          title="Total Hostels" 
-          value={stats.totalHostels} 
-          icon={Building}
-          trend="All Active"
+          title="Available Beds" 
+          value={stats.totalBeds - stats.totalOccupiedBeds} 
+          subtitle="Ready for booking"
+          icon={BedDouble}
+          trend="23%"
           trendUp={true}
         />
         <StatCard 
-          title="Total Beds" 
-          value={stats.totalBeds} 
-          icon={Bed}
+          title="Occupied Beds" 
+          value={stats.totalOccupiedBeds} 
+          subtitle="Active tenants"
+          icon={BedDouble}
+          trend="78%"
+          trendUp={true}
         />
         <StatCard 
-          title="Portfolio Occupancy" 
-          value={`${stats.portfolioOccupancyRate}%`} 
-          icon={Activity}
-          trend={`${stats.totalOccupiedBeds} occupied`}
-          trendUp={stats.portfolioOccupancyRate > 75}
+          title="Pending Bookings" 
+          value={6} 
+          subtitle="onboarding/approval"
+          icon={CalendarCheck}
+          trend="+10%"
+          trendUp={true}
         />
         <StatCard 
-          title="Pending Payments" 
+          title="Rent Due" 
           value={stats.totalPendingPayments} 
+          subtitle="Tenants need payment"
           icon={IndianRupee}
-          trend={stats.totalPendingPayments > 0 ? "Action Req" : "Clear"}
-          trendUp={stats.totalPendingPayments === 0}
+          trend="-10%"
+          trendUp={false}
         />
       </div>
 
       {/* Main Content Layout */}
-      <div className="grid gap-6 grid-cols-1 xl:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 xl:grid-cols-3 items-start">
         {/* Left Column (2/3) */}
         <div className="xl:col-span-2 space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <StatusListCard 
-              title="Regional Occupancy"
-              items={stats.hostels.map(h => ({
-                id: h.id,
-                label: h.name,
-                value: `${h.occupancyRate}%`,
-                statusText: h.occupancyRate > 85 ? "High" : "Good",
-                statusColor: (h.occupancyRate > 85 ? "green" : "blue") as "green" | "blue"
-              })).slice(0, 4)}
+              title="Occupancy Status"
+              items={occupancyItems}
             />
             <StatusListCard 
-              title="Action Required"
-              items={stats.hostels.filter(h => h.pendingPayments > 0).map(h => ({
-                id: h.id,
-                label: h.name,
-                value: `${h.pendingPayments} dues`,
-                statusText: "Pending",
-                statusColor: "red" as const
-              })).slice(0, 4)}
+              title="Booking Status"
+              items={bookingItems}
             />
           </div>
           
-          <ActivityFeed />
+          <TasksList />
         </div>
 
         {/* Right Column (1/3) */}
-        <div className="xl:col-span-1 space-y-6">
-          <TasksList />
+        <div className="xl:col-span-1 h-full">
+          <ActivityFeed />
         </div>
       </div>
     </div>

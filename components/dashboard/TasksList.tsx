@@ -1,42 +1,59 @@
-import { Checkbox } from "@/components/ui/checkbox";
-
-interface Task {
-  id: string;
-  title: string;
-  completed: boolean;
-  tag?: string;
-}
-
-const tasks: Task[] = [
-  { id: "1", title: "Verify pending KYC documents", completed: false, tag: "Today" },
-  { id: "2", title: "Follow up on overdue rent", completed: true, tag: "Yesterday" },
-  { id: "3", title: "Approve visitor requests", completed: false, tag: "Today" },
-  { id: "4", title: "Schedule maintenance for Room 102", completed: false },
-];
-
 export function TasksList() {
   return (
-    <div className="p-6 rounded-3xl border border-[var(--stroke-grey)] bg-white dark:bg-zinc-900 shadow-sm">
+    <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 p-5 h-full">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-[var(--carbon-black)] dark:text-white">Tasks</h3>
-        <button className="text-sm font-bold text-blue-600 hover:text-blue-700">Add Task</button>
+        <h3 className="text-[19px] font-semibold text-black dark:text-white">Tasks</h3>
+        <button className="bg-[#5c5c5c] text-[#58ff48] rounded-[4px] px-3 py-1 text-[13px] font-medium hover:opacity-90">
+          View All
+        </button>
       </div>
-      <div className="flex flex-col gap-4">
-        {tasks.map((task) => (
-          <label key={task.id} className="flex items-start gap-3 p-3 rounded-2xl hover:bg-[var(--light-white)] dark:hover:bg-zinc-800 transition-colors cursor-pointer border border-transparent hover:border-[var(--stroke-grey)]">
-            <Checkbox checked={task.completed} className="mt-0.5 rounded-[6px]" />
-            <div className="flex-1">
-              <p className={`text-sm font-semibold ${task.completed ? 'line-through text-muted-foreground' : 'text-[var(--carbon-black)] dark:text-white'}`}>
-                {task.title}
-              </p>
-              {task.tag && (
-                <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--hash-grey-2)] mt-1 inline-block">
-                  {task.tag}
-                </span>
-              )}
-            </div>
-          </label>
-        ))}
+      
+      <div className="flex flex-col gap-6 overflow-hidden">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <TaskItem title="Do Grocery Purhcases" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
+            <TaskItem title="Onboard Ashiq" assigned="Assigned from HQ" deadline="Deadline March 3 3:33 PM" />
+          </div>
+          <div className="w-[60px] flex items-center justify-end gap-2 ml-4">
+            <div className="size-6 rounded-full bg-[#f1f1f1] dark:bg-zinc-800 text-[#767676] flex items-center justify-center text-[13px] font-semibold">1</div>
+            <span className="text-[#767676] text-[15px] font-medium w-8">Mon</span>
+          </div>
+        </div>
+        
+        <div className="flex items-start justify-between">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <TaskItem title="Do Grocery Purhcases" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
+            <TaskItem title="Do Grocery Purhcases" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
+          </div>
+          <div className="w-[60px] flex items-center justify-end gap-2 ml-4">
+            <div className="size-6 rounded-full bg-[#5c5c5c] text-white flex items-center justify-center text-[13px] font-semibold">2</div>
+            <span className="text-black dark:text-white font-semibold text-[15px] w-8">Tue</span>
+          </div>
+        </div>
+        
+        <div className="flex items-start justify-between">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <TaskItem title="Do Grocery Purhcases" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
+            <TaskItem title="Onboard New Staff" assigned="Assigned from HQ" deadline="Deadline Today 3:33 PM" />
+          </div>
+          <div className="w-[60px] flex items-center justify-end gap-2 ml-4">
+            <div className="size-6 rounded-full bg-[#f1f1f1] dark:bg-zinc-800 text-[#767676] flex items-center justify-center text-[13px] font-semibold">3</div>
+            <span className="text-[#767676] text-[15px] font-medium w-8">Wed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TaskItem({ title, assigned, deadline }: { title: string, assigned: string, deadline: string }) {
+  return (
+    <div className="flex items-start gap-3 min-w-0">
+      <div className="mt-1 size-[22px] rounded-[4px] border-2 border-[#dedede] shrink-0" />
+      <div className="flex flex-col min-w-0">
+        <h4 className="text-[16px] font-semibold text-black dark:text-white leading-tight mb-1 truncate">{title}</h4>
+        <p className="text-[#a1a1a1] text-[13px] leading-tight mb-0.5 truncate">{assigned}</p>
+        <p className="text-[#a1a1a1] text-[13px] leading-tight truncate">{deadline}</p>
       </div>
     </div>
   );

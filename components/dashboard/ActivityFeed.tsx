@@ -1,43 +1,50 @@
-import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface Activity {
-  id: string;
-  title: string;
-  time: string;
-  type: "success" | "warning" | "info";
-}
-
-const activities: Activity[] = [
-  { id: "1", title: "John Doe paid rent", time: "10 mins ago", type: "success" },
-  { id: "2", title: "New booking request", time: "1 hr ago", type: "info" },
-  { id: "3", title: "Maintenance issue reported", time: "2 hrs ago", type: "warning" },
-  { id: "4", title: "Jane Smith checked in", time: "5 hrs ago", type: "success" },
-];
+import { AlertTriangle } from "lucide-react";
 
 export function ActivityFeed() {
   return (
-    <div className="p-6 rounded-3xl border border-[var(--stroke-grey)] bg-white dark:bg-zinc-900 shadow-sm">
-      <h3 className="text-lg font-bold text-[var(--carbon-black)] dark:text-white mb-6">Recent Activity</h3>
-      <div className="flex flex-col gap-6 relative before:absolute before:inset-y-0 before:left-[11px] before:w-[2px] before:bg-[var(--stroke-grey)] dark:before:bg-zinc-800">
-        {activities.map((activity) => (
-          <div key={activity.id} className="flex gap-4 relative z-10">
-            <div className={cn(
-              "h-6 w-6 rounded-full flex items-center justify-center shrink-0 border-2 border-white dark:border-zinc-900",
-              activity.type === "success" && "bg-emerald-500",
-              activity.type === "warning" && "bg-amber-500",
-              activity.type === "info" && "bg-blue-500"
-            )}>
-              {activity.type === "success" && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
-              {activity.type === "warning" && <AlertCircle className="h-3.5 w-3.5 text-white" />}
-              {activity.type === "info" && <Clock className="h-3.5 w-3.5 text-white" />}
-            </div>
-            <div className="flex-1 -mt-1">
-              <p className="font-semibold text-sm text-[var(--carbon-black)] dark:text-white">{activity.title}</p>
-              <span className="text-xs text-[var(--hash-grey-2)] font-medium mt-0.5 inline-block">{activity.time}</span>
-            </div>
+    <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 p-5 h-full">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-[19px] font-semibold text-black dark:text-white">Activity</h3>
+        <div className="flex gap-2">
+          <button className="border border-[#dedede] text-black dark:text-white rounded-[4px] px-3 py-1 text-[13px] font-medium hover:bg-gray-50 dark:hover:bg-zinc-800">
+            Filter
+          </button>
+          <button className="bg-[#5c5c5c] text-[#58ff48] rounded-[4px] px-3 py-1 text-[13px] font-medium hover:opacity-90">
+            Know More
+          </button>
+        </div>
+      </div>
+      
+      <div className="flex flex-col">
+        <div className="py-4 border-b border-[#dedede] flex flex-col gap-1 first:pt-0">
+          <h4 className="text-[17px] font-semibold text-[#18b92b]">Jhon Doe Has Completed payment</h4>
+          <p className="text-[#767676] text-[15px]">onboarding @ Jan 5 2026 to Mar 3 2026 | Floor 3 bed 22A</p>
+          <p className="text-[#a1a1a1] text-[13px]">Today 3:33 PM</p>
+          <div className="text-black dark:text-white text-[15px] font-medium flex items-center gap-2 mt-1">
+            Report an issue <AlertTriangle className="size-4" />
           </div>
-        ))}
+        </div>
+        
+        <div className="py-4 border-b border-[#dedede] flex flex-col gap-1">
+          <h4 className="text-[17px] font-semibold text-[#18b92b]">Jhon Doe Has Completed payment</h4>
+          <p className="text-[#767676] text-[15px]">onboarding @ Jan 5 2026 to Mar 3 2026 | Floor 3 bed 22A</p>
+          <p className="text-[#a1a1a1] text-[13px]">Today 3:33 PM</p>
+          <div className="text-[#e23030] text-[15px] font-medium flex items-center gap-2 mt-1">
+            Reported @ 2:23 AM March 23 2025 <AlertTriangle className="size-4" />
+          </div>
+        </div>
+        
+        <div className="py-4 border-b border-[#dedede] flex flex-col gap-1">
+          <h4 className="text-[17px] font-semibold text-[#e1a918]">Alan has started filling the form</h4>
+          <p className="text-[#767676] text-[15px]">User registered today has started filling the form now</p>
+          <p className="text-[#a1a1a1] text-[13px]">Today 3:33 PM</p>
+        </div>
+        
+        <div className="py-4 flex flex-col gap-1 pb-0">
+          <h4 className="text-[17px] font-semibold text-[#285bc7]">Sarah has submitted the details</h4>
+          <p className="text-[#767676] text-[15px]">Sarah has submitted the details and is waiting for payment link</p>
+          <p className="text-[#a1a1a1] text-[13px]">Today 3:33 PM</p>
+        </div>
       </div>
     </div>
   );

@@ -1,18 +1,26 @@
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Bell, Plus } from "lucide-react";
 
 export function DashboardHeader() {
-  const dateStr = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date());
-
+  const dateStr = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date());
+  
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6">
       <div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--carbon-black)] dark:text-white">Overview</h1>
-        <p className="text-muted-foreground font-medium mt-1">{dateStr}</p>
+        <h1 className="text-[30px] font-extrabold tracking-tight text-black dark:text-white flex items-center gap-2">
+          Dashboard <span className="text-[26px]">👋</span>
+        </h1>
+        <p className="text-[#767676] text-[17px] font-medium mt-1">{dateStr}</p>
       </div>
       <div className="flex items-center gap-3">
-        <Button variant="outline" className="font-semibold h-11 px-6 rounded-full border-2 border-[var(--cloud-grey)] text-[var(--carbon-black)] dark:text-white">Manage Rent</Button>
-        <Button className="font-semibold h-11 px-6 rounded-full bg-[var(--cta-green)] text-black hover:bg-[#4ae63a] dark:text-black">On Board a User</Button>
+        <button className="flex items-center justify-center size-[44px] border border-[#dedede] rounded-[6px] hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+          <Bell className="size-5 text-[#5c5c5c] dark:text-[#a1a1a1]" />
+        </button>
+        <button className="flex items-center justify-center h-[44px] px-[18px] border border-[#dedede] rounded-[6px] bg-white dark:bg-zinc-900 text-black dark:text-white text-[18px] font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
+          Manage Rent <Plus className="ml-2 size-5 text-[#58ff48]" />
+        </button>
+        <button className="flex items-center justify-center h-[44px] px-[18px] border border-transparent rounded-[6px] bg-[#282828] text-white text-[18px] font-semibold hover:bg-black transition-colors">
+          On Board a User <Plus className="ml-2 size-5 text-[#58ff48]" />
+        </button>
       </div>
     </div>
   );
