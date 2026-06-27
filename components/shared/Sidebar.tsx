@@ -212,11 +212,13 @@ function SidebarContent({
             href={ROLE_HOME[role] || "/login"}
             className="flex items-center gap-3 min-w-0"
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] bg-[#282828]">
-              <span className="text-[20px] font-extrabold text-white leading-none tracking-tighter">
-                a<span className="text-[#58ff48]">N</span>
-              </span>
-            </div>
+            <Image
+              src="/anywhere-node-squre-icon.png"
+              alt="Anywhere Node Logo"
+              width={48}
+              height={48}
+              className="rounded-[10px] shrink-0"
+            />
             <div className="flex items-center gap-1">
               <span className="text-[17px] font-semibold text-black tracking-tight truncate">
                 Anywhere Node
@@ -227,11 +229,13 @@ function SidebarContent({
         )}
         {collapsed && (
           <Link href={ROLE_HOME[role] || "/login"}>
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] bg-[#282828]">
-              <span className="text-[20px] font-extrabold text-white leading-none tracking-tighter">
-                a<span className="text-[#58ff48]">N</span>
-              </span>
-            </div>
+            <Image
+              src="/anywhere-node-squre-icon.png"
+              alt="Anywhere Node Logo"
+              width={48}
+              height={48}
+              className="rounded-[10px] shrink-0"
+            />
           </Link>
         )}
         {/* Desktop collapse toggle */}
