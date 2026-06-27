@@ -55,7 +55,7 @@ export default async function HostelDashboardView({
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12 w-full max-w-[1400px] mx-auto p-6 bg-[#f9f9f9] dark:bg-black min-h-screen">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12 w-full max-w-[1400px] mx-auto p-6 bg-white dark:bg-black min-h-screen">
       <DashboardHeader />
       
       <ActionAlertsClient role={userRole} />
