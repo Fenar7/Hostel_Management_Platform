@@ -151,16 +151,16 @@ function SidebarNavItem({
       href={item.href}
       title={collapsed ? item.label : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+        "group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-bold transition-all duration-150",
         isActive
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          ? "bg-[var(--cta-green)] text-black dark:text-black shadow-sm"
+          : "text-[var(--hash-grey-2)] hover:bg-white dark:hover:bg-zinc-800 hover:text-[var(--carbon-black)] dark:hover:text-white"
       )}
     >
       <Icon
         className={cn(
-          "h-4 w-4 shrink-0 transition-colors",
-          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+          "h-5 w-5 shrink-0 transition-colors",
+          isActive ? "text-black dark:text-black" : "text-[var(--hash-grey-2)] group-hover:text-[var(--carbon-black)] dark:group-hover:text-white"
         )}
       />
       {!collapsed && (
@@ -231,20 +231,20 @@ function SidebarContent({
             href={ROLE_HOME[role] || "/login"}
             className="flex items-center gap-2.5 min-w-0"
           >
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary">
-              <span className="text-[11px] font-extrabold text-primary-foreground leading-none">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--carbon-black)] dark:bg-white">
+              <span className="text-[12px] font-extrabold text-white dark:text-black leading-none">
                 NH
               </span>
             </div>
-            <span className="text-base font-extrabold tracking-tight truncate">
+            <span className="text-lg font-extrabold tracking-tight truncate text-[var(--carbon-black)] dark:text-white">
               Anywhere Node
             </span>
           </Link>
         )}
         {collapsed && (
           <Link href={ROLE_HOME[role] || "/login"}>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-              <span className="text-[11px] font-extrabold text-primary-foreground leading-none">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--carbon-black)] dark:bg-white">
+              <span className="text-[12px] font-extrabold text-white dark:text-black leading-none">
                 NH
               </span>
             </div>
@@ -412,8 +412,8 @@ export function Sidebar({ role, userName }: SidebarProps) {
       {/* ── Desktop Sidebar ── */}
       <aside
         className={cn(
-          "hidden lg:flex lg:flex-col lg:shrink-0 border-r bg-background transition-all duration-200",
-          collapsed ? "lg:w-[60px]" : "lg:w-60"
+          "hidden lg:flex lg:flex-col lg:shrink-0 bg-[var(--light-white)] dark:bg-zinc-950 border-r border-[var(--stroke-grey)] transition-all duration-200",
+          collapsed ? "lg:w-[80px]" : "lg:w-64"
         )}
         aria-label="Desktop navigation"
       >

@@ -1,15 +1,16 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
-import { Plus, ClipboardList, Users, AlertCircle, TrendingUp, Bed, Activity, UserCheck, Utensils } from "lucide-react";
-import { requireRole } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
+import { Bed, Users, FileText, IndianRupee } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
+import { getWardenHostelStats } from "@/services/hostel/dashboard.service";
+
+// Modular Dashboard Components
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { StatusListCard } from "@/components/dashboard/StatusListCard";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { TasksList } from "@/components/dashboard/TasksList";
 
 export const dynamic = "force-dynamic";
-
 
 export default async function HostelDashboardView({
   hostelId,
@@ -36,186 +37,76 @@ export default async function HostelDashboardView({
       </div>
     );
   }
+  
   const stats = await getWardenHostelStats(hostelId);
 
-  const occupancyColor = (rate: number) => {
-    if (rate >= 80) return "text-emerald-600 dark:text-emerald-400";
-    if (rate >= 50) return "text-amber-500 dark:text-amber-400";
-    return "text-rose-500 dark:text-rose-400";
-  };
-
-  const occupancyBgColor = (rate: number) => {
-    if (rate >= 80) return "bg-emerald-500";
-    if (rate >= 50) return "bg-amber-500";
-    return "bg-rose-500";
-  };
-
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12">
-      {/* Header Section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between pb-6 border-b border-border/40">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            Hostel Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1">Manage your assigned hostel</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href={`${baseRoute}/onboard`}>
-            <Button variant="outline" className="backdrop-blur-sm bg-background/50 border-border/50 shadow-sm hover:bg-accent transition-all">
-              <UserCheck className="mr-2 h-4 w-4" />
-              Onboard Tenant
-            </Button>
-          </Link>
-          <Link href={`${baseRoute}/occupancy`}>
-            <Button className="shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95">
-              <Bed className="mr-2 h-4 w-4" />
-              Occupancy Map
-            </Button>
-          </Link>
-        </div>
-      </div>
-
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-12 w-full max-w-7xl mx-auto">
+      <DashboardHeader />
+      
       <ActionAlertsClient role={userRole} />
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="lg:col-span-2 border-b-4 border-b-primary shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overall Occupancy</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-end gap-3">
-              <div className={`text-4xl font-bold tracking-tight ${occupancyColor(stats.occupancyRate)}`}>
-                {stats.occupancyRate}%
-              </div>
-              <p className="text-sm text-muted-foreground mb-1">
-                {stats.occupiedBeds} occupied / {stats.totalBeds} total beds
-              </p>
-            </div>
-            <div className="mt-4 h-2 w-full rounded-full bg-muted overflow-hidden">
-              <div 
-                className={`h-full rounded-full ${occupancyBgColor(stats.occupancyRate)} transition-all duration-1000 ease-out`} 
-                style={{ width: `${stats.occupancyRate}%` }} 
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-b-4 border-b-emerald-500 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Beds</CardTitle>
-            <Bed className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold tracking-tight">{stats.availableBeds}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-b-4 border-b-blue-500 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Tenants</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold tracking-tight">{stats.activeTenants}</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard 
+          title="Available Beds" 
+          value={stats.availableBeds} 
+          icon={Bed}
+          trend="+2"
+          trendUp={true}
+        />
+        <StatCard 
+          title="Occupied Beds" 
+          value={stats.occupiedBeds} 
+          icon={Users}
+          trend="-1"
+          trendUp={false}
+        />
+        <StatCard 
+          title="Pending Bookings" 
+          value={stats.pendingOnboarding} 
+          icon={FileText}
+          trend="+5"
+          trendUp={true}
+        />
+        <StatCard 
+          title="Rent Due" 
+          value={stats.pendingPayments} 
+          icon={IndianRupee}
+          trend="Action Req"
+          trendUp={false}
+        />
       </div>
 
-      {/* Quick Actions & Overview */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight">Quick Actions</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <Link href={`${baseRoute}/food`} className="group">
-              <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border/50 bg-background/50 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-primary/50 hover:bg-primary/5 h-full">
-                <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Utensils className="h-6 w-6" />
-                </div>
-                <h3 className="font-medium text-foreground text-center">Kitchen Dashboard</h3>
-                <p className="text-xs text-muted-foreground text-center mt-1">Manage daily meals & feedback</p>
-              </div>
-            </Link>
-            
-            <Link href={`${baseRoute}/worklists`} className="group">
-              <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border/50 bg-background/50 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-primary/50 hover:bg-primary/5 h-full">
-                <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <ClipboardList className="h-6 w-6" />
-                </div>
-                <h3 className="font-medium text-foreground text-center">Worklists</h3>
-                <p className="text-xs text-muted-foreground text-center mt-1">Task management & routines</p>
-              </div>
-            </Link>
-
-            <Link href={`${baseRoute}/leads`} className="group">
-              <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border/50 bg-background/50 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-primary/50 hover:bg-primary/5 h-full">
-                <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Users className="h-6 w-6" />
-                </div>
-                <h3 className="font-medium text-foreground text-center">Manage Leads</h3>
-                <p className="text-xs text-muted-foreground text-center mt-1">Process new inquiries</p>
-              </div>
-            </Link>
-
-            <Link href={`${baseRoute}/occupancy`} className="group">
-              <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-border/50 bg-background/50 shadow-sm backdrop-blur-xl transition-all hover:shadow-md hover:border-primary/50 hover:bg-primary/5 h-full">
-                <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Bed className="h-6 w-6" />
-                </div>
-                <h3 className="font-medium text-foreground text-center">Occupancy</h3>
-                <p className="text-xs text-muted-foreground text-center mt-1">Visual map & bed status</p>
-              </div>
-            </Link>
+      {/* Main Content Layout */}
+      <div className="grid gap-6 grid-cols-1 xl:grid-cols-3">
+        {/* Left Column (2/3) */}
+        <div className="xl:col-span-2 space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <StatusListCard 
+              title="Occupancy Status"
+              items={[
+                { id: "1", label: "Standard Room", value: "85%", statusText: "High", statusColor: "green" },
+                { id: "2", label: "Premium Room", value: "60%", statusText: "Medium", statusColor: "yellow" },
+                { id: "3", label: "Dormitory", value: "95%", statusText: "Full", statusColor: "red" },
+              ]}
+            />
+            <StatusListCard 
+              title="Booking Status"
+              items={[
+                { id: "1", label: "Confirmed", value: "12", statusText: "New", statusColor: "green" },
+                { id: "2", label: "Pending KYC", value: "5", statusText: "Action", statusColor: "yellow" },
+                { id: "3", label: "Cancelled", value: "2", statusColor: "default" },
+              ]}
+            />
           </div>
+          
+          <ActivityFeed />
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight">Today's Tasks</h2>
-          <div className="flex flex-col gap-4">
-            <Card className="hover:border-primary/50 transition-colors">
-              <Link href="/warden/onboards" className="group block">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Applications to Review</CardTitle>
-                    <UserCheck className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-baseline gap-2">
-                    <div className="text-3xl font-bold tracking-tight group-hover:text-primary transition-colors">
-                      {stats.pendingOnboarding}
-                    </div>
-                    <span className="text-sm text-muted-foreground font-medium group-hover:text-primary/70 transition-colors">
-                      &rarr; Review
-                    </span>
-                  </div>
-                </CardContent>
-              </Link>
-            </Card>
-
-            <Card className="hover:border-rose-500/50 transition-colors">
-              <Link href="/warden/onboards" className="group block">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Payments to Verify</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground group-hover:text-rose-500 transition-colors" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-baseline gap-2">
-                    <div className={`text-3xl font-bold tracking-tight transition-colors ${stats.pendingPayments > 0 ? "text-rose-500 group-hover:text-rose-600" : "group-hover:text-primary"}`}>
-                      {stats.pendingPayments}
-                    </div>
-                    <span className={`text-sm font-medium transition-colors ${stats.pendingPayments > 0 ? "text-rose-500/70 group-hover:text-rose-600" : "text-muted-foreground group-hover:text-primary/70"}`}>
-                      &rarr; Verify
-                    </span>
-                  </div>
-                </CardContent>
-              </Link>
-            </Card>
-          </div>
+        {/* Right Column (1/3) */}
+        <div className="xl:col-span-1 space-y-6">
+          <TasksList />
         </div>
       </div>
     </div>
