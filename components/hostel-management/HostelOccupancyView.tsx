@@ -278,7 +278,7 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
           return (
             <div key={floor.id} className="mb-10 last:mb-0">
               <h2 className="text-[16px] font-semibold text-[#1a1a1a] mb-5">{floor.name}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              <div className="flex flex-wrap gap-4">
                 {filteredRooms.map((room) => {
                   const lbs = room.beds.filter(b => b.bedType === "LOWER_BERTH");
                   const ubs = room.beds.filter(b => b.bedType === "UPPER_BERTH");
@@ -287,26 +287,26 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
                   const hasColumns = lbs.length > 0 || ubs.length > 0;
 
                   return (
-                    <div key={room.id} className="rounded-[10px] border border-[#e5e7eb] bg-white p-4 flex flex-col hover:border-[#d1d5db] transition-colors">
+                    <div key={room.id} className="w-[160px] rounded-[8px] border border-[#e5e7eb] bg-white p-4 flex flex-col items-center hover:border-[#d1d5db] transition-colors">
                       {/* Room Header */}
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center justify-center gap-1.5 mb-1 w-full">
                         <span className="text-[15px] font-semibold text-[#1a1a1a]">Room {room.roomNumber}</span>
-                        <button className="text-[#9ca3af] hover:text-[#4b5563] transition-colors">
-                          <Pencil className="size-3.5" />
+                        <button className="text-[#1a1a1a] hover:text-[#4b5563] transition-colors">
+                          <Pencil className="size-3.5" strokeWidth={2.5} />
                         </button>
                       </div>
-                      <p className="text-[12px] text-[#6b7280] mb-4">
+                      <p className="text-[12px] text-[#6b7280] mb-5 text-center">
                         {formatSharing(room.sharingType, room.isPrivate)}
                       </p>
 
                       {/* Beds Layout */}
                       {hasColumns ? (
-                        <div className="flex gap-4 mt-auto">
+                        <div className="flex justify-center gap-4 mt-auto w-full">
                           {/* Lower Berth Column */}
                           {lbs.length > 0 && (
-                            <div className="flex-1 flex flex-col items-center">
-                              <span className="text-[11px] font-semibold text-[#1a1a1a] mb-2.5">LB</span>
-                              <div className="flex flex-col gap-2 w-full">
+                            <div className="flex flex-col items-center">
+                              <span className="text-[13px] font-semibold text-[#1a1a1a] mb-2">LB</span>
+                              <div className="flex flex-col gap-2">
                                 {lbs.map(bed => (
                                   <div
                                     key={bed.id}
@@ -314,7 +314,7 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
                                       if (bed.currentStay) router.push(`${baseRoute}/stays/${bed.currentStay.id}`);
                                     }}
                                     className={cn(
-                                      "h-[34px] min-w-[42px] px-2 w-fit rounded-[6px] border flex items-center justify-center text-[12px] font-medium cursor-pointer transition-opacity hover:opacity-80",
+                                      "h-[40px] min-w-[40px] px-2 w-fit rounded-[6px] border flex items-center justify-center text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-80",
                                       getBedColor(bed.derivedStatus || bed.status)
                                     )}
                                     title={bed.currentStay ? `Occupied by ${bed.currentStay.tenant.fullName}` : bed.label}
@@ -327,9 +327,9 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
                           )}
                           {/* Upper Berth Column */}
                           {ubs.length > 0 && (
-                            <div className="flex-1 flex flex-col items-center">
-                              <span className="text-[11px] font-semibold text-[#1a1a1a] mb-2.5">UB</span>
-                              <div className="flex flex-col gap-2 w-full">
+                            <div className="flex flex-col items-center">
+                              <span className="text-[13px] font-semibold text-[#1a1a1a] mb-2">UB</span>
+                              <div className="flex flex-col gap-2">
                                 {ubs.map(bed => (
                                   <div
                                     key={bed.id}
@@ -337,7 +337,7 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
                                       if (bed.currentStay) router.push(`${baseRoute}/stays/${bed.currentStay.id}`);
                                     }}
                                     className={cn(
-                                      "h-[34px] min-w-[42px] px-2 w-fit rounded-[6px] border flex items-center justify-center text-[12px] font-medium cursor-pointer transition-opacity hover:opacity-80",
+                                      "h-[40px] min-w-[40px] px-2 w-fit rounded-[6px] border flex items-center justify-center text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-80",
                                       getBedColor(bed.derivedStatus || bed.status)
                                     )}
                                     title={bed.currentStay ? `Occupied by ${bed.currentStay.tenant.fullName}` : bed.label}
@@ -350,7 +350,7 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
                           )}
                         </div>
                       ) : (
-                        <div className="flex flex-wrap gap-2 mt-auto">
+                        <div className="flex flex-wrap justify-center gap-2 mt-auto w-full">
                           {singles.map(bed => (
                             <div
                               key={bed.id}
@@ -358,7 +358,7 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
                                 if (bed.currentStay) router.push(`${baseRoute}/stays/${bed.currentStay.id}`);
                               }}
                               className={cn(
-                                "min-w-[42px] px-2 h-[42px] rounded-[6px] border flex items-center justify-center text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-80",
+                                "h-[40px] min-w-[40px] px-2 rounded-[6px] border flex items-center justify-center text-[13px] font-medium cursor-pointer transition-opacity hover:opacity-80",
                                 getBedColor(bed.derivedStatus || bed.status)
                               )}
                               title={bed.currentStay ? `Occupied by ${bed.currentStay.tenant.fullName}` : bed.label}
