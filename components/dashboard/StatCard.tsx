@@ -1,23 +1,29 @@
 import { LucideIcon, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import Image from "next/image";
 
 interface StatCardProps {
   title: string;
   value: string | number;
   subtitle: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  iconUrl?: string;
   trend: string;
   trendUp?: boolean;
 }
 
-export function StatCard({ title, value, subtitle, icon: Icon, trend, trendUp }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon: Icon, iconUrl, trend, trendUp }: StatCardProps) {
   return (
     <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 flex flex-col justify-between p-5 gap-5">
       {/* Top row: title + icon */}
       <div className="flex justify-between items-start">
         <h3 className="text-[15px] font-semibold text-black dark:text-white leading-snug">{title}</h3>
-        <div className="size-12 rounded-[6px] bg-[#5c5c5c] flex items-center justify-center shrink-0">
-          <Icon className="size-6 text-[#58ff48]" />
-        </div>
+        {iconUrl ? (
+          <Image src={iconUrl} alt={title} width={48} height={48} className="shrink-0 rounded-[6px]" />
+        ) : Icon ? (
+          <div className="size-12 rounded-[6px] bg-[#5c5c5c] flex items-center justify-center shrink-0">
+            <Icon className="size-6 text-[#58ff48]" />
+          </div>
+        ) : null}
       </div>
 
       {/* Bottom row: value + trend */}
@@ -29,8 +35,8 @@ export function StatCard({ title, value, subtitle, icon: Icon, trend, trendUp }:
         <div className="text-[13px] text-[#767676] flex flex-col items-end gap-0.5">
           {trendUp !== undefined && (
             trendUp
-              ? <ArrowUpRight className="size-5 text-black dark:text-white" />
-              : <ArrowDownRight className="size-5 text-black dark:text-white" />
+              ? <Image src="/icons/up-arrow-icon.png" alt="Up" width={20} height={20} className="size-5" />
+              : <Image src="/icons/down-arrow-icon.png" alt="Down" width={20} height={20} className="size-5" />
           )}
           <span>{trend}</span>
         </div>

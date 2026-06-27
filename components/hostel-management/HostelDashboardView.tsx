@@ -41,17 +41,17 @@ export default async function HostelDashboardView({
   const stats = await getWardenHostelStats(hostelId);
 
   const occupancyItems: StatusItem[] = [
-    { id: "1", label: "Bedspaces Available", value: stats.availableBeds, icon: Bed, iconColor: "text-green-500" },
-    { id: "2", label: "Bedspaces on Hold", value: 9, icon: Clock, iconColor: "text-yellow-500" },
-    { id: "3", label: "Bedspaces Reserved", value: 65, icon: CalendarCheck, iconColor: "text-blue-500" },
-    { id: "4", label: "Bedspaces Occupied", value: stats.occupiedBeds, icon: BedDouble, iconColor: "text-red-500" },
-    { id: "5", label: "BedspacesBlocked", value: 3, icon: Ban, iconColor: "text-gray-500" },
+    { id: "1", label: "Bedspaces Available", value: stats.availableBeds, iconUrl: "/icons/available-stat-icon.png" },
+    { id: "2", label: "Bedspaces on Hold", value: 9, iconUrl: "/icons/on-hold-stat-icon.png" },
+    { id: "3", label: "Bedspaces Reserved", value: 65, iconUrl: "/icons/reserved-stat-icon.png" },
+    { id: "4", label: "Bedspaces Occupied", value: stats.occupiedBeds, iconUrl: "/icons/occupied-stat-icon.png" },
+    { id: "5", label: "BedspacesBlocked", value: 3, iconUrl: "/icons/blocked-stat-icon.png" },
   ];
 
   const bookingItems: StatusItem[] = [
-    { id: "1", label: "Onboarding Started", value: 32, icon: Play, iconColor: "text-black dark:text-white" },
-    { id: "2", label: "Submitted for Approval", value: 32, icon: AlertCircle, iconColor: "text-black dark:text-white" },
-    { id: "3", label: "Payment Pending", value: 32, icon: IndianRupee, iconColor: "text-black dark:text-white" },
+    { id: "1", label: "Onboarding Started", value: 32, iconUrl: "/icons/onboarding-started-icon.png" },
+    { id: "2", label: "Submitted for Approval", value: 32, iconUrl: "/icons/submitted-for-approval-icon.png" },
+    { id: "3", label: "Payment Pending", value: 32, iconUrl: "/icons/payment-pending-icon.png" },
   ];
 
   return (
@@ -71,7 +71,7 @@ export default async function HostelDashboardView({
           title="Available Beds" 
           value={stats.availableBeds} 
           subtitle="Ready for booking"
-          icon={BedDouble}
+          iconUrl="/icons/available-bed-card.png"
           trend="23%"
           trendUp={true}
         />
@@ -79,7 +79,7 @@ export default async function HostelDashboardView({
           title="Occupied Beds" 
           value={stats.occupiedBeds} 
           subtitle="Active tenants"
-          icon={BedDouble}
+          iconUrl="/icons/occupied-bed-card.png"
           trend="78%"
           trendUp={true}
         />
@@ -87,7 +87,7 @@ export default async function HostelDashboardView({
           title="Pending Bookings" 
           value={stats.pendingOnboarding} 
           subtitle="onboarding/approval"
-          icon={CalendarCheck}
+          iconUrl="/icons/pending-bookings-card.png"
           trend="+10%"
           trendUp={true}
         />
@@ -95,7 +95,7 @@ export default async function HostelDashboardView({
           title="Rent Due" 
           value={stats.pendingPayments} 
           subtitle="Tenants need payment"
-          icon={IndianRupee}
+          iconUrl="/icons/rent-due-card.png"
           trend="-10%"
           trendUp={false}
         />

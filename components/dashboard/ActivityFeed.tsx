@@ -1,4 +1,5 @@
 import { AlertTriangle } from "lucide-react";
+import Image from "next/image";
 
 export function ActivityFeed() {
   return (
@@ -21,7 +22,7 @@ export function ActivityFeed() {
           <p className="text-[#767676] text-[13px] leading-snug">onboarding @ Jan 5 2026 to Mar 3 2026 | Floor 3 bed 22A</p>
           <p className="text-[#a1a1a1] text-[12px]">Today 3:33 PM</p>
           <div className="text-black dark:text-white text-[13px] font-medium flex items-center gap-1.5 mt-0.5">
-            Report an issue <AlertTriangle className="size-4" />
+            Report an issue <Image src="/icons/alert-black-icon.png" alt="Alert" width={16} height={16} className="size-4" />
           </div>
         </div>
 
@@ -30,7 +31,7 @@ export function ActivityFeed() {
           <p className="text-[#767676] text-[13px] leading-snug">onboarding @ Jan 5 2026 to Mar 3 2026 | Floor 3 bed 22A</p>
           <p className="text-[#a1a1a1] text-[12px]">Today 3:33 PM</p>
           <div className="text-[#e23030] text-[13px] font-medium flex items-center gap-1.5 mt-0.5">
-            Reported @ 2:23 AM March 23 2025 <AlertTriangle className="size-4" />
+            Reported @ 2:23 AM March 23 2025 <Image src="/icons/alert-red-icon.png" alt="Alert" width={16} height={16} className="size-4" />
           </div>
         </div>
 

@@ -1,4 +1,5 @@
 import { LucideIcon } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export interface StatusItem {
@@ -6,6 +7,7 @@ export interface StatusItem {
   label: string;
   value: string | number;
   icon?: LucideIcon;
+  iconUrl?: string;
   iconColor?: string;
 }
 
@@ -29,7 +31,11 @@ export function StatusListCard({ title, items }: StatusListCardProps) {
           return (
             <div key={item.id || idx} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
               <div className="flex items-center gap-3 min-w-0">
-                {Icon && <Icon className={cn("size-5 shrink-0", item.iconColor)} />}
+                {item.iconUrl ? (
+                  <Image src={item.iconUrl} alt={item.label} width={20} height={20} className="size-5 shrink-0" />
+                ) : Icon ? (
+                  <Icon className={cn("size-5 shrink-0", item.iconColor)} />
+                ) : null}
                 <span className="text-[14px] text-[#767676] truncate">{item.label}</span>
               </div>
               <span className="text-[14px] font-semibold text-black dark:text-white ml-3 shrink-0">{item.value}</span>
