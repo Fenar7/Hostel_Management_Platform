@@ -146,42 +146,22 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-white">
       {/* Left Hemisphere - Brand Visual */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#121212] via-[#09090b] to-[#000000] overflow-hidden flex-col justify-between border-r border-white/5">
+      <div className="hidden lg:flex lg:w-1/2 relative bg-[#050505] overflow-hidden flex-col justify-between border-r border-white/5">
         
-        {/* Top Sharp Green Accent Line */}
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#58ff48]/70 to-transparent" />
-
         {/* Architectural Blueprint Grid */}
-        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
+        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
         
-        {/* Massive Abstract Brand Geometry (Subtle) */}
-        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] border border-white/[0.02] rounded-[40px] rotate-12 pointer-events-none" />
-
-        {/* Floating UI Element (Bespoke Dashboard Component) */}
-        <div className="absolute top-[25%] right-12 w-[260px] rounded-2xl border border-white/10 bg-[#ffffff03] backdrop-blur-xl p-5 shadow-2xl pointer-events-none hidden xl:block">
-          <div className="flex items-center justify-between mb-5">
-            <span className="text-[11px] uppercase tracking-[0.2em] text-white/50 font-bold">System Status</span>
-            <div className="flex items-center gap-2 bg-[#58ff48]/10 px-2 py-0.5 rounded-full border border-[#58ff48]/20">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58ff48] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#58ff48]"></span>
-              </span>
-              <span className="text-[10px] text-[#58ff48] font-bold">LIVE</span>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between text-[10px] text-white/40 mb-1 font-medium"><span className="uppercase tracking-wider">Network Load</span><span>85%</span></div>
-              <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden">
-                <div className="h-full w-[85%] bg-gradient-to-r from-[#58ff48]/40 to-[#58ff48] rounded-full shadow-[0_0_8px_rgba(88,255,72,0.5)]" />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-[10px] text-white/40 mb-1 font-medium"><span className="uppercase tracking-wider">Property Sync</span><span>60%</span></div>
-              <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden">
-                <div className="h-full w-[60%] bg-gradient-to-r from-[#58ff48]/20 to-[#58ff48]/70 rounded-full" />
-              </div>
-            </div>
+        {/* Massive Abstract Brand Geometry with Rotating Glow */}
+        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] pointer-events-none">
+          {/* Rotating Container */}
+          <div className="absolute inset-0 animate-[spin_20s_linear_infinite]">
+            {/* The Box */}
+            <div className="absolute inset-0 border border-white/10 rounded-[40px]" />
+            <div className="absolute inset-4 border border-white/[0.02] rounded-[36px]" />
+            
+            {/* The Rotating Green Glows */}
+            <div className="absolute -top-10 left-1/2 w-[200px] h-[200px] bg-[#58ff48]/30 blur-[100px] rounded-full -translate-x-1/2" />
+            <div className="absolute -bottom-10 right-1/2 w-[150px] h-[150px] bg-[#58ff48]/20 blur-[80px] rounded-full translate-x-1/2" />
           </div>
         </div>
 
@@ -220,9 +200,13 @@ export default function LoginPage() {
       </div>
 
       {/* Right Hemisphere - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative bg-white">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative bg-white overflow-hidden">
+        
+        {/* Right Side Dot Grid */}
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(#00000008_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+
         {/* Mobile Header (only visible when left side is hidden) */}
-        <div className="absolute top-8 left-8 flex items-center gap-2 lg:hidden">
+        <div className="absolute top-8 left-8 flex items-center gap-2 lg:hidden z-10">
             <Image
               src="/anywhere-node-squre-icon.png"
               alt="Anywhere Node Logo"
@@ -233,9 +217,12 @@ export default function LoginPage() {
             <span className="text-[17px] font-bold tracking-tight text-[#222222]">Anywhere Node</span>
         </div>
 
-        <Suspense fallback={<div className="text-center text-sm text-[#767676]">Loading...</div>}>
-          <LoginFormInner />
-        </Suspense>
+        {/* Form Container (Elevated slightly off the grid) */}
+        <div className="relative z-10 w-full max-w-[420px] bg-white/70 backdrop-blur-xl border border-[#00000005] p-8 sm:p-10 rounded-[28px] shadow-[0_8px_40px_-12px_rgba(0,0,0,0.06)]">
+          <Suspense fallback={<div className="text-center text-sm text-[#767676]">Loading...</div>}>
+            <LoginFormInner />
+          </Suspense>
+        </div>
       </div>
     </div>
   );
