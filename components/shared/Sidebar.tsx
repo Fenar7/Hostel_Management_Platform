@@ -203,8 +203,8 @@ function SidebarContent({
       {/* ── Header ── */}
       <div
         className={cn(
-          "flex items-center px-5 pt-8 pb-6",
-          collapsed ? "justify-center" : "justify-between"
+          "flex pt-8 pb-6",
+          collapsed ? "flex-col items-center gap-4 px-2" : "flex-row items-center justify-between px-5"
         )}
       >
         {!collapsed && (
@@ -251,7 +251,7 @@ function SidebarContent({
         {onCollapse && collapsed && (
           <button
             onClick={onCollapse}
-            className="mt-4 rounded-[6px] border border-[#dedede] p-2 hover:bg-gray-50 transition-colors shrink-0"
+            className="rounded-[6px] border border-[#dedede] p-2 hover:bg-gray-50 transition-colors shrink-0"
             title="Expand sidebar"
           >
             <ChevronLeft className="h-5 w-5 text-black rotate-180" />
