@@ -74,15 +74,15 @@ function jsonError(status: number, message: string, code: string): NextResponse 
   return NextResponse.json({ error: message, code }, { status });
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isApiRoute = pathname.startsWith("/api/");
   const requiredRole = getRequiredRole(pathname);
 
-  console.log(`[Proxy Log] pathname: ${pathname}, isApiRoute: ${isApiRoute}, requiredRole: ${requiredRole}`);
+  console.log(`[Middleware Log] pathname: ${pathname}, isApiRoute: ${isApiRoute}, requiredRole: ${requiredRole}`);
 
   if (!requiredRole && !isApiRoute) {
-    console.log(`[Proxy Log] Allowing route because it has no required role and is not api: ${pathname}`);
+    console.log(`[Middleware Log] Allowing route because it has no required role and is not api: ${pathname}`);
     return NextResponse.next();
   }
 
