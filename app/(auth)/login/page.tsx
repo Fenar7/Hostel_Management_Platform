@@ -146,14 +146,44 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-white">
       {/* Left Hemisphere - Brand Visual */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[#09090b] overflow-hidden flex-col justify-between border-r border-white/5">
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#121212] via-[#09090b] to-[#000000] overflow-hidden flex-col justify-between border-r border-white/5">
         
+        {/* Top Sharp Green Accent Line */}
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#58ff48]/70 to-transparent" />
+
         {/* Architectural Blueprint Grid */}
         <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none" />
         
-        {/* Massive Abstract Brand Geometry */}
-        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] border border-white/[0.03] rounded-[40px] rotate-12 pointer-events-none" />
-        <div className="absolute -top-16 -right-16 w-[600px] h-[600px] border border-white/[0.02] rounded-[40px] rotate-6 pointer-events-none" />
+        {/* Massive Abstract Brand Geometry (Subtle) */}
+        <div className="absolute -top-32 -right-32 w-[600px] h-[600px] border border-white/[0.02] rounded-[40px] rotate-12 pointer-events-none" />
+
+        {/* Floating UI Element (Bespoke Dashboard Component) */}
+        <div className="absolute top-[25%] right-12 w-[260px] rounded-2xl border border-white/10 bg-[#ffffff03] backdrop-blur-xl p-5 shadow-2xl pointer-events-none hidden xl:block">
+          <div className="flex items-center justify-between mb-5">
+            <span className="text-[11px] uppercase tracking-[0.2em] text-white/50 font-bold">System Status</span>
+            <div className="flex items-center gap-2 bg-[#58ff48]/10 px-2 py-0.5 rounded-full border border-[#58ff48]/20">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#58ff48] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#58ff48]"></span>
+              </span>
+              <span className="text-[10px] text-[#58ff48] font-bold">LIVE</span>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <div className="flex justify-between text-[10px] text-white/40 mb-1 font-medium"><span className="uppercase tracking-wider">Network Load</span><span>85%</span></div>
+              <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden">
+                <div className="h-full w-[85%] bg-gradient-to-r from-[#58ff48]/40 to-[#58ff48] rounded-full shadow-[0_0_8px_rgba(88,255,72,0.5)]" />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-[10px] text-white/40 mb-1 font-medium"><span className="uppercase tracking-wider">Property Sync</span><span>60%</span></div>
+              <div className="h-1 w-full rounded-full bg-white/5 overflow-hidden">
+                <div className="h-full w-[60%] bg-gradient-to-r from-[#58ff48]/20 to-[#58ff48]/70 rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Header / Logo */}
         <div className="relative z-10 p-12">
@@ -163,7 +193,7 @@ export default function LoginPage() {
               alt="Anywhere Node Logo"
               width={36}
               height={36}
-              className="rounded-[8px] grayscale opacity-90"
+              className="rounded-[8px] shadow-lg border border-white/10"
             />
             <span className="text-[18px] font-semibold tracking-tight text-white/90">Anywhere Node</span>
           </div>
