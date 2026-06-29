@@ -58,15 +58,15 @@ export default async function HostelDashboardView({
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10 w-full px-4 md:px-6 xl:px-8 py-5 bg-white dark:bg-black min-h-screen">
       <DashboardHeader />
       
-      <div className="space-y-4">
+      <div className="space-y-6">
 
       <ActionAlertsClient role={userRole} />
 
       {/* Overview Title */}
-      <h2 className="text-[17px] font-bold text-black dark:text-white">Overview</h2>
+      <h2 className="text-[14px] uppercase tracking-wider font-bold text-black dark:text-white border-b border-[#dedede] dark:border-white/10 pb-2">Overview</h2>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Available Beds" 
           value={stats.availableBeds} 
@@ -102,10 +102,10 @@ export default async function HostelDashboardView({
       </div>
 
       {/* Main Content Layout */}
-      <div className="grid gap-4 grid-cols-1 xl:grid-cols-3 items-start">
+      <div className="grid gap-6 grid-cols-1 xl:grid-cols-3 items-stretch">
         {/* Left Column (2/3) */}
-        <div className="xl:col-span-2 space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className="xl:col-span-2 flex flex-col gap-6">
+          <div className="grid gap-6 md:grid-cols-2">
             <StatusListCard 
               title="Occupancy Status"
               items={occupancyItems}
