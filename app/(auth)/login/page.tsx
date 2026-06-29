@@ -146,42 +146,56 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-white">
       {/* Left Hemisphere - Brand Visual */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#1c1c1c] via-[#111111] to-black overflow-hidden flex-col justify-between p-12">
-        {/* Subtle decorative elements to simulate the "Voice Aura" dot pattern */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white opacity-[0.02] rounded-full blur-[100px] translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-white opacity-[0.03] rounded-full blur-[100px] -translate-x-1/2 translate-y-1/2" />
+      <div className="hidden lg:flex lg:w-1/2 relative bg-[#09090b] overflow-hidden flex-col justify-between p-12 border-r border-white/5">
+        {/* Dot Matrix Pattern */}
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(#ffffff22_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_10%,transparent_100%)] opacity-40 pointer-events-none" />
+        
+        {/* Ambient Glow Effects */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#58ff48]/[0.08] rounded-full blur-[120px] translate-x-1/4 -translate-y-1/4 z-0 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-600/[0.05] rounded-full blur-[130px] -translate-x-1/4 translate-y-1/4 z-0 pointer-events-none" />
+        
+        {/* Abstract Depth Lines */}
+        <div className="absolute inset-y-0 left-1/3 w-px bg-gradient-to-b from-transparent via-white/5 to-transparent z-0 pointer-events-none" />
+        <div className="absolute inset-y-0 right-1/3 w-px bg-gradient-to-b from-transparent via-white/5 to-transparent z-0 pointer-events-none" />
         
         {/* Header / Logo */}
-        <div className="relative z-10">
+        <div className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image
-              src="/anywhere-node-squre-icon.png"
-              alt="Anywhere Node Logo"
-              width={42}
-              height={42}
-              className="rounded-[8px] shadow-sm"
-            />
-            <span className="text-[20px] font-bold tracking-tight text-white">Anywhere Node</span>
+            <div className="relative">
+              <div className="absolute inset-0 bg-white/20 rounded-[10px] blur-md" />
+              <Image
+                src="/anywhere-node-squre-icon.png"
+                alt="Anywhere Node Logo"
+                width={42}
+                height={42}
+                className="rounded-[10px] relative border border-white/10 shadow-2xl"
+              />
+            </div>
+            <span className="text-[20px] font-bold tracking-tight text-white drop-shadow-sm">Anywhere Node</span>
           </div>
         </div>
 
         {/* Hero Text */}
-        <div className="relative z-10 max-w-[480px] space-y-6">
-          <h2 className="text-[44px] font-bold leading-[1.15] text-white tracking-tight">
+        <div className="relative z-10 max-w-[500px]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 mb-8 backdrop-blur-md shadow-sm">
+            <div className="h-1.5 w-1.5 rounded-full bg-[#58ff48] shadow-[0_0_10px_#58ff48]" />
+            <span className="text-[13px] font-medium text-white/80 tracking-wide">Anywhere OS 2.0</span>
+          </div>
+          <h2 className="text-[46px] font-bold leading-[1.12] tracking-tight bg-gradient-to-br from-white via-white/90 to-white/40 bg-clip-text text-transparent pb-1">
             One Click Away from Next-Gen Hostel Management
           </h2>
-          <p className="text-[17px] text-white/60 leading-relaxed font-medium">
+          <p className="mt-6 text-[17px] text-white/50 leading-[1.7] font-medium max-w-[440px]">
             Unlock the power of intelligent property management through real-time dashboards, automated rent collection, and seamless tenant onboarding.
           </p>
         </div>
 
         {/* Footer / Info */}
-        <div className="relative z-10 flex items-center gap-5 text-white/40 text-[13px] font-medium">
+        <div className="relative z-10 flex items-center gap-5 text-white/30 text-[13px] font-medium">
           <span>© 2026 Anywhere Node</span>
-          <span className="w-1 h-1 rounded-full bg-white/20" />
-          <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-          <span className="w-1 h-1 rounded-full bg-white/20" />
-          <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+          <span className="w-1 h-1 rounded-full bg-white/10" />
+          <a href="#" className="hover:text-white/80 transition-colors">Privacy Policy</a>
+          <span className="w-1 h-1 rounded-full bg-white/10" />
+          <a href="#" className="hover:text-white/80 transition-colors">Terms of Service</a>
         </div>
       </div>
 
