@@ -24,11 +24,14 @@ function getRequiredRole(pathname: string): UserRole | null {
 }
 
 function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  // Wrap response in a mutable object so setAll can update the reference
+  const responseRef = {
+    current: NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    })
+  };
 
   const rememberMeCookie = request.cookies.get("remember_me");
   const maxAge = rememberMeCookie ? 30 * 24 * 60 * 60 : undefined;
@@ -43,12 +46,14 @@ function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({
+          
+          responseRef.current = NextResponse.next({
             request,
           });
+          
           cookiesToSet.forEach(({ name, value, options }) => {
             const finalMaxAge = options.maxAge === 0 ? 0 : (maxAge !== undefined ? maxAge : options.maxAge);
-            supabaseResponse.cookies.set(name, value, {
+            responseRef.current.cookies.set(name, value, {
               ...options,
               maxAge: finalMaxAge,
             })
@@ -58,7 +63,7 @@ function updateSession(request: NextRequest) {
     }
   );
 
-  return { supabase, supabaseResponse };
+  return { supabase, responseRef };
 }
 
 function redirectToLogin(request: NextRequest): NextResponse {
@@ -91,7 +96,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { supabase, supabaseResponse } = updateSession(request);
+  const { supabase, responseRef } = updateSession(request);
 
   let supabaseUserId: string | null = null;
   try {
@@ -107,11 +112,11 @@ export async function middleware(request: NextRequest) {
       }
       return redirectToLogin(request);
     }
-    return supabaseResponse;
+    return responseRef.current;
   }
 
   if (!requiredRole) {
-    return supabaseResponse;
+    return responseRef.current;
   }
 
   let dbUser: { role: UserRole; passwordSetAt: Date | null } | null = null;
@@ -134,16 +139,16 @@ export async function middleware(request: NextRequest) {
         };
       }
     } else {
-      console.error(`[Proxy Log] internal auth-check failed: ${res.status}`);
-      return supabaseResponse;
+      console.error(`[Middleware Log] internal auth-check failed: ${res.status}`);
+      return responseRef.current;
     }
   } catch (err) {
-    console.error(`[Proxy Log] internal auth-check error:`, err);
-    return supabaseResponse;
+    console.error(`[Middleware Log] internal auth-check error:`, err);
+    return responseRef.current;
   }
 
   if (!dbUser) {
-    console.log(`[Proxy Log] dbUser not found, redirecting to login. pathname: ${pathname}`);
+    console.log(`[Middleware Log] dbUser not found, redirecting to login. pathname: ${pathname}`);
     if (isApiRoute) {
       return jsonError(401, "Unauthorized", "UNAUTHORIZED");
     }
@@ -152,34 +157,34 @@ export async function middleware(request: NextRequest) {
 
   // Force first-time password setup if passwordSetAt is null
   if (dbUser.passwordSetAt === null && pathname !== "/set-password") {
-    console.log(`[Proxy Log] Force password setup required. passwordSetAt: ${dbUser.passwordSetAt}, pathname: ${pathname}`);
+    console.log(`[Middleware Log] Force password setup required. passwordSetAt: ${dbUser.passwordSetAt}, pathname: ${pathname}`);
     if (isApiRoute) {
       if (pathname !== "/api/auth/set-password" && pathname !== "/api/auth/logout") {
-        console.log(`[Proxy Log] Blocking API request due to password setup requirement: ${pathname}`);
+        console.log(`[Middleware Log] Blocking API request due to password setup requirement: ${pathname}`);
         return jsonError(403, "Password setup required", "PASSWORD_SETUP_REQUIRED");
       }
     } else {
-      console.log(`[Proxy Log] Redirecting to /set-password from: ${pathname}`);
+      console.log(`[Middleware Log] Redirecting to /set-password from: ${pathname}`);
       return NextResponse.redirect(new URL("/set-password", request.url));
     }
   }
 
   // MAIN_ADMIN is a superuser — treat as having all role permissions
   if (dbUser.role === UserRole.MAIN_ADMIN) {
-    console.log(`[Proxy Log] Main Admin bypass for route: ${pathname}`);
-    return supabaseResponse;
+    console.log(`[Middleware Log] Main Admin bypass for route: ${pathname}`);
+    return responseRef.current;
   }
 
   if (dbUser.role !== requiredRole) {
-    console.log(`[Proxy Log] Role mismatch. User role: ${dbUser.role}, required: ${requiredRole}, pathname: ${pathname}`);
+    console.log(`[Middleware Log] Role mismatch. User role: ${dbUser.role}, required: ${requiredRole}, pathname: ${pathname}`);
     if (isApiRoute) {
       return jsonError(403, "Forbidden", "FORBIDDEN");
     }
     return redirectToLogin(request);
   }
 
-  console.log(`[Proxy Log] Allowing route to proceed: ${pathname}`);
-  return supabaseResponse;
+  console.log(`[Middleware Log] Allowing route to proceed: ${pathname}`);
+  return responseRef.current;
 }
 
 export const config = {
