@@ -10,6 +10,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 type Bed = {
@@ -80,7 +81,7 @@ const getBedColor = (status: string) => {
 };
 
 // ─── Main Component ──────────────────────────────────────────────────────────────
-export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId: string | null; baseRoute: string }) {
+export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }: { hostelId: string | null; hostelName?: string; baseRoute: string }) {
   const [data, setData] = useState<HostelHierarchy | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -170,55 +171,48 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
     );
   }
 
+  if (!hostelId) {
+    return (
+      <div className="space-y-4 p-8">
+        <h1 className="text-3xl font-bold tracking-tight">Occupancy</h1>
+        <p className="text-muted-foreground">No hostel selected.</p>
+      </div>
+    );
+  }
+
+  const Actions = (
+    <>
+      <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
+        Export Data
+      </button>
+      <button
+        onClick={() => router.push(`${baseRoute}/builder`)}
+        className="flex items-center justify-center gap-2 premium-button whitespace-nowrap"
+      >
+        Manage Rooms <Plus className="size-4" />
+      </button>
+    </>
+  );
+
   if (error || !data) {
     return (
       <div className="p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
           {error || "Failed to load data"}
         </div>
-        <button onClick={loadData} className="mt-4 text-sm text-blue-600 hover:underline">Retry</button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* ── Header ── */}
-      <div className="px-6 pt-6 pb-4 border-b border-[#f0f0f0]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-          <div>
-            <h1 className="text-[26px] sm:text-[28px] font-semibold text-[#1a1a1a] tracking-tight">
-              Manage Beds & Floors
-            </h1>
-            <p className="text-[14px] text-[#767676] mt-0.5">Location : {data.name}</p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={() => notify.info("No new notifications")}
-              className="size-[40px] rounded-md border border-[#e5e7eb] flex items-center justify-center text-[#4b5563] hover:bg-[#f9fafb] transition-colors"
-            >
-              <Bell className="size-4" strokeWidth={2} />
-            </button>
-            <button
-              onClick={() => notify.info("Add Floor coming soon")}
-              className="h-[40px] px-4 rounded-md border border-[#e5e7eb] text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2"
-            >
-              Add Floor <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
-            </button>
-            <button
-              onClick={() => notify.info("Add Room coming soon")}
-              className="h-[40px] px-4 rounded-md border border-[#e5e7eb] text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2"
-            >
-              Add Room <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
-            </button>
-            <button
-              onClick={() => notify.info("Add Bed coming soon")}
-              className="h-[40px] px-4 rounded-md bg-[#1f2937] text-white text-[13px] font-medium flex items-center gap-2 hover:bg-[#111827] transition-colors"
-            >
-              Add a Bed <Plus className="size-[15px] text-[#22c55e]" strokeWidth={2.5} />
-            </button>
-          </div>
-        </div>
+    <HostelWorkspaceLayout
+      hostelId={hostelId}
+      hostelName={hostelName}
+      title="Hostel Occupancy"
+      subtitle="View and manage room assignments"
+      actions={Actions}
+    >
+      <div className="w-full">
 
         {/* ── Stats ── */}
         <div className="flex flex-col gap-2.5 text-[14px] font-medium text-[#1a1a1a] mb-6">
@@ -376,6 +370,6 @@ export default function HostelOccupancyView({ hostelId, baseRoute }: { hostelId:
           );
         })}
       </div>
-    </div>
+    </HostelWorkspaceLayout>
   );
 }
