@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2, ChevronLeft, User as UserIcon, Phone, Mail,
-  Shield, AlertCircle, CheckCircle2, Lock
+  Shield, AlertCircle, Lock, Plus, Trash2, CheckCircle2
 } from "lucide-react";
 import { notify } from "@/lib/toast";
 
@@ -12,41 +12,26 @@ import { notify } from "@/lib/toast";
 
 function SoftCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-white dark:bg-[#121212] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(255,255,255,0.02)] border border-[#f0f0f0] dark:border-white/5 p-6 ${className}`}>
+    <div className={`bg-white dark:bg-[#111111] rounded-[24px] border border-gray-200/60 dark:border-white/10 p-6 md:p-8 shadow-[0_2px_10px_rgb(0,0,0,0.02)] ${className}`}>
       {children}
     </div>
-  );
-}
-
-function PillButton({ children, onClick, variant = "primary", className = "", type = "button", disabled = false }: any) {
-  const base = "h-12 px-6 rounded-full font-bold text-[14px] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]";
-  const variants = {
-    primary: "bg-[#111111] dark:bg-[#58ff48] text-white dark:text-black hover:bg-black/90",
-    secondary: "bg-[#f5f5f5] dark:bg-white/10 text-[#111111] dark:text-white hover:bg-[#eeeeee]",
-    outline: "bg-transparent border-[1.5px] border-[#dedede] dark:border-white/20 text-[#111111] dark:text-white hover:border-[#111111]",
-    danger: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100",
-  };
-  return (
-    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${variants[variant as keyof typeof variants]} ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}>
-      {children}
-    </button>
   );
 }
 
 function InputField({ label, value, onChange, type = "text", disabled = false, icon: Icon, id }: any) {
   const inputId = id || label.replace(/\s+/g, '-').toLowerCase();
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <label htmlFor={inputId} className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">{label}</label>
-      <div className="relative">
-        {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />}
+      <div className="relative group">
+        {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-gray-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" />}
         <input
           id={inputId}
           type={type}
           value={value}
           onChange={onChange}
           disabled={disabled}
-          className={`w-full h-14 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-black dark:focus:border-white/30 outline-none transition-all ${Icon ? "pl-12" : "pl-4"} pr-4 font-medium text-[15px] ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
+          className={`w-full h-12 md:h-14 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200/50 dark:border-white/10 focus:border-black dark:focus:border-white/30 focus:ring-4 focus:ring-black/5 dark:focus:ring-white/5 outline-none transition-all ${Icon ? "pl-11" : "pl-4"} pr-4 font-medium text-[15px] ${disabled ? "opacity-60 cursor-not-allowed bg-gray-100 dark:bg-white/5" : ""}`}
         />
       </div>
     </div>
@@ -58,9 +43,12 @@ function InputField({ label, value, onChange, type = "text", disabled = false, i
 export default function TenantSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
+  
+  // Dirty State for Sticky Bar
+  const [isProfileDirty, setIsProfileDirty] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
-
+  
   // Profile State
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -77,6 +65,7 @@ export default function TenantSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -100,17 +89,19 @@ export default function TenantSettingsPage() {
     fetchSettings();
   }, []);
 
+  // Helper to mark profile as dirty
+  const markDirty = () => setIsProfileDirty(true);
+
   const handleSaveProfile = async () => {
     if (email && !email.match(/^\S+@\S+\.\S+$/)) {
       notify.error("Please enter a valid email address");
       return;
     }
     
-    // Emergency Contact Validation: If any field is filled, all must be filled
     const hasEmergencyData = emergencyName.trim() !== "" || emergencyNumber.trim() !== "" || emergencyRelation.trim() !== "";
     if (hasEmergencyData) {
       if (!emergencyName.trim() || !emergencyNumber.trim() || !emergencyRelation.trim()) {
-        notify.error("Please fill out all primary emergency contact fields (Name, Number, and Relationship)");
+        notify.error("Please fill out all primary emergency contact fields");
         return;
       }
     }
@@ -141,6 +132,7 @@ export default function TenantSettingsPage() {
         throw new Error(errorData.error || "Update failed");
       }
       notify.success("Profile updated successfully");
+      setIsProfileDirty(false); // Reset dirty state on success
     } catch (error: any) {
       notify.error(error.message || "Failed to update profile");
     } finally {
@@ -184,232 +176,322 @@ export default function TenantSettingsPage() {
     }
   };
 
+  const passwordFormValid = currentPassword.length > 0 && password.length >= 6 && password === confirmPassword;
+
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-32 text-[#111111] dark:text-white font-sans relative">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#050505] pb-32 text-[#111111] dark:text-white font-sans relative">
       
       {/* ── Top App Bar ── */}
-      <header className="px-6 pt-12 pb-6 sticky top-0 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur-xl z-40 flex items-center gap-4">
-        <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 transition-colors shrink-0">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-black tracking-tight leading-tight">Account Settings</h1>
+      <header className="px-6 pt-12 pb-6 sticky top-0 bg-[#FAFAFA]/80 dark:bg-[#050505]/80 backdrop-blur-xl z-40">
+        <div className="flex items-center gap-4 max-w-3xl mx-auto">
+          <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors shrink-0 shadow-sm">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight leading-tight">Settings</h1>
+          </div>
         </div>
       </header>
+
+      {/* ── Tab Navigation ── */}
+      <div className="px-6 mb-8">
+        <div className="max-w-3xl mx-auto flex p-1 bg-gray-200/50 dark:bg-white/5 rounded-xl">
+          <button 
+            onClick={() => setActiveTab("profile")}
+            className={`flex-1 py-2.5 text-[14px] font-bold rounded-lg transition-all duration-200 ${activeTab === "profile" ? "bg-white dark:bg-[#222] shadow-sm text-black dark:text-white" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+          >
+            Profile
+          </button>
+          <button 
+            onClick={() => setActiveTab("security")}
+            className={`flex-1 py-2.5 text-[14px] font-bold rounded-lg transition-all duration-200 ${activeTab === "security" ? "bg-white dark:bg-[#222] shadow-sm text-black dark:text-white" : "text-gray-500 hover:text-gray-900 dark:hover:text-white"}`}
+          >
+            Security
+          </button>
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         </div>
       ) : (
-        <main className="px-6 space-y-6">
+        <main className="px-6 max-w-3xl mx-auto">
           
-          {/* KYC Info Section */}
-          <SoftCard className="space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-500/10 flex items-center justify-center">
-                <Shield className="w-4 h-4 text-green-500" />
-              </div>
-              <h2 className="text-lg font-black">Identity Details</h2>
-            </div>
-            <p className="text-[13px] text-gray-500 font-medium mb-4">
-              Core identity fields are verified by your warden and cannot be changed here.
-            </p>
-            
-            <InputField 
-              label="Registered Phone Number" 
-              value={phone} 
-              icon={Phone} 
-              disabled={true} 
-            />
-          </SoftCard>
-
-          {/* Editable Profile Section */}
-          <SoftCard className="space-y-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center">
-                <UserIcon className="w-4 h-4 text-blue-500" />
-              </div>
-              <h2 className="text-lg font-black">Contact Details</h2>
-            </div>
-
-            <InputField 
-              label="Email Address" 
-              value={email} 
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              icon={Mail} 
-            />
-
-            <div className="h-px bg-gray-100 dark:bg-white/5 my-4"></div>
-
-            <h3 className="text-[14px] font-bold text-gray-900 dark:text-gray-100 mb-2">Primary Emergency Contact</h3>
-            <div className="space-y-4">
-              <InputField 
-                label="Contact Name" 
-                value={emergencyName} 
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmergencyName(e.target.value)}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <InputField 
-                  label="Phone Number" 
-                  value={emergencyNumber} 
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmergencyNumber(e.target.value)}
-                />
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Relationship</label>
-                  <div className="relative">
-                    <select
-                      value={emergencyRelation}
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEmergencyRelation(e.target.value)}
-                      className="w-full h-14 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-black dark:focus:border-white/30 outline-none transition-all pl-4 pr-4 font-medium text-[15px] appearance-none cursor-pointer"
-                    >
-                      <option value="">Select Option...</option>
-                      <option value="Father">Father</option>
-                      <option value="Mother">Mother</option>
-                      <option value="Brother">Brother</option>
-                      <option value="Sister">Sister</option>
-                      <option value="Spouse">Spouse</option>
-                      <option value="Guardian">Guardian</option>
-                      <option value="Relative">Relative</option>
-                      <option value="Friend">Friend</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
+          {/* ── PROFILE TAB ── */}
+          {activeTab === "profile" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              
+              {/* KYC Info Section */}
+              <SoftCard className="space-y-4">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-500/10 flex items-center justify-center border border-green-100 dark:border-green-500/20">
+                    <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-[16px] font-bold">Identity Details</h2>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Additional Contacts */}
-            {additionalContacts.map((contact, index) => (
-              <div key={index} className="pt-4 border-t border-gray-100 dark:border-white/10 space-y-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-[14px] font-bold text-gray-900 dark:text-gray-100">Additional Contact {index + 1}</h3>
-                  <button 
-                    onClick={() => {
-                      const newContacts = [...additionalContacts];
-                      newContacts.splice(index, 1);
-                      setAdditionalContacts(newContacts);
-                    }}
-                    className="text-xs font-bold text-red-500 hover:text-red-600 bg-red-50 dark:bg-red-500/10 px-3 py-1 rounded-full"
-                  >
-                    Remove
-                  </button>
-                </div>
+                <p className="text-[13px] text-gray-500 font-medium mb-4 leading-relaxed">
+                  These core identity fields are verified by your warden during onboarding and cannot be changed here to prevent identity fraud.
+                </p>
+                
                 <InputField 
-                  label="Contact Name" 
-                  value={contact.name} 
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const newContacts = [...additionalContacts];
-                    newContacts[index].name = e.target.value;
-                    setAdditionalContacts(newContacts);
-                  }}
+                  label="Registered Phone Number" 
+                  value={phone} 
+                  icon={Phone} 
+                  disabled={true} 
                 />
-                <div className="grid grid-cols-2 gap-4">
-                  <InputField 
-                    label="Phone Number" 
-                    value={contact.number} 
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      const newContacts = [...additionalContacts];
-                      newContacts[index].number = e.target.value;
-                      setAdditionalContacts(newContacts);
-                    }}
-                  />
-                  <div className="space-y-1.5">
-                    <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Relationship</label>
-                    <div className="relative">
-                      <select
-                        value={contact.relationship}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                          const newContacts = [...additionalContacts];
-                          newContacts[index].relationship = e.target.value;
-                          setAdditionalContacts(newContacts);
-                        }}
-                        className="w-full h-14 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-black dark:focus:border-white/30 outline-none transition-all pl-4 pr-4 font-medium text-[15px] appearance-none cursor-pointer"
-                      >
-                        <option value="">Select Option...</option>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Brother">Brother</option>
-                        <option value="Sister">Sister</option>
-                        <option value="Spouse">Spouse</option>
-                        <option value="Guardian">Guardian</option>
-                        <option value="Relative">Relative</option>
-                        <option value="Friend">Friend</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+              </SoftCard>
+
+              {/* Editable Profile Section */}
+              <SoftCard className="space-y-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center border border-blue-100 dark:border-blue-500/20">
+                    <UserIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-[16px] font-bold">Contact & Emergency</h2>
+                  </div>
+                </div>
+
+                <InputField 
+                  label="Email Address" 
+                  value={email} 
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setEmail(e.target.value); markDirty(); }}
+                  icon={Mail} 
+                />
+
+                <div className="h-px bg-gray-200/50 dark:bg-white/5 my-6"></div>
+
+                <div>
+                  <h3 className="text-[13px] font-bold text-gray-900 dark:text-gray-100 mb-4 uppercase tracking-wider">Primary Emergency Contact</h3>
+                  <div className="space-y-4 bg-gray-50/50 dark:bg-white/[0.02] p-4 rounded-2xl border border-gray-100 dark:border-white/5">
+                    <InputField 
+                      label="Contact Name" 
+                      value={emergencyName} 
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setEmergencyName(e.target.value); markDirty(); }}
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <InputField 
+                        label="Phone Number" 
+                        value={emergencyNumber} 
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setEmergencyNumber(e.target.value); markDirty(); }}
+                      />
+                      <div className="space-y-2">
+                        <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Relationship</label>
+                        <div className="relative">
+                          <select
+                            value={emergencyRelation}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setEmergencyRelation(e.target.value); markDirty(); }}
+                            className="w-full h-12 md:h-14 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200/50 dark:border-white/10 focus:border-black dark:focus:border-white/30 focus:ring-4 focus:ring-black/5 dark:focus:ring-white/5 outline-none transition-all pl-4 pr-10 font-medium text-[15px] appearance-none cursor-pointer"
+                          >
+                            <option value="">Select Option...</option>
+                            <option value="Father">Father</option>
+                            <option value="Mother">Mother</option>
+                            <option value="Brother">Brother</option>
+                            <option value="Sister">Sister</option>
+                            <option value="Spouse">Spouse</option>
+                            <option value="Guardian">Guardian</option>
+                            <option value="Relative">Relative</option>
+                            <option value="Friend">Friend</option>
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <ChevronLeft className="w-4 h-4 text-gray-400 -rotate-90" />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
 
-            <button
-              onClick={() => setAdditionalContacts([...additionalContacts, { name: "", number: "", relationship: "" }])}
-              className="w-full py-3 flex items-center justify-center gap-2 text-[14px] font-bold text-black dark:text-white bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-2xl transition-colors border border-dashed border-gray-300 dark:border-white/20 mt-4"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Add Another Contact
-            </button>
+                {/* Additional Contacts */}
+                {additionalContacts.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-[13px] font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">Additional Contacts</h3>
+                    {additionalContacts.map((contact, index) => (
+                      <div key={index} className="space-y-4 bg-gray-50/50 dark:bg-white/[0.02] p-4 rounded-2xl border border-gray-100 dark:border-white/5 relative group">
+                        <button 
+                          onClick={() => {
+                            const newContacts = [...additionalContacts];
+                            newContacts.splice(index, 1);
+                            setAdditionalContacts(newContacts);
+                            markDirty();
+                          }}
+                          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-red-50 dark:bg-red-500/10 text-red-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-red-100 dark:hover:bg-red-500/20"
+                          title="Remove contact"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        
+                        <InputField 
+                          label={`Contact ${index + 2} Name`} 
+                          value={contact.name} 
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            const newContacts = [...additionalContacts];
+                            newContacts[index].name = e.target.value;
+                            setAdditionalContacts(newContacts);
+                            markDirty();
+                          }}
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <InputField 
+                            label="Phone Number" 
+                            value={contact.number} 
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              const newContacts = [...additionalContacts];
+                              newContacts[index].number = e.target.value;
+                              setAdditionalContacts(newContacts);
+                              markDirty();
+                            }}
+                          />
+                          <div className="space-y-2">
+                            <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Relationship</label>
+                            <div className="relative">
+                              <select
+                                value={contact.relationship}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                  const newContacts = [...additionalContacts];
+                                  newContacts[index].relationship = e.target.value;
+                                  setAdditionalContacts(newContacts);
+                                  markDirty();
+                                }}
+                                className="w-full h-12 md:h-14 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200/50 dark:border-white/10 focus:border-black dark:focus:border-white/30 focus:ring-4 focus:ring-black/5 dark:focus:ring-white/5 outline-none transition-all pl-4 pr-10 font-medium text-[15px] appearance-none cursor-pointer"
+                              >
+                                <option value="">Select Option...</option>
+                                <option value="Father">Father</option>
+                                <option value="Mother">Mother</option>
+                                <option value="Brother">Brother</option>
+                                <option value="Sister">Sister</option>
+                                <option value="Spouse">Spouse</option>
+                                <option value="Guardian">Guardian</option>
+                                <option value="Relative">Relative</option>
+                                <option value="Friend">Friend</option>
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <ChevronLeft className="w-4 h-4 text-gray-400 -rotate-90" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-            <div className="pt-2">
-              <PillButton onClick={handleSaveProfile} disabled={savingProfile} className="w-full">
-                {savingProfile ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Changes"}
-              </PillButton>
+                <button
+                  onClick={() => {
+                    setAdditionalContacts([...additionalContacts, { name: "", number: "", relationship: "" }]);
+                    markDirty();
+                  }}
+                  className="w-full h-14 flex items-center justify-center gap-2 text-[14px] font-bold text-black dark:text-white bg-transparent hover:bg-gray-50 dark:hover:bg-white/5 rounded-xl transition-all border border-dashed border-gray-300 dark:border-white/20 mt-4 group"
+                >
+                  <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center group-hover:bg-black group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-black transition-colors">
+                    <Plus className="w-3.5 h-3.5" />
+                  </div>
+                  Add Another Contact
+                </button>
+              </SoftCard>
             </div>
-          </SoftCard>
+          )}
 
-          {/* Password Section */}
-          <SoftCard className="space-y-5">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center">
-                <Lock className="w-4 h-4 text-purple-500" />
-              </div>
-              <h2 className="text-lg font-black">Security</h2>
+          {/* ── SECURITY TAB ── */}
+          {activeTab === "security" && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <SoftCard className="space-y-6">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center border border-purple-100 dark:border-purple-500/20">
+                    <Lock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-[16px] font-bold">Change Password</h2>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 p-4 bg-orange-50 dark:bg-orange-500/10 rounded-xl border border-orange-100 dark:border-orange-500/20">
+                  <AlertCircle className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+                  <p className="text-[13px] text-orange-800 dark:text-orange-200 font-medium leading-relaxed">
+                    If you have forgotten your password and cannot log in, you must contact your hostel Warden to perform an administrative reset.
+                  </p>
+                </div>
+
+                <div className="space-y-5">
+                  <InputField 
+                    label="Current Password" 
+                    type="password"
+                    value={currentPassword} 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+                  />
+                  <div className="h-px bg-gray-100 dark:bg-white/5 my-4"></div>
+                  <InputField 
+                    label="New Password" 
+                    type="password"
+                    value={password} 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                  />
+                  <InputField 
+                    label="Confirm New Password" 
+                    type="password"
+                    value={confirmPassword} 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                  <button 
+                    onClick={handleSavePassword} 
+                    disabled={savingPassword || !passwordFormValid} 
+                    className={`h-12 px-8 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 transition-all duration-300 ${
+                      passwordFormValid 
+                        ? "bg-black dark:bg-white text-white dark:text-black hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/10 dark:shadow-white/10" 
+                        : "bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                    }`}
+                  >
+                    {savingPassword ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        Update Password
+                      </>
+                    )}
+                  </button>
+                </div>
+              </SoftCard>
             </div>
-            
-            <p className="text-[13px] text-gray-500 font-medium mb-4 flex gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              Forgot your password? Please contact your hostel Warden to reset it.
-            </p>
-
-            <InputField 
-              label="Current Password" 
-              type="password"
-              value={currentPassword} 
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
-            />
-            <InputField 
-              label="New Password" 
-              type="password"
-              value={password} 
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-            />
-            <InputField 
-              label="Confirm New Password" 
-              type="password"
-              value={confirmPassword} 
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-            />
-
-            <div className="pt-2">
-              <PillButton onClick={handleSavePassword} disabled={savingPassword || !password || !currentPassword} variant="secondary" className="w-full">
-                {savingPassword ? <Loader2 className="w-5 h-5 animate-spin" /> : "Update Password"}
-              </PillButton>
-            </div>
-          </SoftCard>
+          )}
 
         </main>
       )}
+
+      {/* ── Sticky Save Bar (Only for Profile Tab) ── */}
+      <div className={`fixed bottom-0 left-0 right-0 p-4 md:p-6 transition-transform duration-300 ease-out z-50 ${isProfileDirty && activeTab === 'profile' ? "translate-y-0" : "translate-y-[150%]"}`}>
+        <div className="max-w-3xl mx-auto bg-black dark:bg-[#222] p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-white/10">
+          <div className="text-white">
+            <p className="text-[14px] font-bold">Unsaved Changes</p>
+            <p className="text-[12px] text-gray-400 hidden md:block">You have modified your profile settings.</p>
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => {
+                window.location.reload();
+              }} 
+              className="h-10 px-4 rounded-lg font-bold text-[13px] text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              Discard
+            </button>
+            <button 
+              onClick={handleSaveProfile}
+              disabled={savingProfile}
+              className="h-10 px-6 rounded-lg font-bold text-[13px] bg-white text-black hover:bg-gray-100 transition-all active:scale-95 flex items-center gap-2"
+            >
+              {savingProfile ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : "Save Changes"}
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
+
