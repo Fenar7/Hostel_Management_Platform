@@ -97,7 +97,8 @@ export async function POST(req: Request) {
           userId: warden.userId,
           title: "New Ticket Received",
           message: `A new ${parsed.data.priority} priority ticket was raised: ${parsed.data.title}`,
-          type: "TICKET"
+          type: "TICKET",
+          referenceId: ticket.id
         }
       });
     }

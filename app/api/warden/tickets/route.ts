@@ -106,7 +106,8 @@ export async function PATCH(req: Request) {
           userId: existingTicket.tenant.userId,
           title: "Ticket Status Updated",
           message: `Your ticket "${ticket.title}" is now ${ticket.status}.`,
-          type: "TICKET"
+          type: "TICKET",
+          referenceId: ticket.id
         }
       });
     }
@@ -119,7 +120,8 @@ export async function PATCH(req: Request) {
           userId: admin.id,
           title: "Ticket Updated",
           message: `Warden updated Ticket "${ticket.title}" to ${ticket.status}.`,
-          type: "TICKET"
+          type: "TICKET",
+          referenceId: ticket.id
         }
       });
     }

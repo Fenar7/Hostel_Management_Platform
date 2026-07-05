@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Loader2,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Bell,
   Check,
   Trash2,
@@ -17,11 +24,16 @@ import {
   FileText,
   Calendar,
   Inbox,
-  ChevronLeft
+  ChevronLeft,
+  MessageSquare,
+  ArrowRight,
+  Loader2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
 import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface NotificationItem {
   id: string;
@@ -31,13 +43,24 @@ interface NotificationItem {
   read: boolean;
   dismissedFromHome: boolean;
   createdAt: string;
+  referenceId: string | null;
 }
 
-export function NotificationsPanel() {
+interface NotificationsPanelProps {
+  role?: "TENANT" | "WARDEN" | "MAIN_ADMIN";
+}
+
+export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
+  
+  // Modal state
+  const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [submittingNote, setSubmittingNote] = useState(false);
+
   const router = useRouter();
 
   const fetchNotifications = useCallback(async () => {
@@ -58,7 +81,7 @@ export function NotificationsPanel() {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  const handleMarkAsRead = async (id: string, readStatus: boolean) => {
+  const handleMarkAsRead = async (id: string, readStatus: boolean, skipToast = false) => {
     try {
       setActioningId(id);
       const res = await fetch(`/api/notifications/${id}`, {
@@ -71,9 +94,11 @@ export function NotificationsPanel() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, read: readStatus } : n))
       );
-      notify.success(readStatus ? "Marked as read" : "Marked as unread");
+      if (!skipToast) {
+        notify.success(readStatus ? "Marked as read" : "Marked as unread");
+      }
     } catch (err: any) {
-      notify.error(err.message || "Something went wrong");
+      if (!skipToast) notify.error(err.message || "Something went wrong");
     } finally {
       setActioningId(null);
     }
@@ -98,7 +123,8 @@ export function NotificationsPanel() {
     }
   };
 
-  const handleDismiss = async (id: string) => {
+  const handleDismiss = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     try {
       setActioningId(id);
       const res = await fetch(`/api/notifications/${id}`, {
@@ -117,6 +143,39 @@ export function NotificationsPanel() {
     }
   };
 
+  const handleOpenNotification = (notif: NotificationItem) => {
+    setSelectedNotification(notif);
+    setNoteText("");
+    if (!notif.read) {
+      handleMarkAsRead(notif.id, true, true);
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!selectedNotification?.referenceId || !noteText.trim()) return;
+    
+    try {
+      setSubmittingNote(true);
+      const res = await fetch(`/api/tickets/${selectedNotification.referenceId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: noteText }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to add note");
+      }
+      
+      notify.success("Note added successfully to the ticket");
+      setNoteText("");
+      setSelectedNotification(null); // Close modal on success
+    } catch (err: any) {
+      notify.error(err.message || "Something went wrong");
+    } finally {
+      setSubmittingNote(false);
+    }
+  };
+
   const filteredNotifications = notifications.filter((n) => {
     if (activeTab === "unread") return !n.read;
     return true;
@@ -124,10 +183,19 @@ export function NotificationsPanel() {
 
   const getNotificationIcon = (type: string) => {
     const t = type.toUpperCase();
-    if (t.includes("FOOD")) return <Utensils className="h-4 w-4 text-muted-foreground" />;
-    if (t.includes("PAY")) return <CreditCard className="h-4 w-4 text-muted-foreground" />;
-    if (t.includes("ONBOARD")) return <FileText className="h-4 w-4 text-muted-foreground" />;
-    return <Bell className="h-4 w-4 text-muted-foreground" />;
+    if (t.includes("FOOD")) return <Utensils className="size-4" />;
+    if (t.includes("PAY")) return <CreditCard className="size-4" />;
+    if (t.includes("ONBOARD")) return <FileText className="size-4" />;
+    if (t.includes("TICKET")) return <MessageSquare className="size-4" />;
+    return <Bell className="size-4" />;
+  };
+
+  const getTicketLink = () => {
+    if (!selectedNotification?.referenceId) return "#";
+    if (role === "TENANT") return `/tenant/tickets`; // Adjust based on actual routing
+    if (role === "WARDEN") return `/warden/tickets`;
+    if (role === "MAIN_ADMIN") return `/admin/tickets`;
+    return "#";
   };
 
   if (loading && notifications.length === 0) {
@@ -135,146 +203,235 @@ export function NotificationsPanel() {
   }
 
   return (
-    <div className="w-full py-8 px-4 md:px-6 xl:px-8 space-y-6">
-      {/* App-style Top Bar */}
-      <div className="relative flex items-center justify-between mb-2">
-        <button 
-          onClick={() => router.back()}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-transparent border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors z-10"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        
-        <h1 className="absolute inset-0 flex items-center justify-center text-[20px] font-black tracking-tight text-black dark:text-white pointer-events-none">
-          Notifications
-        </h1>
-
-        {notifications.some((n) => !n.read) ? (
-          <button 
-            onClick={handleMarkAllAsRead}
-            title="Mark all as read"
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-transparent border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors z-10"
-          >
-            <Check className="w-5 h-5" />
-          </button>
-        ) : (
-          <div className="w-10 h-10" />
-        )}
-      </div>
+    <div className={cn("w-full mx-auto", role === "TENANT" ? "max-w-2xl py-8 px-4 sm:px-6" : "p-4 sm:p-6 lg:p-8")}>
       
-      <p className="text-[13px] text-gray-500 font-medium text-center mb-8 px-4">
-        Stay updated with your stay, meals, and payments.
-      </p>
+      {/* ── App-style Header for TENANT only ── */}
+      {role === "TENANT" && (
+        <div className="relative flex items-center justify-between mb-8">
+          <button 
+            onClick={() => router.back()}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-200 text-black hover:bg-gray-50 transition-colors shadow-sm z-10"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <h1 className="absolute inset-0 flex items-center justify-center text-[19px] font-bold tracking-tight text-gray-900 pointer-events-none">
+            Notifications
+          </h1>
 
-      {/* Control Tabs */}
-      <div className="flex items-center justify-between pb-2">
-        <Tabs defaultValue="all" className="w-auto" onValueChange={(val) => setActiveTab(val as any)}>
-          <TabsList className="bg-muted p-1 rounded-lg">
-            <TabsTrigger value="all" className="rounded-md px-3 py-1.5 text-xs font-semibold">
-              All ({notifications.length})
+          {notifications.some((n) => !n.read) ? (
+            <button 
+              onClick={handleMarkAllAsRead}
+              title="Mark all as read"
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-200 text-black hover:bg-gray-50 transition-colors shadow-sm z-10"
+            >
+              <Check className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="w-10 h-10" />
+          )}
+        </div>
+      )}
+
+      {/* ── Admin/Warden Header ── */}
+      {role !== "TENANT" && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Notifications</h1>
+            <p className="text-sm text-gray-500 mt-1">Stay updated with the latest alerts across your properties.</p>
+          </div>
+          {notifications.some((n) => !n.read) && (
+            <Button onClick={handleMarkAllAsRead} variant="outline" size="sm" className="bg-white">
+              <Check className="w-4 h-4 mr-2" />
+              Mark all as read
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* ── Controls ── */}
+      <div className="flex items-center mb-6">
+        <Tabs defaultValue="all" onValueChange={(val) => setActiveTab(val as any)} className="w-full sm:w-auto">
+          <TabsList className="bg-gray-100/80 p-1 rounded-xl w-full sm:w-auto grid grid-cols-2 sm:flex sm:h-10">
+            <TabsTrigger value="all" className="rounded-lg text-[13px] font-semibold data-[state=active]:shadow-sm">
+              All Alerts <span className="ml-1.5 opacity-50 font-normal">({notifications.length})</span>
             </TabsTrigger>
-            <TabsTrigger value="unread" className="rounded-md px-3 py-1.5 text-xs font-semibold">
-              Unread ({notifications.filter((n) => !n.read).length})
+            <TabsTrigger value="unread" className="rounded-lg text-[13px] font-semibold data-[state=active]:shadow-sm">
+              Unread <span className="ml-1.5 opacity-50 font-normal">({notifications.filter((n) => !n.read).length})</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      {/* Main List */}
+      {/* ── List ── */}
       {filteredNotifications.length === 0 ? (
-        <Card className="flex flex-col items-center justify-center p-16 text-center border rounded-2xl bg-card">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted mb-4">
-            <Inbox className="h-5 w-5 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center border border-dashed border-gray-200 rounded-[24px] bg-gray-50/50">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm border border-gray-100 mb-5">
+            <Inbox className="h-7 w-7 text-gray-400" />
           </div>
-          <CardTitle className="text-lg font-bold tracking-tight">You are all caught up!</CardTitle>
-          <CardDescription className="mt-1.5 max-w-sm text-muted-foreground">
+          <h3 className="text-[17px] font-semibold text-gray-900 tracking-tight">You are all caught up!</h3>
+          <p className="mt-2 text-sm text-gray-500 max-w-sm">
             {activeTab === "unread" 
               ? "There are no unread notifications right now." 
               : "No notification alerts recorded yet."}
-          </CardDescription>
-        </Card>
+          </p>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 relative">
+          {/* Vertical timeline line for visual aesthetic */}
+          <div className="absolute left-[27px] top-4 bottom-4 w-px bg-gray-100 hidden sm:block pointer-events-none" />
+
           {filteredNotifications.map((notif) => {
             const dateStr = new Date(notif.createdAt).toLocaleString("en-IN", {
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
+              day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
             });
 
             return (
-              <Card
+              <div
                 key={notif.id}
-                className={`transition-all duration-150 rounded-xl border border-border hover:border-muted-foreground/30 ${
+                onClick={() => handleOpenNotification(notif)}
+                className={cn(
+                  "group relative flex items-start gap-4 p-4 sm:p-5 rounded-[20px] transition-all duration-300 cursor-pointer border bg-white",
                   notif.read
-                    ? "bg-card/70 opacity-80"
-                    : "bg-card border-l-2 border-l-primary"
-                }`}
+                    ? "border-transparent hover:border-gray-200 hover:shadow-sm opacity-80 hover:opacity-100"
+                    : "border-gray-200 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] ring-1 ring-black/[0.02]"
+                )}
               >
-                <CardContent className="p-4 md:p-5">
-                  <div className="flex items-start gap-4">
-                    {/* Minimalist Icon Box */}
-                    <div className="p-2.5 rounded-lg bg-muted shrink-0">
-                      {getNotificationIcon(notif.type)}
-                    </div>
+                {/* Status dot */}
+                {!notif.read && (
+                  <div className="absolute top-1/2 -translate-y-1/2 left-0 w-1 h-8 bg-blue-500 rounded-r-full" />
+                )}
 
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-foreground text-sm">
-                          {notif.title}
-                        </span>
-                        <Badge variant="outline" className="text-[10px] py-0 px-2 font-medium capitalize text-muted-foreground bg-muted/40">
-                          {notif.type.replace(/_/g, " ").toLowerCase()}
-                        </Badge>
-                        {!notif.read && (
-                          <span className="h-2 w-2 rounded-full bg-primary" title="Unread" />
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed pt-0.5">
-                        {notif.message}
-                      </p>
-                      <span className="text-[10px] text-muted-foreground/60 flex items-center gap-1 pt-1 font-medium">
-                        <Calendar className="h-3 w-3" />
-                        {dateStr}
-                      </span>
-                    </div>
+                {/* Icon Box */}
+                <div className={cn(
+                  "relative z-10 p-3 rounded-[14px] shrink-0 transition-colors duration-300",
+                  notif.read ? "bg-gray-100 text-gray-500" : "bg-blue-50 text-blue-600 ring-4 ring-white"
+                )}>
+                  {getNotificationIcon(notif.type)}
+                </div>
 
-                    {/* Quick Action Buttons */}
-                    <div className="flex items-center gap-1 shrink-0 self-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground h-8 w-8"
-                        title={notif.read ? "Mark as unread" : "Mark as read"}
-                        onClick={() => handleMarkAsRead(notif.id, !notif.read)}
-                        disabled={actioningId === notif.id}
-                      >
-                        {notif.read ? (
-                          <Mail className="h-4 w-4" />
-                        ) : (
-                          <MailOpen className="h-4 w-4" />
-                        )}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Delete Alert"
-                        className="rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8"
-                        onClick={() => handleDismiss(notif.id)}
-                        disabled={actioningId === notif.id}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0 flex flex-col justify-center mt-0.5">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className={cn(
+                      "font-semibold text-[15px] truncate",
+                      notif.read ? "text-gray-700" : "text-gray-900"
+                    )}>
+                      {notif.title}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-wider px-2 py-0 h-5 bg-gray-100/80 text-gray-600 border-none">
+                      {notif.type.replace(/_/g, " ")}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
+                  <p className="text-[14px] text-gray-500 line-clamp-1 leading-relaxed pr-8">
+                    {notif.message}
+                  </p>
+                  <span className="text-[11px] text-gray-400 font-medium tracking-wide mt-2 flex items-center gap-1.5">
+                    <Calendar className="size-3" />
+                    {dateStr}
+                  </span>
+                </div>
+
+                {/* Hover Actions */}
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-100 shadow-sm">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700"
+                    title={notif.read ? "Mark as unread" : "Mark as read"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMarkAsRead(notif.id, !notif.read);
+                    }}
+                  >
+                    {notif.read ? <Mail className="size-3.5" /> : <MailOpen className="size-3.5" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Delete"
+                    className="h-8 w-8 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500"
+                    onClick={(e) => handleDismiss(notif.id, e)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
             );
           })}
         </div>
       )}
+
+      {/* ── Notification Detail Modal ── */}
+      <Dialog open={!!selectedNotification} onOpenChange={(open) => !open && setSelectedNotification(null)}>
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-0 shadow-2xl rounded-3xl">
+          <div className="px-6 pt-8 pb-6 bg-white">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shrink-0">
+                {selectedNotification && getNotificationIcon(selectedNotification.type)}
+              </div>
+              <div className="pt-1">
+                <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight leading-tight">
+                  {selectedNotification?.title}
+                </DialogTitle>
+                <DialogDescription className="mt-1.5 text-sm font-medium text-gray-500">
+                  {selectedNotification && new Date(selectedNotification.createdAt).toLocaleString("en-IN", {
+                    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+                  })}
+                </DialogDescription>
+              </div>
+            </div>
+            
+            <div className="mt-6 text-[15px] leading-relaxed text-gray-700 bg-gray-50 p-5 rounded-2xl border border-gray-100">
+              {selectedNotification?.message}
+            </div>
+
+            {/* If it's a TICKET and has referenceId, show "Add Note" flow */}
+            {selectedNotification?.type === "TICKET" && selectedNotification.referenceId && (
+              <div className="mt-6 space-y-3">
+                <h4 className="text-sm font-semibold text-gray-900">Add a note to this ticket</h4>
+                <Textarea 
+                  placeholder="Type your comment or update here..."
+                  className="min-h-[100px] resize-none rounded-xl border-gray-200 focus-visible:ring-blue-500 text-sm"
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
+            <Button variant="ghost" className="rounded-xl text-gray-500 hover:text-gray-700" onClick={() => setSelectedNotification(null)}>
+              Close
+            </Button>
+            <div className="flex items-center gap-2">
+              {selectedNotification?.type === "TICKET" && selectedNotification.referenceId && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    className="rounded-xl bg-white border-gray-200 shadow-sm"
+                    onClick={() => {
+                      setSelectedNotification(null);
+                      router.push(getTicketLink());
+                    }}
+                  >
+                    View Ticket
+                  </Button>
+                  <Button 
+                    onClick={handleAddNote}
+                    disabled={!noteText.trim() || submittingNote}
+                    className="rounded-xl shadow-sm bg-gray-900 hover:bg-gray-800 text-white"
+                  >
+                    {submittingNote ? <Loader2 className="size-4 animate-spin mr-2" /> : <MessageSquare className="size-4 mr-2" />}
+                    Add Note
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

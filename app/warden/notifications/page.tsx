@@ -1,5 +1,5 @@
 import { NotificationsPanel } from "@/components/notifications/NotificationsPanel";
 
 export default function WardenNotificationsPage() {
-  return <NotificationsPanel />;
+  return <NotificationsPanel role="WARDEN" />;
 }
