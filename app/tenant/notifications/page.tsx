@@ -16,8 +16,10 @@ import {
   CreditCard,
   FileText,
   Calendar,
-  Inbox
+  Inbox,
+  ChevronLeft
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
 import { DashboardSkeleton } from "@/components/shared/DashboardSkeleton";
 
@@ -36,6 +38,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
+  const router = useRouter();
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -133,27 +136,35 @@ export default function NotificationsPage() {
 
   return (
     <div className="w-full py-8 px-4 md:px-6 xl:px-8 space-y-6">
-      {/* Clean, Non-flashy Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Notifications</h1>
-          <p className="text-muted-foreground text-sm">
-            Stay updated with your stay, meals, and payments.
-          </p>
-        </div>
+      {/* App-style Top Bar */}
+      <div className="relative flex items-center justify-between mb-2">
+        <button 
+          onClick={() => router.back()}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-transparent border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors z-10"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
         
-        {notifications.some((n) => !n.read) && (
-          <Button
-            variant="outline"
-            size="sm"
+        <h1 className="absolute inset-0 flex items-center justify-center text-[20px] font-black tracking-tight text-black dark:text-white pointer-events-none">
+          Notifications
+        </h1>
+
+        {notifications.some((n) => !n.read) ? (
+          <button 
             onClick={handleMarkAllAsRead}
-            className="self-start md:self-auto transition-all hover:bg-muted"
+            title="Mark all as read"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-transparent border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors z-10"
           >
-            <Check className="mr-1.5 h-4 w-4" />
-            Mark all read
-          </Button>
+            <Check className="w-5 h-5" />
+          </button>
+        ) : (
+          <div className="w-10 h-10" />
         )}
       </div>
+      
+      <p className="text-[13px] text-gray-500 font-medium text-center mb-8 px-4">
+        Stay updated with your stay, meals, and payments.
+      </p>
 
       {/* Control Tabs */}
       <div className="flex items-center justify-between pb-2">
