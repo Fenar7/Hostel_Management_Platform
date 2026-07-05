@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { 
   Plus, Ticket, Loader2, AlertCircle, CheckCircle2, 
-  Clock, AlertTriangle, X, ArrowLeft
+  Clock, AlertTriangle, X, ChevronLeft
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
@@ -92,29 +92,30 @@ export default function TenantTicketsPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* App-style Top Bar */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="grid grid-cols-3 items-center mb-6">
           <button 
             onClick={() => router.back()}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-transparent border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors justify-self-start"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
           
-          <h1 className="text-xl font-black tracking-tight text-black dark:text-white absolute left-1/2 -translate-x-1/2">
-            Help & Support
-          </h1>
+          <div className="flex flex-col items-center justify-center">
+            <h1 className="text-[20px] font-black tracking-tight text-black dark:text-white">
+              Help & Support
+            </h1>
+            <p className="text-[11px] text-gray-500 font-medium mt-0.5 text-center px-2">
+              Raise maintenance issues and track their status.
+            </p>
+          </div>
 
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 transition-all shadow-sm"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-transparent border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors justify-self-end"
           >
             <Plus className="w-5 h-5" />
           </button>
         </div>
-        
-        <p className="text-sm text-gray-500 font-medium text-center mb-8">
-          Raise maintenance issues and track their resolution status.
-        </p>
 
         {/* List */}
         {loading ? (
