@@ -523,6 +523,15 @@ export default function TenantDashboardPage() {
 
             <div className="mt-6 space-y-4">
               <SoftCard className="p-0 overflow-hidden shadow-sm">
+                <Link href="/tenant/tickets" className="w-full p-5 flex items-center justify-between border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-full flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5 text-black dark:text-white" />
+                    </div>
+                    <span className="font-bold text-[16px]">Help & Support</span>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                </Link>
                 <Link href="/tenant/settings" className="w-full p-5 flex items-center justify-between border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-gray-100 dark:bg-white/10 rounded-full flex items-center justify-center">
