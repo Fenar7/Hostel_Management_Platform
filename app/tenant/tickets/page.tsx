@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { 
   Plus, Ticket, Loader2, AlertCircle, CheckCircle2, 
-  Clock, AlertTriangle, X
+  Clock, AlertTriangle, X, ArrowLeft
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
 
 export default function TenantTicketsPage() {
@@ -12,6 +13,7 @@ export default function TenantTicketsPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
 
   // Form state
   const [title, setTitle] = useState("");
@@ -89,6 +91,14 @@ export default function TenantTicketsPage() {
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#050505] p-6 lg:p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-8">
         
+        {/* Top Bar */}
+        <button 
+          onClick={() => router.back()}
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
