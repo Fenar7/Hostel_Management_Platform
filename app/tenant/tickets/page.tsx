@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { 
   Plus, Ticket, Loader2, AlertCircle, CheckCircle2, 
-  Clock, AlertTriangle, X, ChevronLeft
+  Clock, AlertTriangle, X, ChevronLeft, ChevronDown
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
@@ -163,7 +163,7 @@ export default function TenantTicketsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-[#111111] rounded-3xl shadow-2xl border border-gray-200 dark:border-white/10 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
-              <h2 className="text-xl font-bold">Raise a Ticket</h2>
+              <h2 className="text-xl font-bold text-black dark:text-white">Raise a Ticket</h2>
               <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors text-gray-500">
                 <X className="w-4 h-4" />
               </button>
@@ -184,30 +184,36 @@ export default function TenantTicketsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Category</label>
-                  <select 
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="MAINTENANCE">Maintenance</option>
-                    <option value="CLEANING">Cleaning</option>
-                    <option value="ELECTRICAL">Electrical</option>
-                    <option value="PLUMBING">Plumbing</option>
-                    <option value="OTHER">Other</option>
-                  </select>
+                  <div className="relative">
+                    <select 
+                      value={category}
+                      onChange={e => setCategory(e.target.value)}
+                      className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 pr-10 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="MAINTENANCE">Maintenance</option>
+                      <option value="CLEANING">Cleaning</option>
+                      <option value="ELECTRICAL">Electrical</option>
+                      <option value="PLUMBING">Plumbing</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider pl-1">Priority</label>
-                  <select 
-                    value={priority}
-                    onChange={e => setPriority(e.target.value)}
-                    className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="LOW">Low</option>
-                    <option value="NORMAL">Normal</option>
-                    <option value="HIGH">High</option>
-                    <option value="CRITICAL">Critical</option>
-                  </select>
+                  <div className="relative">
+                    <select 
+                      value={priority}
+                      onChange={e => setPriority(e.target.value)}
+                      className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 focus:border-black dark:focus:border-white/30 px-4 pr-10 font-medium text-black dark:text-white outline-none transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="LOW">Low</option>
+                      <option value="NORMAL">Normal</option>
+                      <option value="HIGH">High</option>
+                      <option value="CRITICAL">Critical</option>
+                    </select>
+                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
