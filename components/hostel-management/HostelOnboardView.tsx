@@ -260,6 +260,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
       hostelName={hostelName}
       title="Onboard New Tenant"
       subtitle="Create a new onboarding request for a prospective tenant"
+      hideAdminNav={baseRoute === "/warden"}
     >
       <div className="max-w-2xl mx-auto space-y-6 p-4">
 

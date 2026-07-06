@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 import { createClient } from "@/lib/auth/server";
 import { z } from "zod";
 
@@ -115,6 +117,18 @@ export async function POST(req: Request) {
         }
       });
     }
+
+    void logActivity({
+      organizationId: user.organizationId,
+      hostelId: activeStay.hostelId,
+      eventType: ActivityEventType.TICKET_RAISED,
+      actorId: user.id,
+      actorName: user.tenant.fullName ?? user.phone ?? "Tenant",
+      subjectName: parsed.data.title,
+      subjectId: ticket.id,
+      subjectType: "Ticket",
+      targetUrl: `/warden/complaints?ticketId=${ticket.id}`,
+    });
 
     return NextResponse.json(ticket, { status: 201 });
   } catch (error) {

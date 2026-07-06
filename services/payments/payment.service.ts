@@ -3,6 +3,8 @@ import { NotFoundError, ValidationError, ConflictError, ForbiddenError } from "@
 import { PaymentMode, PaymentStatus, StayStatus, BedStatus } from "@prisma/client";
 import { checkBedConflict } from "@/services/beds/bed.service";
 import { generatePaymentReceipt } from "@/services/pdf/receipt.service";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 
 import { verifyAndGetFileType, compressImage } from "@/lib/image";
 import { uploadToStorage } from "@/lib/storage";
@@ -46,6 +48,7 @@ export async function calculateBalance(stayId: string): Promise<{ totalPayable: 
 export async function recordPayment(input: RecordPaymentInput) {
   const stay = await prisma.stay.findUnique({
     where: { id: input.stayId },
+    include: { hostel: true, tenant: { include: { user: true } } }
   });
 
   if (!stay) {
@@ -95,7 +98,7 @@ export async function recordPayment(input: RecordPaymentInput) {
     screenshotDocId = doc.id;
   }
 
-  return prisma.payment.create({
+  const payment = await prisma.payment.create({
     data: {
       stayId: input.stayId,
       amountPaidPaise,
@@ -106,6 +109,20 @@ export async function recordPayment(input: RecordPaymentInput) {
       screenshotDocumentId: screenshotDocId,
     },
   });
+
+  void logActivity({
+    organizationId: stay.hostel.organizationId,
+    hostelId: stay.hostelId,
+    eventType: ActivityEventType.TENANT_PAYMENT_RECEIVED,
+    actorId: input.uploadedByUserId,
+    actorName: stay.tenant.fullName ?? "Tenant",
+    subjectName: `Payment of ₹${input.amountPaid}`,
+    subjectId: payment.id,
+    subjectType: "Payment",
+    targetUrl: `/warden/onboards/${stay.id}`,
+  });
+
+  return payment;
 }
 
 export async function verifyPayment(
@@ -116,7 +133,7 @@ export async function verifyPayment(
 ) {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
-    include: { stay: true },
+    include: { stay: { include: { hostel: true, tenant: true } } },
   });
 
   if (!payment) {
@@ -208,6 +225,18 @@ export async function verifyPayment(
   if (result.activated) {
     generatePaymentReceipt(paymentId).catch((err) => {
       console.error(`[Receipt] Failed to generate receipt for payment ${paymentId}:`, err);
+    });
+
+    void logActivity({
+      organizationId: stay.hostel.organizationId,
+      hostelId: stay.hostelId,
+      eventType: ActivityEventType.TENANT_ONBOARDED,
+      actorId: verifiedByUserId,
+      actorName: "Warden",
+      subjectName: stay.tenant.fullName ?? "Tenant",
+      subjectId: stay.id,
+      subjectType: "Stay",
+      targetUrl: `/warden/onboards/${stay.id}`,
     });
   }
 

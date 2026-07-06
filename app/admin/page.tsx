@@ -12,13 +12,13 @@ import { ActionAlertsClient } from "@/components/dashboard/ActionAlertsClient";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { StatusListCard, StatusItem } from "@/components/dashboard/StatusListCard";
-import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { ActivityFeed } from "@/components/hostel-management/dashboard/ActivityFeed";
 import { TasksList } from "@/components/dashboard/TasksList";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  await requireRole([UserRole.MAIN_ADMIN]);
+  const session = await requireRole([UserRole.MAIN_ADMIN]);
   const stats = await getAdminPortfolioStats();
 
   const occupancyItems: StatusItem[] = [
@@ -102,7 +102,12 @@ export default async function AdminPage() {
 
         {/* Right Column (1/3) */}
         <div className="xl:col-span-1 h-full">
-          <ActivityFeed />
+          {session.user.organizationId ? (
+            <ActivityFeed 
+              role="MAIN_ADMIN" 
+              organizationId={session.user.organizationId} 
+            />
+          ) : null}
         </div>
       </div>
       </div>

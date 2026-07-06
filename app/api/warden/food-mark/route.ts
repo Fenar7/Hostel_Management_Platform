@@ -19,9 +19,6 @@ import { UserRole, StayStatus } from "@prisma/client";
  *   - breakfast?: boolean
  *   - lunch?:     boolean
  *   - dinner?:    boolean
- *   - tea?:       boolean
- *   - cutFruits?: boolean
- *   - gymDiet?:   boolean
  *
  * Access: WARDEN or MAIN_ADMIN
  */
@@ -37,9 +34,6 @@ export async function POST(request: NextRequest) {
       breakfast,
       lunch,
       dinner,
-      tea,
-      cutFruits,
-      gymDiet,
     } = body;
 
     if (!stayId || typeof stayId !== "string") {
@@ -51,10 +45,7 @@ export async function POST(request: NextRequest) {
     if (
       breakfast === undefined &&
       lunch === undefined &&
-      dinner === undefined &&
-      tea === undefined &&
-      cutFruits === undefined &&
-      gymDiet === undefined
+      dinner === undefined
     ) {
       throw new ValidationError("At least one meal field must be provided");
     }
@@ -92,17 +83,11 @@ export async function POST(request: NextRequest) {
         breakfast: breakfast ?? false,
         lunch: lunch ?? false,
         dinner: dinner ?? false,
-        tea: tea ?? false,
-        cutFruits: cutFruits ?? false,
-        gymDiet: gymDiet ?? false,
       },
       update: {
         ...(breakfast !== undefined && { breakfast }),
         ...(lunch !== undefined && { lunch }),
         ...(dinner !== undefined && { dinner }),
-        ...(tea !== undefined && { tea }),
-        ...(cutFruits !== undefined && { cutFruits }),
-        ...(gymDiet !== undefined && { gymDiet }),
       },
     });
 
@@ -113,9 +98,6 @@ export async function POST(request: NextRequest) {
         breakfast: updated.breakfast,
         lunch: updated.lunch,
         dinner: updated.dinner,
-        tea: updated.tea,
-        cutFruits: updated.cutFruits,
-        gymDiet: updated.gymDiet,
       },
     });
   } catch (error) {

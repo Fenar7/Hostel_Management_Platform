@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 import { createClient } from "@/lib/auth/server";
 import { z } from "zod";
 
@@ -125,6 +127,18 @@ export async function PATCH(req: Request) {
         }
       });
     }
+
+    void logActivity({
+      organizationId: user.organizationId,
+      hostelId: existingTicket.hostelId,
+      eventType: ActivityEventType.TICKET_STATUS_UPDATED,
+      actorId: user.id,
+      actorName: "Admin",
+      subjectName: ticket.title,
+      subjectId: ticket.id,
+      subjectType: "Ticket",
+      targetUrl: `/admin/complaints?ticketId=${ticket.id}`,
+    });
 
     return NextResponse.json(ticket);
   } catch (error) {

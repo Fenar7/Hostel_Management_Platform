@@ -191,6 +191,7 @@ export default function HostelWorklistsView({
       title="Worklists"
       subtitle="Action items requiring your attention"
       actions={Actions}
+      hideAdminNav={baseRoute === "/warden"}
     >
       <div className="w-full">
 
