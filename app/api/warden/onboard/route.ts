@@ -11,6 +11,8 @@ import { UserRole } from "@prisma/client";
 
 import { onboardSchema } from "@/lib/validation/onboarding";
 import { initiateOnboarding } from "@/services/onboarding/onboarding.service";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +47,18 @@ export async function POST(request: NextRequest) {
       securityDeposit: data.securityDeposit,
       foodCharges: data.foodCharges,
       discount: data.discount,
+    });
+
+    void logActivity({
+      organizationId: session.user.organizationId!,
+      hostelId: hostelId,
+      eventType: ActivityEventType.TENANT_ONBOARDING_STARTED,
+      actorId: session.user.id,
+      actorName: session.user.phone ?? "Admin",
+      subjectName: data.phone,
+      subjectId: result.stayId,
+      subjectType: "Stay",
+      targetUrl: `/warden/onboards/${result.stayId}`,
     });
 
     return NextResponse.json(result);

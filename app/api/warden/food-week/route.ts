@@ -67,9 +67,6 @@ export async function GET(request: NextRequest) {
             breakfast: true,
             lunch: true,
             dinner: true,
-            tea: true,
-            cutFruits: true,
-            gymDiet: true,
           },
         },
       },
@@ -143,9 +140,6 @@ export async function GET(request: NextRequest) {
           breakfast: order?.breakfast ?? false,
           lunch: order?.lunch ?? false,
           dinner: order?.dinner ?? false,
-          tea: order?.tea ?? false,
-          cutFruits: order?.cutFruits ?? false,
-          gymDiet: order?.gymDiet ?? false,
           hasOrder: !!order,
         };
       });
@@ -169,7 +163,6 @@ export async function GET(request: NextRequest) {
       breakfastCount: todayDay?.residents.filter((r) => r.breakfast).length ?? 0,
       lunchCount: todayDay?.residents.filter((r) => r.lunch).length ?? 0,
       dinnerCount: todayDay?.residents.filter((r) => r.dinner).length ?? 0,
-      teaCount: todayDay?.residents.filter((r) => r.tea).length ?? 0,
     };
 
     return NextResponse.json({

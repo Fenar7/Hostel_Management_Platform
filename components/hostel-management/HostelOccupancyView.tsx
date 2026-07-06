@@ -211,6 +211,7 @@ export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }:
       title="Hostel Occupancy"
       subtitle="View and manage room assignments"
       actions={Actions}
+      hideAdminNav={baseRoute === "/warden"}
     >
       <div className="w-full">
 

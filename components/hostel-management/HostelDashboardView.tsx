@@ -39,6 +39,13 @@ export default async function HostelDashboardView({
   }
   
   const stats = await getWardenHostelStats(hostelId);
+  
+  // We need organizationId for the ActivityFeed real-time channel
+  const hostel = await prisma.hostel.findUnique({
+    where: { id: hostelId },
+    select: { organizationId: true }
+  });
+  const organizationId = hostel?.organizationId;
 
   const occupancyItems: StatusItem[] = [
     { id: "1", label: "Bedspaces Available", value: stats.availableBeds, iconUrl: "/icons/available-stat-icon.png" },
@@ -79,6 +86,7 @@ export default async function HostelDashboardView({
       title="Dashboard"
       subtitle={dateStr}
       actions={Actions}
+      hideAdminNav={baseRoute === "/warden"}
     >
       <div className="space-y-8">
         <ActionAlertsClient role={userRole} />
@@ -139,7 +147,13 @@ export default async function HostelDashboardView({
 
           {/* Right Column (1/3) */}
           <div className="xl:col-span-1 h-full">
-            <ActivityFeed />
+            {organizationId ? (
+              <ActivityFeed 
+                role={userRole} 
+                hostelId={hostelId} 
+                organizationId={organizationId} 
+              />
+            ) : null}
           </div>
         </div>
       </div>

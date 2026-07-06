@@ -14,6 +14,7 @@ import {
   Utensils,
   Map,
   List,
+  Activity,
   ChevronLeft,
   Menu,
   LogOut,
@@ -72,6 +73,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Occupancy", href: "/warden/occupancy", icon: Map },
         { label: "Worklists", href: "/warden/worklists", icon: List },
         { label: "Notifications", href: "/admin/notifications", icon: Bell },
+        { label: "Activity Log", href: "/admin/activity", icon: Activity },
       ],
     },
   ],
@@ -88,6 +90,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Incidents", href: "/warden/worklists", icon: Shield }, // Placeholder
         { label: "House Keeping", href: "/warden/food", icon: Utensils }, // Placeholder
         { label: "Notifications", href: "/warden/notifications", icon: Bell }, 
+        { label: "Activity Log", href: "/warden/activity", icon: Activity },
       ],
     },
   ],

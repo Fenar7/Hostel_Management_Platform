@@ -1,76 +1,176 @@
-import { AlertTriangle } from "lucide-react";
-import Image from "next/image";
+"use client";
 
-export function ActivityFeed() {
+import { useEffect, useState } from "react";
+import { AlertTriangle, Activity as ActivityIcon } from "lucide-react";
+import { ActivityEventType, ActivityLog } from "@prisma/client";
+import { createClient } from "@/lib/auth/client";
+import { createActivityChannel } from "@/lib/realtime/activity-channel";
+import { useRouter } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
+
+interface ActivityFeedWidgetProps {
+  role: "MAIN_ADMIN" | "WARDEN";
+  hostelId?: string;
+  organizationId: string;
+}
+
+const EVENT_COLORS: Record<ActivityEventType, string> = {
+  TENANT_PAYMENT_RECEIVED: "#18b92b", // green
+  TENANT_ONBOARDED: "#285bc7", // blue
+  TENANT_ONBOARDING_STARTED: "#285bc7",
+  TICKET_RAISED: "#e23030", // red
+  TICKET_STATUS_UPDATED: "#e1a918", // amber
+  TICKET_COMMENT_ADDED: "#e1a918",
+  FOOD_ORDER_UPDATED: "#e1a918",
+  TENANT_CHECKED_OUT: "#767676", // gray
+  STAY_STATUS_CHANGED: "#767676",
+  SERVICE_REQUEST_CREATED: "#e1a918",
+  SERVICE_REQUEST_RESOLVED: "#18b92b",
+};
+
+export function ActivityFeed({ role, hostelId, organizationId }: ActivityFeedWidgetProps) {
+  const [items, setItems] = useState<ActivityLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const supabase = createClient();
+
+  useEffect(() => {
+    let mounted = true;
+    
+    // 1. Initial Fetch
+    const fetchInitial = async () => {
+      try {
+        const url = new URL(
+          role === "MAIN_ADMIN" ? "/api/admin/activity" : "/api/warden/activity",
+          window.location.origin
+        );
+        url.searchParams.set("take", "10"); // widget only shows latest 10
+        if (role === "MAIN_ADMIN" && hostelId) {
+          url.searchParams.set("hostelId", hostelId);
+        }
+
+        const res = await fetch(url.toString());
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted) {
+            // Ensure dates are parsed correctly
+            setItems(data.items.map((i: any) => ({ ...i, createdAt: new Date(i.createdAt) })));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch initial activity log", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchInitial();
+
+    // 2. Real-time Subscription
+    const channel = createActivityChannel(
+      supabase,
+      { organizationId, hostelId },
+      (newItem) => {
+        if (mounted) {
+          setItems((prev) => {
+            const exists = prev.some((i) => i.id === newItem.id);
+            if (exists) return prev;
+            return [newItem, ...prev].slice(0, 10);
+          });
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [role, hostelId, organizationId, supabase]);
+
+  const handleViewAll = () => {
+    const route = role === "MAIN_ADMIN" ? "/admin/activity" : "/warden/activity";
+    router.push(route);
+  };
+
   return (
-    <div className="premium-card p-6 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-[14px] font-bold text-black dark:text-white uppercase tracking-wider">Activity</h3>
-        <div className="flex gap-3">
-          <button className="text-[12px] font-semibold text-[#767676] hover:text-black dark:hover:text-white transition-colors uppercase tracking-wider">
+    <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 p-5 h-full flex flex-col min-h-[400px]">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[16px] font-semibold text-black dark:text-white">Activity</h3>
+        <div className="flex gap-2">
+          <button className="border border-[#dedede] text-black dark:text-white rounded-[4px] px-3 py-1.5 text-[13px] font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors">
             Filter
           </button>
-          <button className="text-[12px] font-semibold text-[#767676] hover:text-[#58ff48] transition-colors uppercase tracking-wider flex items-center gap-1">
-            View All <span className="text-[14px]">→</span>
+          <button 
+            onClick={handleViewAll}
+            className="bg-[#282828] text-[#58ff48] rounded-[4px] px-3 py-1.5 text-[13px] font-semibold hover:opacity-90 transition-opacity"
+          >
+            Know More
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col divide-y divide-[#dedede] dark:divide-white/10 flex-1">
-        <div className="py-4 first:pt-0 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-[#58ff48]"></span>
-            <h4 className="text-[13px] font-bold text-black dark:text-white tracking-tight">Jhon Doe Has Completed payment</h4>
+      <div className="flex flex-col flex-1 relative overflow-hidden">
+        {loading ? (
+          <div className="flex flex-col gap-4 animate-pulse">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col gap-2 py-2">
+                <div className="h-4 bg-black/5 dark:bg-white/10 rounded w-3/4"></div>
+                <div className="h-3 bg-black/5 dark:bg-white/10 rounded w-1/2"></div>
+              </div>
+            ))}
           </div>
-          <p className="text-[#767676] text-[13px] leading-snug font-medium pl-3.5">onboarding @ Jan 5 2026 to Mar 3 2026 | Floor 3 bed 22A</p>
-          <div className="flex items-center justify-between pl-3.5 mt-1">
-            <p className="text-[#a1a1a1] text-[12px] font-medium uppercase tracking-wider">Today 3:33 PM</p>
-            <span className="text-[#767676] text-[11px] font-bold uppercase tracking-wider border border-[#dedede] dark:border-white/10 px-2 py-0.5 rounded-sm">Report Issue</span>
+        ) : items.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-[#767676]">
+            <p className="text-[13px] font-medium">No activity yet</p>
           </div>
-        </div>
-
-        <div className="py-4 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-[#58ff48]"></span>
-            <h4 className="text-[13px] font-bold text-black dark:text-white tracking-tight">Jhon Doe Has Completed payment</h4>
+        ) : (
+          <div className="flex flex-col divide-y divide-[#f2f2f2] dark:divide-zinc-800 absolute inset-0 overflow-y-auto pr-2 custom-scrollbar">
+            {items.map((item) => (
+              <div 
+                key={item.id} 
+                className="py-3.5 first:pt-0 flex flex-col gap-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors -mx-2 px-2 rounded-[4px]"
+                onClick={() => item.targetUrl && router.push(item.targetUrl)}
+              >
+                <h4 
+                  className="text-[14px] font-semibold leading-snug"
+                  style={{ color: EVENT_COLORS[item.eventType] || "#767676" }}
+                >
+                  {item.actorName} {formatActionType(item.eventType)}
+                </h4>
+                
+                <p className="text-[#767676] text-[13px] leading-snug pl-0 line-clamp-2">
+                  {item.subjectName}
+                </p>
+                
+                <div className="flex items-center justify-between pl-0 mt-0.5">
+                  <p className="text-[#a1a1a1] text-[12px]">
+                    {formatDistanceToNow(item.createdAt, { addSuffix: true })}
+                  </p>
+                  {role === "MAIN_ADMIN" && (item as any).hostel?.name && (
+                    <span className="text-[#767676] text-[10px] font-bold uppercase tracking-wider border border-[#dedede] dark:border-white/10 px-1.5 py-0.5 rounded-sm">
+                      {(item as any).hostel.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="text-[#767676] text-[13px] leading-snug font-medium pl-3.5">onboarding @ Jan 5 2026 to Mar 3 2026 | Floor 3 bed 22A</p>
-          <div className="flex items-center justify-between pl-3.5 mt-1">
-            <p className="text-[#a1a1a1] text-[12px] font-medium uppercase tracking-wider">Today 3:33 PM</p>
-            <span className="text-red-500 text-[11px] font-bold uppercase tracking-wider border border-red-500/20 px-2 py-0.5 rounded-sm flex items-center gap-1">
-              <AlertTriangle className="size-3" /> Reported
-            </span>
-          </div>
-        </div>
-
-        <div className="py-4 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-blue-500"></span>
-            <h4 className="text-[13px] font-bold text-black dark:text-white tracking-tight">Alan has started filling the form</h4>
-          </div>
-          <p className="text-[#767676] text-[13px] leading-snug font-medium pl-3.5">User registered today has started filling the form now</p>
-          <p className="text-[#a1a1a1] text-[12px] font-medium uppercase tracking-wider pl-3.5 mt-1">Today 3:33 PM</p>
-        </div>
-
-        <div className="py-4 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-blue-500"></span>
-            <h4 className="text-[13px] font-bold text-black dark:text-white tracking-tight">Sarah has submitted the details</h4>
-          </div>
-          <p className="text-[#767676] text-[13px] leading-snug font-medium pl-3.5">Sarah has submitted the details and is waiting for payment link</p>
-          <p className="text-[#a1a1a1] text-[12px] font-medium uppercase tracking-wider pl-3.5 mt-1">Today 3:33 PM</p>
-        </div>
-
-        <div className="py-4 pb-0 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <span className="size-1.5 rounded-full bg-red-500"></span>
-            <h4 className="text-[13px] font-bold text-black dark:text-white tracking-tight">Sam has registered a complaint</h4>
-          </div>
-          <p className="text-[#767676] text-[13px] leading-snug font-medium pl-3.5">Sam has registered a new complaint about the facilities</p>
-          <p className="text-[#a1a1a1] text-[12px] font-medium uppercase tracking-wider pl-3.5 mt-1">Today 3:33 PM</p>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
+function formatActionType(type: ActivityEventType): string {
+  switch (type) {
+    case "TENANT_PAYMENT_RECEIVED": return "payment received";
+    case "TENANT_ONBOARDED": return "onboarded tenant";
+    case "TENANT_ONBOARDING_STARTED": return "started onboarding";
+    case "TENANT_CHECKED_OUT": return "checked out tenant";
+    case "TICKET_RAISED": return "raised ticket";
+    case "TICKET_STATUS_UPDATED": return "updated ticket status";
+    case "TICKET_COMMENT_ADDED": return "commented on ticket";
+    case "FOOD_ORDER_UPDATED": return "updated food order";
+    default: return type.replace(/_/g, " ").toLowerCase();
+  }
+}

@@ -8,6 +8,8 @@ import { rupeesToPaise } from "@/lib/money";
 import { diffInDays, isFutureDateIST } from "@/lib/dates";
 import { StayStatus, BedStatus, DocumentOwnerType, DocumentType } from "@prisma/client";
 import { generateRefundInvoice } from "@/services/pdf/refund-invoice.service";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 
 export interface EarlyCheckoutParams {
   stayId: string;
@@ -31,7 +33,7 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
 
   const stay = await prisma.stay.findUnique({ 
     where: { id: stayId },
-    include: { payments: true }
+    include: { payments: true, hostel: true, tenant: true }
   });
 
   if (!stay) {
@@ -127,6 +129,18 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
   // Failures are logged but do NOT affect the checkout result.
   generateRefundInvoice(refundInvoiceId).catch((err) => {
     console.error(`[RefundInvoice] Failed to generate PDF for refund ${refundInvoiceId}:`, err);
+  });
+
+  void logActivity({
+    organizationId: stay.hostel.organizationId,
+    hostelId: stay.hostelId,
+    eventType: ActivityEventType.TENANT_CHECKED_OUT,
+    actorId: userId,
+    actorName: "Warden",
+    subjectName: stay.tenant.fullName ?? "Tenant",
+    subjectId: stay.id,
+    subjectType: "Stay",
+    targetUrl: `/warden/onboards/${stay.id}`,
   });
 
   return { refundInvoiceId };

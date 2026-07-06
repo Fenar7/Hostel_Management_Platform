@@ -9,6 +9,7 @@ export function HostelWorkspaceLayout({
   subtitle,
   actions,
   children,
+  hideAdminNav,
 }: {
   hostelId: string;
   hostelName?: string;
@@ -16,6 +17,7 @@ export function HostelWorkspaceLayout({
   subtitle?: string | React.ReactNode;
   actions?: React.ReactNode;
   children: React.ReactNode;
+  hideAdminNav?: boolean;
 }) {
   return (
     <div className="flex flex-col bg-white dark:bg-black w-full min-h-full">
@@ -58,9 +60,11 @@ export function HostelWorkspaceLayout({
       </div>
 
       {/* Tabs Row */}
-      <div className="px-4 md:px-6 xl:px-8 border-b border-[#dedede] dark:border-white/10 shrink-0">
-        <AdminHostelNav hostelId={hostelId} />
-      </div>
+      {!hideAdminNav && (
+        <div className="px-4 md:px-6 xl:px-8 border-b border-[#dedede] dark:border-white/10 shrink-0">
+          <AdminHostelNav hostelId={hostelId} />
+        </div>
+      )}
 
       {/* Content */}
       <div className="w-full">

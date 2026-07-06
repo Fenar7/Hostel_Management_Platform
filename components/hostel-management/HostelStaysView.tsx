@@ -63,6 +63,7 @@ export default async function HostelStaysView({
       title="Stays Management"
       subtitle="Manage active and extended stays"
       actions={Actions}
+      hideAdminNav={baseRoute === "/warden"}
     >
       <div className="w-full overflow-x-auto bg-white dark:bg-[#0a0a0a] border border-[#dedede] dark:border-white/10 rounded-sm">
         <table className="premium-table">

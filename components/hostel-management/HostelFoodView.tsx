@@ -186,7 +186,7 @@ export default function HostelFoodView({
           breakfastCount: meal === "breakfast" ? todaySummary.breakfastCount + delta : todaySummary.breakfastCount,
           lunchCount: meal === "lunch" ? todaySummary.lunchCount + delta : todaySummary.lunchCount,
           dinnerCount: meal === "dinner" ? todaySummary.dinnerCount + delta : todaySummary.dinnerCount,
-          teaCount: meal === "tea" ? todaySummary.teaCount + delta : todaySummary.teaCount,
+          teaCount: meal === "tea" ? (todaySummary.teaCount || 0) + delta : (todaySummary.teaCount || 0),
         };
       }
       return { ...prev, weekDays: newDays, todaySummary };
@@ -276,6 +276,7 @@ export default function HostelFoodView({
       title="Food Dashboard"
       subtitle={formatHeaderDate()}
       actions={Actions}
+      hideAdminNav={baseRoute === "/warden"}
     >
       <div className="w-full">
 
@@ -428,10 +429,15 @@ export default function HostelFoodView({
                               return (
                                 <td key={col.key} className="py-[14px] text-center align-top pt-[16px]">
                                   <button
-                                    onClick={() =>
-                                      !hasNoPlan &&
-                                      handleToggle(r.stayId, day.date, col.key, val)
-                                    }
+                                    onClick={() => {
+                                      if (col.key === "tea" || col.key === "cutFruits" || col.key === "gymDiet") {
+                                        notify.info("Feature coming soon!");
+                                        return;
+                                      }
+                                      if (!hasNoPlan) {
+                                        handleToggle(r.stayId, day.date, col.key, val);
+                                      }
+                                    }}
                                     disabled={hasNoPlan || isProcessing}
                                     className={cn(
                                       "size-[18px] rounded-[4px] border flex items-center justify-center mx-auto transition-all duration-200",

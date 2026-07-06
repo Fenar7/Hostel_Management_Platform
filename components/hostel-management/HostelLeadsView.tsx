@@ -261,6 +261,7 @@ export default function HostelLeadsView({ hostelId, hostelName, baseRoute }: { h
       title="Hostel Leads"
       subtitle="Track and manage prospective tenants"
       actions={Actions}
+      hideAdminNav={baseRoute === "/warden"}
     >
       <div className="w-full">
         {loading ? (

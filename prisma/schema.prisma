@@ -42,6 +42,7 @@ model User {
   leadNotes         LeadNote[]
   notifications     Notification[]
   ticketComments    TicketComment[]
+  activityLogsActed ActivityLog[]     @relation("ActivityActor")
 
   @@index([organizationId])
 }
@@ -124,6 +125,7 @@ model Hostel {
   leads              Lead[]
   onboardingRequests OnboardingRequest[]
   tickets            Ticket[]
+  activityLogs       ActivityLog[]
 
   @@index([organizationId])
 }
@@ -496,9 +498,10 @@ model Organization {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  hostels Hostel[]
-  users   User[]
-  leads   Lead[]
+  hostels      Hostel[]
+  users        User[]
+  leads        Lead[]
+  activityLogs ActivityLog[]
 }
 
 // ==========================================
@@ -613,4 +616,50 @@ model TicketComment {
   message    String
   isInternal Boolean  @default(false)
   createdAt  DateTime @default(now())
+}
+
+// ==========================================
+// Activity Logging System
+// ==========================================
+
+enum ActivityEventType {
+  // Stay Lifecycle
+  TENANT_ONBOARDING_STARTED
+  TENANT_ONBOARDED
+  TENANT_PAYMENT_RECEIVED
+  TENANT_CHECKED_OUT
+  STAY_STATUS_CHANGED
+
+  // Tickets
+  TICKET_RAISED
+  TICKET_STATUS_UPDATED
+  TICKET_COMMENT_ADDED
+
+  // Food
+  FOOD_ORDER_UPDATED
+
+  // Service Requests
+  SERVICE_REQUEST_CREATED
+  SERVICE_REQUEST_RESOLVED
+}
+
+model ActivityLog {
+  id             String            @id @default(uuid())
+  organizationId String
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  hostelId       String?
+  hostel         Hostel?           @relation(fields: [hostelId], references: [id], onDelete: SetNull)
+  eventType      ActivityEventType
+  actorId        String?
+  actor          User?             @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorName      String            // denormalized
+  subjectName    String            // denormalized
+  subjectId      String?
+  subjectType    String?           // "Stay" | "Ticket" | "Payment" | "FoodOrder"
+  metadata       Json?
+  targetUrl      String?
+  createdAt      DateTime          @default(now())
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([hostelId, createdAt(sort: Desc)])
 }
