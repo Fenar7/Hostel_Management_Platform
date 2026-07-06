@@ -64,16 +64,16 @@ export default function WardenTicketsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-black dark:text-white">Hostel Complaints</h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Manage and resolve issues reported by tenants in your hostel.</p>
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">Hostel Complaints</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage and resolve issues reported by tenants in your hostel.</p>
           </div>
           
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Filter:</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wider">Status</span>
             <select 
               value={filter}
               onChange={e => setFilter(e.target.value)}
-              className="h-10 px-4 rounded-xl bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 font-bold text-sm outline-none appearance-none cursor-pointer"
+              className="h-10 px-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 font-medium text-[14px] text-gray-900 dark:text-white outline-none cursor-pointer min-w-[140px]"
             >
               <option value="ALL">All Tickets</option>
               <option value="OPEN">Open</option>
@@ -90,11 +90,11 @@ export default function WardenTicketsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Tenant</th>
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Issue</th>
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Priority</th>
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Created</th>
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Status & Actions</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Tenant</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Issue</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Priority</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Status & Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -113,22 +113,22 @@ export default function WardenTicketsPage() {
                   </tr>
                 ) : (
                   tickets.map(ticket => (
-                    <tr key={ticket.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                    <tr key={ticket.id} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                       <td className="px-6 py-4">
-                        <div className="font-bold text-gray-900 dark:text-white">{ticket.tenant.fullName}</div>
-                        <div className="text-sm text-gray-500">{ticket.tenant.user?.phone}</div>
+                        <div className="font-medium text-[14px] text-gray-900 dark:text-white">{ticket.tenant.fullName}</div>
+                        <div className="text-[13px] text-gray-500 mt-0.5">{ticket.tenant.user?.phone}</div>
                       </td>
                       <td className="px-6 py-4 max-w-[300px]">
-                        <div className="font-bold text-gray-900 dark:text-white truncate">{ticket.title}</div>
-                        <div className="text-sm text-gray-500 truncate">{ticket.description}</div>
-                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1">{ticket.category}</div>
+                        <div className="font-medium text-[14px] text-gray-900 dark:text-white truncate">{ticket.title}</div>
+                        <div className="text-[13px] text-gray-500 truncate mt-0.5">{ticket.description}</div>
+                        <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mt-1.5">{ticket.category}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`text-[12px] font-bold uppercase tracking-wider ${ticket.priority === 'CRITICAL' ? 'text-red-500' : ticket.priority === 'HIGH' ? 'text-orange-500' : 'text-gray-500'}`}>
+                        <span className={`text-[12px] font-semibold uppercase tracking-wider ${ticket.priority === 'CRITICAL' ? 'text-red-500' : ticket.priority === 'HIGH' ? 'text-orange-500' : 'text-gray-500'}`}>
                           {ticket.priority}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-500">
+                      <td className="px-6 py-4 text-[14px] text-gray-500">
                         {new Date(ticket.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
@@ -137,7 +137,7 @@ export default function WardenTicketsPage() {
                             value={ticket.status}
                             onChange={(e) => updateStatus(ticket.id, e.target.value)}
                             disabled={updatingId === ticket.id}
-                            className={`appearance-none px-4 py-2 pr-8 rounded-full text-[12px] font-bold uppercase tracking-wider border outline-none cursor-pointer disabled:opacity-50 transition-colors ${getStatusBadge(ticket.status)}`}
+                            className={`appearance-none px-4 py-2 pr-8 rounded-full text-[12px] font-semibold uppercase tracking-wider border outline-none cursor-pointer disabled:opacity-50 transition-colors ${getStatusBadge(ticket.status)}`}
                           >
                             <option value="OPEN">Open</option>
                             <option value="IN_PROGRESS">In Progress</option>

@@ -12,7 +12,7 @@ const ROLE_HIERARCHY: Record<string, UserRole> = {
   "/api/tenant": UserRole.TENANT,
 };
 
-const PUBLIC_ROUTES = ["/login", "/set-password"];
+const PUBLIC_ROUTES = ["/login", "/admin-login", "/set-password"];
 
 function getRequiredRole(pathname: string): UserRole | null {
   for (const [prefix, role] of Object.entries(ROLE_HIERARCHY)) {
@@ -67,7 +67,9 @@ function updateSession(request: NextRequest) {
 }
 
 function redirectToLogin(request: NextRequest): NextResponse {
-  const loginUrl = new URL("/login", request.url);
+  const isStaffRoute = request.nextUrl.pathname.startsWith("/admin") || request.nextUrl.pathname.startsWith("/warden");
+  const loginPath = isStaffRoute ? "/admin-login" : "/login";
+  const loginUrl = new URL(loginPath, request.url);
   loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
   const response = NextResponse.redirect(loginUrl);
   // Clear the remember_me cookie. We rely on the /login page mounting to call supabase.auth.signOut() to clear the chunked session cookies properly.

@@ -6,7 +6,7 @@ import {
   UtensilsCrossed, CreditCard, ChevronRight, CheckCircle2,
   XCircle, Clock, ArrowUpRight, LogOut, Utensils,
   MapPin, BedSingle, Search, Bell, Settings, User as UserIcon,
-  Home, Wallet
+  Home, Wallet, UploadCloud, Image as ImageIcon
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -108,9 +108,10 @@ export default function TenantDashboardPage() {
   const [nextDueDate, setNextDueDate] = useState<string | null>(null);
   const [pendingServiceRequests, setPendingServiceRequests] = useState<ServiceRequestItem[]>([]);
   const [paymentConfig, setHostelPaymentConfig] = useState<import("@prisma/client").HostelPaymentConfig | null>(null);
-  
   const [uploadAmount, setUploadAmount] = useState("");
-  const [uploadRef, setUploadRef] = useState("");
+  const [paymentMode, setPaymentMode] = useState<"UPI" | "CASH">("UPI");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "payments" | "profile">("overview");
 
@@ -146,17 +147,29 @@ export default function TenantDashboardPage() {
   const handleUploadPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stay) return;
+    if (paymentMode === "UPI" && !uploadFile) {
+      notify.error("Please upload a payment screenshot");
+      return;
+    }
     setUploading(true);
     try {
-      const paise = Math.round(parseFloat(uploadAmount) * 100);
-      if (isNaN(paise) || paise <= 0) throw new Error("Enter a valid amount.");
-      const r = await fetch("/api/tenant/payment", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stayId: stay.id, amountPaidPaise: paise, paymentMode: "UPI", transactionRefNo: uploadRef.trim() || null }),
+      const amountNum = parseFloat(uploadAmount);
+      if (isNaN(amountNum) || amountNum <= 0) throw new Error("Enter a valid amount.");
+      
+      const formData = new FormData();
+      formData.append("amountPaid", uploadAmount);
+      formData.append("paymentMode", paymentMode);
+      if (paymentMode === "UPI" && uploadFile) {
+        formData.append("screenshot", uploadFile);
+      }
+      
+      const r = await fetch("/api/tenant/payment/screenshot", {
+        method: "POST",
+        body: formData,
       });
-      if (!r.ok) { const e = await r.json(); throw new Error(e.error || "Failed"); }
-      notify.success("Payment submitted for verification");
-      setUploadAmount(""); setUploadRef(""); load();
+      if (!r.ok) { const err = await r.json(); throw new Error(err.error || "Failed"); }
+      notify.success(paymentMode === "UPI" ? "Payment submitted for verification" : "Cash payment reported to Warden");
+      setUploadAmount(""); setUploadFile(null); setPreviewUrl(null); load();
     } catch (err) { notify.error(err instanceof Error ? err.message : "Error"); }
     finally { setUploading(false); }
   };
@@ -353,37 +366,121 @@ export default function TenantDashboardPage() {
         {activeTab === "payments" && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            {/* Balance Target Card */}
-            <SoftCard className="bg-[#111111] dark:bg-white border-0 text-white dark:text-black">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <p className="text-white/60 dark:text-black/50 font-medium mb-1">Balance Due</p>
-                  <h2 className="text-4xl font-black">{formatCurrency(remaining)}</h2>
-                </div>
-                {remaining > 0 && <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">PENDING</span>}
-              </div>
+            {/* Balance Overview */}
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 dark:from-green-600 dark:to-emerald-900 rounded-[32px] p-8 text-white shadow-xl shadow-green-500/20 relative overflow-hidden">
+              {/* Decorative background shapes */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-black opacity-10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4"></div>
               
-              {remaining > 0 && (
-                <div className="bg-white/10 dark:bg-black/5 p-5 rounded-[20px] mt-6">
-                  <h3 className="font-bold mb-4 text-[15px]">Submit Payment</h3>
-                  <form onSubmit={handleUploadPayment} className="space-y-4">
-                    <input
-                      type="number" required min="1" value={uploadAmount} onChange={e => setUploadAmount(e.target.value)}
-                      className="w-full h-14 px-5 bg-white dark:bg-white rounded-full text-[16px] font-bold text-black placeholder:text-gray-400 focus:outline-none shadow-inner"
-                      placeholder="Amount (₹)"
-                    />
-                    <input
-                      type="text" required value={uploadRef} onChange={e => setUploadRef(e.target.value)}
-                      className="w-full h-14 px-5 bg-white dark:bg-white rounded-full text-[16px] font-bold text-black placeholder:text-gray-400 focus:outline-none shadow-inner"
-                      placeholder="Reference Number (UTR)"
-                    />
-                    <PillButton type="submit" disabled={uploading} className="bg-white dark:bg-black text-black dark:text-white mt-2">
-                      {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Details"}
-                    </PillButton>
-                  </form>
+              <div className="relative z-10 flex justify-between items-start mb-2">
+                <div>
+                  <p className="text-white/80 font-bold text-[14px] uppercase tracking-wider mb-1">Balance Due</p>
+                  <h2 className="text-5xl font-black tracking-tight">{formatCurrency(remaining)}</h2>
                 </div>
-              )}
-            </SoftCard>
+                {remaining > 0 && <span className="bg-white text-green-600 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-widest shadow-sm">PENDING</span>}
+              </div>
+            </div>
+
+            {remaining > 0 && (
+              <div className="bg-white dark:bg-[#111111] p-6 sm:p-8 rounded-[32px] shadow-sm border border-gray-100 dark:border-white/5">
+                <h3 className="font-bold text-[18px] mb-6 flex items-center gap-2">
+                  <UploadCloud className="w-5 h-5 text-green-500" />
+                  Submit Payment Proof
+                </h3>
+                
+                  <form onSubmit={handleUploadPayment} className="space-y-5">
+                    {/* Payment Mode Toggle */}
+                    <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMode("UPI")}
+                        className={`flex-1 py-2 text-[14px] font-bold rounded-lg transition-all ${
+                          paymentMode === "UPI"
+                            ? "bg-white dark:bg-[#1A1A1A] text-black dark:text-white shadow-sm"
+                            : "text-gray-500 hover:text-black dark:hover:text-white"
+                        }`}
+                      >
+                        Online (UPI)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMode("CASH")}
+                        className={`flex-1 py-2 text-[14px] font-bold rounded-lg transition-all ${
+                          paymentMode === "CASH"
+                            ? "bg-white dark:bg-[#1A1A1A] text-black dark:text-white shadow-sm"
+                            : "text-gray-500 hover:text-black dark:hover:text-white"
+                        }`}
+                      >
+                        Cash to Warden
+                      </button>
+                    </div>
+
+                    {paymentMode === "UPI" ? (
+                      /* Image Upload Area */
+                      <div className="relative border-2 border-dashed border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-[24px] p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors overflow-hidden group">
+                        <input 
+                          type="file" 
+                          accept="image/png, image/jpeg" 
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setUploadFile(file);
+                              setPreviewUrl(URL.createObjectURL(file));
+                            }
+                          }}
+                        />
+                        {previewUrl ? (
+                          <div className="relative w-full h-48 rounded-2xl overflow-hidden">
+                            <img src={previewUrl} className="w-full h-full object-cover" alt="Payment Proof Preview" />
+                            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <UploadCloud className="w-10 h-10 text-white mb-2" />
+                              <span className="text-white font-bold text-[15px]">Change Screenshot</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="py-6">
+                            <div className="w-16 h-16 rounded-full bg-white dark:bg-white/10 shadow-sm flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                              <ImageIcon className="w-7 h-7 text-green-500 dark:text-green-400" />
+                            </div>
+                            <p className="font-bold text-[16px] text-gray-900 dark:text-white">Upload Screenshot</p>
+                            <p className="text-[14px] text-gray-500 dark:text-white/60 mt-1">Tap to browse (JPG, PNG)</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-orange-50 dark:bg-orange-900/20 p-5 rounded-[20px] border border-orange-100 dark:border-orange-900/30 text-center">
+                        <AlertCircle className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+                        <p className="text-[14px] text-orange-800 dark:text-orange-300 font-medium">
+                          Please hand over the exact cash amount directly to your warden. They will verify and approve this payment manually.
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-[13px] font-bold text-gray-500 dark:text-white/50 mb-1.5 ml-2">Amount Paid</label>
+                      <input
+                        type="number" required min="1" value={uploadAmount} onChange={e => setUploadAmount(e.target.value)}
+                        className="w-full h-14 px-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl text-[16px] font-bold text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                        placeholder="e.g. 15000"
+                      />
+                    </div>
+                    
+                    <button 
+                      type="submit" 
+                      disabled={uploading || (paymentMode === "UPI" && !uploadFile)} 
+                      className={`mt-4 w-full h-14 rounded-2xl font-bold text-[16px] flex items-center justify-center gap-2 transition-all shadow-xl
+                        ${(uploading || (paymentMode === "UPI" && !uploadFile)) 
+                          ? "bg-gray-100 dark:bg-white/10 text-gray-400 dark:text-white/30 shadow-none cursor-not-allowed" 
+                          : "bg-[#111111] dark:bg-white text-white dark:text-black hover:scale-[1.02] active:scale-[0.98] shadow-black/10 dark:shadow-white/10"
+                        }
+                      `}
+                    >
+                      {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Payment Details"}
+                    </button>
+                  </form>
+              </div>
+            )}
 
             <div>
               <div className="flex justify-between items-center mb-4 px-2">

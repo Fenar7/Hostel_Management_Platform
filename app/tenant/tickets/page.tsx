@@ -88,7 +88,7 @@ export default function TenantTicketsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#050505] p-6 lg:p-8 font-sans">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#050505] p-6 lg:p-8 pb-32 font-sans">
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* App-style Top Bar */}
@@ -104,12 +104,7 @@ export default function TenantTicketsPage() {
             Help & Support
           </h1>
 
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-transparent border border-gray-200 dark:border-white/10 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors z-10"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          <div className="w-10 h-10" />
         </div>
         
         <p className="text-[13px] text-gray-500 font-medium text-center mb-8 px-4">
@@ -156,6 +151,17 @@ export default function TenantTicketsPage() {
           </div>
         )}
 
+      </div>
+
+      {/* Sticky Bottom Action */}
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white dark:from-[#050505] dark:via-[#050505] to-transparent z-40">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="w-full h-14 rounded-2xl font-bold text-[16px] bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-gray-100 flex items-center justify-center gap-2 transition-transform active:scale-[0.98] shadow-xl shadow-black/10 dark:shadow-white/10"
+        >
+          <Plus className="w-5 h-5" />
+          Raise Ticket
+        </button>
       </div>
 
       {/* Modal */}

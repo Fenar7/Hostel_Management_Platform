@@ -4,14 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+
 import { Textarea } from "@/components/ui/textarea";
 import {
   Bell,
@@ -362,75 +355,79 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
         </div>
       )}
 
-      {/* ── Notification Detail Modal ── */}
-      <Dialog open={!!selectedNotification} onOpenChange={(open) => !open && setSelectedNotification(null)}>
-        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-0 shadow-2xl rounded-3xl">
-          <div className="px-6 pt-8 pb-6 bg-white">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shrink-0">
-                {selectedNotification && getNotificationIcon(selectedNotification.type)}
+      {/* Custom Modal Overlay */}
+      {selectedNotification && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedNotification(null)}>
+          <div 
+            className="w-full max-w-[480px] bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 pt-8 pb-6 bg-white">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 shrink-0">
+                  {getNotificationIcon(selectedNotification.type)}
+                </div>
+                <div className="pt-1">
+                  <h2 className="text-xl font-bold text-gray-900 tracking-tight leading-tight">
+                    {selectedNotification.title}
+                  </h2>
+                  <p className="mt-1.5 text-sm font-medium text-gray-500">
+                    {new Date(selectedNotification.createdAt).toLocaleString("en-IN", {
+                      day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+                    })}
+                  </p>
+                </div>
               </div>
-              <div className="pt-1">
-                <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight leading-tight">
-                  {selectedNotification?.title}
-                </DialogTitle>
-                <DialogDescription className="mt-1.5 text-sm font-medium text-gray-500">
-                  {selectedNotification && new Date(selectedNotification.createdAt).toLocaleString("en-IN", {
-                    day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
-                  })}
-                </DialogDescription>
+              
+              <div className="mt-6 text-[15px] leading-relaxed text-gray-700 bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                {selectedNotification.message}
               </div>
-            </div>
-            
-            <div className="mt-6 text-[15px] leading-relaxed text-gray-700 bg-gray-50 p-5 rounded-2xl border border-gray-100">
-              {selectedNotification?.message}
-            </div>
 
-            {/* If it's a TICKET and has referenceId, show "Add Note" flow */}
-            {selectedNotification?.type === "TICKET" && selectedNotification.referenceId && (
-              <div className="mt-6 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-900">Add a note to this ticket</h4>
-                <Textarea 
-                  placeholder="Type your comment or update here..."
-                  className="min-h-[100px] resize-none rounded-xl border-gray-200 focus-visible:ring-blue-500 text-sm"
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                />
-              </div>
-            )}
-          </div>
-          
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
-            <Button variant="ghost" className="rounded-xl text-gray-500 hover:text-gray-700" onClick={() => setSelectedNotification(null)}>
-              Close
-            </Button>
-            <div className="flex items-center gap-2">
-              {selectedNotification?.type === "TICKET" && selectedNotification.referenceId && (
-                <>
-                  <Button 
-                    variant="outline" 
-                    className="rounded-xl bg-white border-gray-200 shadow-sm"
-                    onClick={() => {
-                      setSelectedNotification(null);
-                      router.push(getTicketLink());
-                    }}
-                  >
-                    View Ticket
-                  </Button>
-                  <Button 
-                    onClick={handleAddNote}
-                    disabled={!noteText.trim() || submittingNote}
-                    className="rounded-xl shadow-sm bg-gray-900 hover:bg-gray-800 text-white"
-                  >
-                    {submittingNote ? <Loader2 className="size-4 animate-spin mr-2" /> : <MessageSquare className="size-4 mr-2" />}
-                    Add Note
-                  </Button>
-                </>
+              {selectedNotification.type === "TICKET" && selectedNotification.referenceId && (
+                <div className="mt-6 space-y-3">
+                  <h4 className="text-sm font-semibold text-gray-900">Add a note to this ticket</h4>
+                  <Textarea 
+                    placeholder="Type your comment or update here..."
+                    className="min-h-[100px] resize-none rounded-xl border-gray-200 focus-visible:ring-blue-500 text-sm"
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                  />
+                </div>
               )}
             </div>
+            
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
+              <Button variant="ghost" className="rounded-xl text-gray-500 hover:text-gray-700" onClick={() => setSelectedNotification(null)}>
+                Close
+              </Button>
+              <div className="flex items-center gap-2">
+                {selectedNotification.type === "TICKET" && selectedNotification.referenceId && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      className="rounded-xl bg-white border-gray-200 shadow-sm"
+                      onClick={() => {
+                        setSelectedNotification(null);
+                        router.push(getTicketLink());
+                      }}
+                    >
+                      View Ticket
+                    </Button>
+                    <Button 
+                      onClick={handleAddNote}
+                      disabled={!noteText.trim() || submittingNote}
+                      className="rounded-xl shadow-sm bg-gray-900 hover:bg-gray-800 text-white"
+                    >
+                      {submittingNote ? <Loader2 className="size-4 animate-spin mr-2" /> : <MessageSquare className="size-4 mr-2" />}
+                      Add Note
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
     </div>
   );

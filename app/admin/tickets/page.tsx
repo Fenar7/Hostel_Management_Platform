@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, ChevronDown } from "lucide-react";
 import { notify } from "@/lib/toast";
+import { TicketDetailsSheet } from "@/components/tickets/TicketDetailsSheet";
 
 export default function AdminTicketsPage() {
   const [tickets, setTickets] = useState<any[]>([]);
@@ -11,6 +12,10 @@ export default function AdminTicketsPage() {
   const [filter, setFilter] = useState("ALL");
   const [hostelFilter, setHostelFilter] = useState("ALL");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  
+  // Sheet state
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     fetchHostels();
@@ -22,7 +27,7 @@ export default function AdminTicketsPage() {
 
   const fetchHostels = async () => {
     try {
-      const res = await fetch("/api/admin/hostels"); // Assuming this endpoint exists, if not we fall back
+      const res = await fetch("/api/admin/hostels");
       if (res.ok) {
         const data = await res.json();
         setHostels(data);
@@ -46,7 +51,8 @@ export default function AdminTicketsPage() {
     }
   };
 
-  const updateStatus = async (id: string, newStatus: string) => {
+  const updateStatus = async (id: string, newStatus: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setUpdatingId(id);
     try {
       const res = await fetch("/api/admin/tickets", {
@@ -58,6 +64,11 @@ export default function AdminTicketsPage() {
       
       notify.success("Status updated");
       setTickets(tickets.map(t => t.id === id ? { ...t, status: newStatus } : t));
+      
+      // Update selected ticket if it's the one currently open
+      if (selectedTicket?.id === id) {
+        setSelectedTicket({ ...selectedTicket, status: newStatus });
+      }
     } catch (error) {
       notify.error("Update failed");
     } finally {
@@ -75,6 +86,11 @@ export default function AdminTicketsPage() {
     return styles[status] || styles.OPEN;
   };
 
+  const handleRowClick = (ticket: any) => {
+    setSelectedTicket(ticket);
+    setSheetOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#050505] p-6 lg:p-8 font-sans">
       <div className="max-w-[1400px] mx-auto space-y-8">
@@ -82,18 +98,18 @@ export default function AdminTicketsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-black dark:text-white">Global Ticketing System</h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Monitor and manage all tenant complaints across every hostel.</p>
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">Global Ticketing System</h1>
+            <p className="text-sm text-gray-500 mt-1">Monitor and manage all tenant complaints across every hostel.</p>
           </div>
           
           <div className="flex flex-wrap items-center gap-4">
             {hostels.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Hostel:</span>
+              <div className="flex items-center gap-3">
+                <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wider">Hostel</span>
                 <select 
                   value={hostelFilter}
                   onChange={e => setHostelFilter(e.target.value)}
-                  className="h-10 px-4 rounded-xl bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 font-bold text-sm outline-none appearance-none cursor-pointer max-w-[200px] truncate"
+                  className="h-10 px-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 font-medium text-[14px] text-gray-900 dark:text-white outline-none cursor-pointer min-w-[160px]"
                 >
                   <option value="ALL">All Hostels</option>
                   {hostels.map(h => (
@@ -103,12 +119,12 @@ export default function AdminTicketsPage() {
               </div>
             )}
             
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Status:</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[13px] font-semibold text-gray-500 uppercase tracking-wider">Status</span>
               <select 
                 value={filter}
                 onChange={e => setFilter(e.target.value)}
-                className="h-10 px-4 rounded-xl bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 font-bold text-sm outline-none appearance-none cursor-pointer"
+                className="h-10 px-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 font-medium text-[14px] text-gray-900 dark:text-white outline-none cursor-pointer min-w-[140px]"
               >
                 <option value="ALL">All Tickets</option>
                 <option value="OPEN">Open</option>
@@ -126,12 +142,12 @@ export default function AdminTicketsPage() {
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Hostel</th>
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Tenant</th>
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Issue</th>
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Priority</th>
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Created</th>
-                  <th className="px-6 py-4 text-[12px] font-bold text-gray-400 uppercase tracking-wider">Status & Actions</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Hostel</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Tenant</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Issue</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Priority</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-4 text-[12px] font-semibold text-gray-500 uppercase tracking-wider">Status & Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/5">
@@ -150,32 +166,38 @@ export default function AdminTicketsPage() {
                   </tr>
                 ) : (
                   tickets.map(ticket => (
-                    <tr key={ticket.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                    <tr 
+                      key={ticket.id} 
+                      onClick={() => handleRowClick(ticket)}
+                      className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                    >
                       <td className="px-6 py-4">
-                        <div className="font-bold text-gray-900 dark:text-white">{ticket.hostel.name}</div>
+                        <div className="font-medium text-[14px] text-gray-900 dark:text-white">{ticket.hostel.name}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-bold text-gray-900 dark:text-white">{ticket.tenant.fullName}</div>
+                        <div className="font-medium text-[14px] text-gray-900 dark:text-white">{ticket.tenant.fullName}</div>
+                        <div className="text-[13px] text-gray-500 mt-0.5">{ticket.tenant.user?.phone}</div>
                       </td>
                       <td className="px-6 py-4 max-w-[300px]">
-                        <div className="font-bold text-gray-900 dark:text-white truncate">{ticket.title}</div>
-                        <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1">{ticket.category}</div>
+                        <div className="font-medium text-[14px] text-gray-900 dark:text-white truncate">{ticket.title}</div>
+                        <div className="text-[13px] text-gray-500 truncate mt-0.5">{ticket.description}</div>
+                        <div className="text-[11px] font-medium text-gray-400 uppercase tracking-wider mt-1.5">{ticket.category}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`text-[12px] font-bold uppercase tracking-wider ${ticket.priority === 'CRITICAL' ? 'text-red-500' : ticket.priority === 'HIGH' ? 'text-orange-500' : 'text-gray-500'}`}>
+                        <span className={`text-[12px] font-semibold uppercase tracking-wider ${ticket.priority === 'CRITICAL' ? 'text-red-500' : ticket.priority === 'HIGH' ? 'text-orange-500' : 'text-gray-500'}`}>
                           {ticket.priority}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-500">
+                      <td className="px-6 py-4 text-[14px] text-gray-500">
                         {new Date(ticket.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="relative inline-block">
+                        <div className="relative inline-block" onClick={e => e.stopPropagation()}>
                           <select 
                             value={ticket.status}
-                            onChange={(e) => updateStatus(ticket.id, e.target.value)}
+                            onChange={(e) => updateStatus(ticket.id, e.target.value, e as any)}
                             disabled={updatingId === ticket.id}
-                            className={`appearance-none px-4 py-2 pr-8 rounded-full text-[12px] font-bold uppercase tracking-wider border outline-none cursor-pointer disabled:opacity-50 transition-colors ${getStatusBadge(ticket.status)}`}
+                            className={`appearance-none px-4 py-2 pr-8 rounded-full text-[12px] font-semibold uppercase tracking-wider border outline-none cursor-pointer disabled:opacity-50 transition-colors ${getStatusBadge(ticket.status)}`}
                           >
                             <option value="OPEN">Open</option>
                             <option value="IN_PROGRESS">In Progress</option>
@@ -196,6 +218,12 @@ export default function AdminTicketsPage() {
           </div>
         </div>
       </div>
+      
+      <TicketDetailsSheet 
+        ticket={selectedTicket} 
+        open={sheetOpen} 
+        onOpenChange={setSheetOpen} 
+      />
     </div>
   );
 }

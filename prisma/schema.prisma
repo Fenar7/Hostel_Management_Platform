@@ -547,6 +547,7 @@ model Notification {
   title              String
   message            String
   type               String   // e.g. "FOOD_PLAN", "PAYMENT", "ONBOARDING", "TICKET"
+  targetUrl          String?  // the URL to navigate to when the notification is clicked
   referenceId        String?  // ID of the related entity (e.g. Ticket ID)
   read               Boolean  @default(false)
   dismissedFromHome  Boolean  @default(false)
