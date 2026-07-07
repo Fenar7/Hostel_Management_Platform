@@ -217,8 +217,8 @@ export class FoodBalanceService {
     const now = new Date();
     // Offset for IST (UTC+5:30)
     const nowIST = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-    const startOfMonth = new Date(nowIST.getFullYear(), nowIST.getMonth(), 1);
-    const endOfMonth = new Date(nowIST.getFullYear(), nowIST.getMonth() + 1, 0);
+    const startOfMonth = new Date(Date.UTC(nowIST.getUTCFullYear(), nowIST.getUTCMonth(), 1));
+    const endOfMonth = new Date(Date.UTC(nowIST.getUTCFullYear(), nowIST.getUTCMonth() + 1, 0, 23, 59, 59, 999));
 
     return {
       hostelId,

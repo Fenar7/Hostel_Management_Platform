@@ -79,6 +79,7 @@ export default function FoodFinanceDashboard({ hostelId }: { hostelId: string })
           stayId,
           amountPaise: amount * 100,
           paymentMode: "CASH",
+          idempotencyKey: crypto.randomUUID(),
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error || "Failed to record top-up");

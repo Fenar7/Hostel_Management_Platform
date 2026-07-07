@@ -12,6 +12,7 @@ const postSchema = z.object({
   paymentMode: z.nativeEnum(PaymentMode),
   transactionRef: z.string().optional(),
   reason: z.string().optional(),
+  idempotencyKey: z.string(),
 });
 
 export async function POST(request: NextRequest) {
@@ -41,21 +42,44 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("No open billing cycle found for this tenant. Cannot record top-up.");
     }
 
-    const topUp = await prisma.foodWalletTopUp.create({
-      data: {
-        stayId: stay.id,
-        cycleId: activeCycle.id,
-        amountPaise: data.amountPaise,
-        paymentMode: data.paymentMode,
-        transactionRef: data.transactionRef,
-        reason: data.reason,
-        status: TopUpStatus.APPROVED, // Direct top-ups by warden are pre-approved
-        approvedByUserId: session.user.id,
+    const topUp = await prisma.$transaction(
+      async (tx) => {
+        const exactDuplicate = await tx.foodWalletTopUp.findUnique({
+          where: { idempotencyKey: data.idempotencyKey },
+        });
+
+        if (exactDuplicate) {
+          if (exactDuplicate.stayId !== stay.id) {
+            throw new Error("IDEMPOTENCY_CONFLICT");
+          }
+          return exactDuplicate;
+        }
+
+        return tx.foodWalletTopUp.create({
+          data: {
+            stayId: stay.id,
+            cycleId: activeCycle.id,
+            amountPaise: data.amountPaise,
+            paymentMode: data.paymentMode,
+            transactionRef: data.transactionRef,
+            reason: data.reason,
+            status: TopUpStatus.APPROVED, // Direct top-ups by warden are pre-approved
+            approvedByUserId: session.user.id,
+            idempotencyKey: data.idempotencyKey,
+          },
+        });
       },
-    });
+      { isolationLevel: "Serializable" }
+    );
 
     return NextResponse.json(topUp);
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === "IDEMPOTENCY_CONFLICT") {
+      return NextResponse.json(
+        { error: "Idempotency key conflict." },
+        { status: 409 }
+      );
+    }
     return handleApiError(error);
   }
 }

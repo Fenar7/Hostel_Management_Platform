@@ -62,6 +62,9 @@ export async function POST(request: NextRequest) {
           });
 
           if (exactDuplicate) {
+            if (exactDuplicate.stayId !== stay.id) {
+              throw new Error("IDEMPOTENCY_CONFLICT");
+            }
             return exactDuplicate; // Safely return the existing request (success)
           }
 
@@ -101,6 +104,12 @@ export async function POST(request: NextRequest) {
       if (e.message === "ALREADY_PENDING") {
         return NextResponse.json(
           { error: "You already have a pending top-up request. Please wait for the warden to approve it before submitting another." },
+          { status: 409 }
+        );
+      }
+      if (e.message === "IDEMPOTENCY_CONFLICT") {
+        return NextResponse.json(
+          { error: "Idempotency key conflict." },
           { status: 409 }
         );
       }
