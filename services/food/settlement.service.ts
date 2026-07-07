@@ -42,7 +42,7 @@ export class FoodSettlementService {
             closedByUserId: closingUserId,
           },
         });
-        await this.generateNextCycleIfNeeded(tx, stay);
+        await this.generateNextCycleIfNeeded(tx, stay, cycle.cycleEnd);
         return closedCycle;
       }
 
@@ -71,7 +71,14 @@ export class FoodSettlementService {
       });
       
       const topUpsTotal = topUps._sum.amountPaise || 0;
-      const totalPaidPaise = stay.foodChargesPaise + topUpsTotal;
+      
+      // The initial foodChargesPaise is only injected into the FIRST billing cycle.
+      const previousCyclesCount = await tx.foodBillingCycle.count({
+        where: { stayId, cycleStart: { lt: cycle.cycleStart } },
+      });
+      const isFirstCycle = previousCyclesCount === 0;
+
+      const totalPaidPaise = (isFirstCycle ? stay.foodChargesPaise : 0) + topUpsTotal;
 
       // 4. Calculate Balance & Outcome
       const balancePaise = totalPaidPaise - consumedPaise;
@@ -113,7 +120,7 @@ export class FoodSettlementService {
       });
 
       // 7. Create next cycle seamlessly
-      await this.generateNextCycleIfNeeded(tx, stay);
+      await this.generateNextCycleIfNeeded(tx, stay, cycle.cycleEnd);
 
       // (Post-settlement notifications would be triggered async here)
       
@@ -121,9 +128,11 @@ export class FoodSettlementService {
     }, { isolationLevel: "Serializable" });
   }
 
-  private static async generateNextCycleIfNeeded(tx: Prisma.TransactionClient, stay: any) {
+  private static async generateNextCycleIfNeeded(tx: Prisma.TransactionClient, stay: any, lastCycleEnd: Date) {
     if (stay.status === StayStatus.ACTIVE || stay.status === StayStatus.EXTENDED) {
       if (stay.foodPlan !== FoodPlan.NOT_INCLUDED && stay.foodBillingMode !== FoodBillingMode.FLAT_RATE) {
+        // Start the next cycle precisely 1 ms after the old cycle ends to prevent billing gaps.
+        const nextCycleStart = new Date(lastCycleEnd.getTime() + 1);
         await FoodCycleService.createCycleForStay(
           tx,
           stay.id,
@@ -131,7 +140,7 @@ export class FoodSettlementService {
           stay.hostelId,
           stay.foodBillingMode,
           stay.foodPlan,
-          new Date()
+          nextCycleStart
         );
       }
     }
