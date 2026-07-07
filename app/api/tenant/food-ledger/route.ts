@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         if (order.dinner) dailyTotal += currentCycle.dinnerPricePaise;
 
         return {
-          forDate: order.forDate.toISOString(),
+          forDate: order.forDate.toISOString().split("T")[0],
           breakfast: order.breakfast,
           lunch: order.lunch,
           dinner: order.dinner,

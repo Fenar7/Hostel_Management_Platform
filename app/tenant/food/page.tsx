@@ -243,10 +243,11 @@ export default function TenantFoodPage() {
             {/* Financial Ledger Section (Hidden for Flat Rate) */}
             {ledger?.stay.foodBillingMode !== "FLAT_RATE" && ledger?.walletBalance && (
               <div className="space-y-6 mb-8">
-                {ledger.stay.foodBillingMode === "POSTPAID" && ledger.currentCycle && (
+                {(ledger.stay.foodBillingMode === "POSTPAID" || ledger.stay.foodBillingMode === "PREPAID_CONSUMPTION") && ledger.currentCycle && (
                   <FoodDueBanner 
                     balancePaise={ledger.walletBalance.balancePaise} 
-                    cycleEnd={ledger.currentCycle.cycleEnd} 
+                    cycleEnd={ledger.currentCycle.cycleEnd}
+                    billingMode={ledger.stay.foodBillingMode}
                   />
                 )}
                 

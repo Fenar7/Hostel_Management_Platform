@@ -3,9 +3,10 @@ import { AlertTriangle } from "lucide-react";
 interface FoodDueBannerProps {
   balancePaise: number;
   cycleEnd: string;
+  billingMode: string;
 }
 
-export function FoodDueBanner({ balancePaise, cycleEnd }: FoodDueBannerProps) {
+export function FoodDueBanner({ balancePaise, cycleEnd, billingMode }: FoodDueBannerProps) {
   if (balancePaise >= 0) return null;
 
   const dueAmount = Math.abs(balancePaise) / 100;
@@ -22,7 +23,9 @@ export function FoodDueBanner({ balancePaise, cycleEnd }: FoodDueBannerProps) {
       <div>
         <h4 className="text-red-500 font-bold text-[15px] mb-1">Food Bill Overdue</h4>
         <p className="text-red-500/80 text-[13px] leading-relaxed">
-          Your food consumption has exceeded your advance. 
+          {billingMode === "PREPAID_CONSUMPTION" 
+            ? "Your food consumption has exceeded your advance. " 
+            : "You have an outstanding food balance for the current cycle. "}
           <strong className="text-red-500"> ₹{dueAmount.toFixed(2)}</strong> is due by {dueDate}. 
           Please top up your wallet to avoid service interruption.
         </p>

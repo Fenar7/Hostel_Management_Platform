@@ -24,7 +24,8 @@ export function FoodDailyBreakdown({ days }: FoodDailyBreakdownProps) {
       
       <div className="divide-y divide-[#f0f0f0] dark:divide-white/5">
         {days.map((day) => {
-          const date = new Date(day.forDate);
+          const [y, m, d] = day.forDate.split("-");
+          const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
           
           // Skip days with no meals to keep the ledger clean
           if (!day.breakfast && !day.lunch && !day.dinner) return null;
