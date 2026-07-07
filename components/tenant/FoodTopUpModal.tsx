@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, X, Wallet, ArrowRight } from "lucide-react";
 import { notify } from "@/lib/toast";
 
@@ -14,6 +14,13 @@ export function FoodTopUpModal({ isOpen, onClose, onSuccess }: FoodTopUpModalPro
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setIdempotencyKey(crypto.randomUUID());
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -34,6 +41,7 @@ export function FoodTopUpModal({ isOpen, onClose, onSuccess }: FoodTopUpModalPro
         body: JSON.stringify({
           amountPaise: Math.round(amountVal * 100),
           reason: reason.trim() || undefined,
+          idempotencyKey,
         }),
       });
 

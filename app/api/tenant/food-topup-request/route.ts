@@ -8,10 +8,14 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.TENANT]);
     const body = await request.json();
-    const { amountPaise, reason } = body;
+    const { amountPaise, reason, idempotencyKey } = body;
 
-    if (!amountPaise || amountPaise <= 0) {
-      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
+    if (!amountPaise || typeof amountPaise !== "number" || amountPaise <= 0) {
+      return NextResponse.json({ error: "Invalid amount." }, { status: 400 });
+    }
+
+    if (!idempotencyKey || typeof idempotencyKey !== "string") {
+      return NextResponse.json({ error: "Missing idempotency key." }, { status: 400 });
     }
 
     // 1. Get Active Stay
@@ -52,6 +56,16 @@ export async function POST(request: NextRequest) {
     try {
       const topUp = await prisma.$transaction(
         async (tx) => {
+          // 3a. Check for strict idempotency key match first
+          const exactDuplicate = await tx.foodWalletTopUp.findUnique({
+            where: { idempotencyKey },
+          });
+
+          if (exactDuplicate) {
+            return exactDuplicate; // Safely return the existing request (success)
+          }
+
+          // 3b. Check if they already have a different pending request for this cycle
           const existingPending = await tx.foodWalletTopUp.findFirst({
             where: {
               stayId: stay.id,
@@ -72,6 +86,7 @@ export async function POST(request: NextRequest) {
               reason,
               requestedByTenantUserId: session.user.id,
               status: "PENDING",
+              idempotencyKey,
             },
           });
         },

@@ -15,7 +15,7 @@ interface FoodOrderPanelProps {
     dinner: boolean;
     isEditable: boolean;
   } | null;
-  onOrderUpdated: () => void; // callback to refresh parent data
+  onOrderUpdated: () => Promise<void>; // callback to refresh parent data
 }
 
 export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay, onOrderUpdated }: FoodOrderPanelProps) {
@@ -58,7 +58,7 @@ export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay,
       }
 
       notify.success("Meal preference updated!");
-      onOrderUpdated();
+      await onOrderUpdated();
     } catch (e: any) {
       notify.error(e.message || "Failed to update");
     } finally {

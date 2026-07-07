@@ -63,30 +63,35 @@ interface FoodLedgerResponse {
 
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-function formatDateShort(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+function getISTDate(): Date {
+  const now = new Date();
+  return new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
 }
 
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
+function formatDateShort(istDate: Date): string {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${istDate.getUTCDate()} ${months[istDate.getUTCMonth()]} ${istDate.getUTCFullYear()}`;
+}
+
+function getMonday(istDate: Date): Date {
+  const d = new Date(istDate.getTime());
+  const day = d.getUTCDay();
+  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+  d.setUTCDate(diff);
+  d.setUTCHours(0, 0, 0, 0);
   return d;
 }
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
+function addDays(istDate: Date, days: number): Date {
+  const d = new Date(istDate.getTime());
+  d.setUTCDate(d.getUTCDate() + days);
   return d;
 }
 
-function toISODate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
+function toISODate(istDate: Date): string {
+  const y = istDate.getUTCFullYear();
+  const m = String(istDate.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(istDate.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
 
@@ -121,7 +126,7 @@ export default function TenantFoodPage() {
   const [data, setData] = useState<FoodOrdersResponse | null>(null);
   const [ledger, setLedger] = useState<FoodLedgerResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
+  const [weekStart, setWeekStart] = useState(() => getMonday(getISTDate()));
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [foodNotIncluded, setFoodNotIncluded] = useState(false);
 
@@ -169,7 +174,7 @@ export default function TenantFoodPage() {
 
   const prevWeek = () => setWeekStart((d) => addDays(d, -7));
   const nextWeek = () => setWeekStart((d) => addDays(d, 7));
-  const goToday = () => setWeekStart(getMonday(new Date()));
+  const goToday = () => setWeekStart(getMonday(getISTDate()));
 
   // Compute active order day for the new FoodOrderPanel
   let activeOrderDay = null;
@@ -285,7 +290,7 @@ export default function TenantFoodPage() {
                 
                 <div className="flex flex-col items-center">
                   <span className="text-[14px] font-bold text-black dark:text-white">
-                    {formatDateShort(weekStart.toISOString())} - {formatDateShort(weekEnd.toISOString())}
+                    {formatDateShort(weekStart)} - {formatDateShort(weekEnd)}
                   </span>
                   <button onClick={goToday} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider hover:text-black dark:hover:text-white mt-1">
                     Go to Today
@@ -300,9 +305,9 @@ export default function TenantFoodPage() {
               {data && (
                 <div className="space-y-4">
                   {data.days.map((day) => {
-                    const d = new Date(day.forDate);
-                    const dayLabel = DAY_LABELS[d.getDay()];
-                    const isToday = toISODate(d) === toISODate(new Date());
+                    const parsedDate = new Date(`${day.forDate}T00:00:00.000Z`);
+                    const dayLabel = DAY_LABELS[parsedDate.getUTCDay()];
+                    const isToday = day.forDate === toISODate(getISTDate());
 
                     return (
                       <SoftCard 
@@ -320,7 +325,7 @@ export default function TenantFoodPage() {
                                 {dayLabel} {isToday && "(Today)"}
                               </p>
                               <h3 className="text-xl font-black mt-1">
-                                {d.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                                {parsedDate.getUTCDate()} {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][parsedDate.getUTCMonth()]}
                               </h3>
                             </div>
                             {!day.isEditable && !isToday && (
