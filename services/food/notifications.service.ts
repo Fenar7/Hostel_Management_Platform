@@ -18,4 +18,14 @@ export class FoodNotificationService {
     console.log(`[Notification] WARDEN created a complementary order (${orderId}) in hostel ${hostelId}. Alerting MAIN_ADMINs.`);
     // TODO: Send in-app notification or email to all MAIN_ADMINs of the organization
   }
+
+  static async notifyTenantCycleSettled(cycleId: string, balancePaise: number, outcome: string) {
+    console.log(`[Notification] Cycle ${cycleId} settled. Outcome: ${outcome}, Balance: ${balancePaise}`);
+    // TODO: Send SMS/Email to tenant
+  }
+
+  static async notifyHostelSettlementSummary(hostelId: string, successCount: number, failedCount: number) {
+    console.log(`[Notification] Hostel ${hostelId} settlement completed. Success: ${successCount}, Failed: ${failedCount}`);
+    // TODO: Send summary email/alert to hostel wardens and admins
+  }
 }

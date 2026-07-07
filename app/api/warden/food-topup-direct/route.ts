@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ValidationError } from "@/lib/errors";
 import { UserRole, TopUpStatus, PaymentMode } from "@prisma/client";
 import { z } from "zod";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 
 const postSchema = z.object({
   stayId: z.string(),
@@ -26,6 +28,7 @@ export async function POST(request: NextRequest) {
 
     const stay = await prisma.stay.findUnique({
       where: { id: data.stayId },
+      include: { tenant: true, hostel: true },
     });
 
     if (!stay || stay.hostelId !== hostelId) {
@@ -71,6 +74,17 @@ export async function POST(request: NextRequest) {
       },
       { isolationLevel: "Serializable" }
     );
+
+    await logActivity({
+      organizationId: stay.hostel.organizationId,
+      hostelId: stay.hostelId,
+      eventType: ActivityEventType.FOOD_WALLET_TOPPED_UP,
+      actorId: session.user.id,
+      actorName: session.user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden",
+      subjectName: `Direct Top-Up - ${stay.tenant?.fullName || "Tenant"}`,
+      subjectId: topUp.id,
+      subjectType: "FoodWalletTopUp",
+    });
 
     return NextResponse.json(topUp);
   } catch (error: any) {

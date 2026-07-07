@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
-import { SettlementOutcome, FoodBillingMode, FoodPlan, StayStatus, Prisma } from "@prisma/client";
+import { SettlementOutcome, FoodBillingMode, FoodPlan, StayStatus, Prisma, ActivityEventType } from "@prisma/client";
 import { FoodCycleService } from "./cycle.service";
+import { FoodNotificationService } from "./notifications.service";
+import { logActivity } from "../activity/activity.service";
 
 export class FoodSettlementService {
   /**
@@ -14,7 +16,10 @@ export class FoodSettlementService {
         where: { id: cycleId },
         include: {
           stay: {
-            include: { hostel: { select: { organizationId: true } } }
+            include: { 
+              tenant: { select: { fullName: true } },
+              hostel: { select: { organizationId: true } } 
+            }
           }
         },
       });
@@ -122,7 +127,19 @@ export class FoodSettlementService {
       // 7. Create next cycle seamlessly, carrying over any positive balance
       await this.generateNextCycleIfNeeded(tx, stay, cycle.cycleEnd, balancePaise > 0 ? balancePaise : 0);
 
-      // (Post-settlement notifications would be triggered async here)
+      // Trigger post-settlement notification and activity log asynchronously
+      FoodNotificationService.notifyTenantCycleSettled(cycleId, balancePaise, outcome).catch(console.error);
+
+      logActivity({
+        organizationId: stay.hostel.organizationId,
+        hostelId: stay.hostelId,
+        eventType: ActivityEventType.FOOD_CYCLE_CLOSED,
+        actorId: closingUserId,
+        actorName: closingUserId === "SYSTEM_CRON" ? "System" : "Warden",
+        subjectName: `Cycle Settlement - ${stay.tenant?.fullName || "Unknown"}`,
+        subjectId: cycleId,
+        subjectType: "FoodBillingCycle",
+      });
       
       return closedCycle;
     }, { isolationLevel: "Serializable" });
@@ -188,6 +205,9 @@ export class FoodSettlementService {
         errors.push({ stayId: cycle.stayId, cycleId: cycle.id, error: err.message });
       }
     }
+
+    // Send batch summary notification
+    FoodNotificationService.notifyHostelSettlementSummary(hostelId, successCount, failedCount).catch(console.error);
 
     return { successCount, failedCount, errors };
   }

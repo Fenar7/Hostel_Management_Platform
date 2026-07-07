@@ -6,6 +6,8 @@ import { handleApiError, NotFoundError, ValidationError } from "@/lib/errors";
 import { UserRole, TopUpStatus, PaymentMode } from "@prisma/client";
 import { z } from "zod";
 import { FoodNotificationService } from "@/services/food/notifications.service";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 
 const patchSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
@@ -28,7 +30,7 @@ export async function PATCH(
     const topUpId = params.id;
     const topUp = await prisma.foodWalletTopUp.findUnique({
       where: { id: topUpId },
-      include: { stay: true },
+      include: { stay: { include: { tenant: true, hostel: true } } },
     });
 
     if (!topUp) throw new NotFoundError("Top-up request not found");
@@ -51,6 +53,16 @@ export async function PATCH(
 
     if (data.action === "APPROVE") {
       await FoodNotificationService.notifyTenantTopUpApproved(updated.id).catch(console.error);
+      await logActivity({
+        organizationId: topUp.stay.hostel.organizationId,
+        hostelId: topUp.stay.hostelId,
+        eventType: ActivityEventType.FOOD_WALLET_TOPPED_UP,
+        actorId: session.user.id,
+        actorName: session.user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden",
+        subjectName: `Wallet Top-Up - ${topUp.stay.tenant?.fullName || "Tenant"}`,
+        subjectId: updated.id,
+        subjectType: "FoodWalletTopUp",
+      });
     } else {
       await FoodNotificationService.notifyTenantTopUpRejected(updated.id).catch(console.error);
     }
