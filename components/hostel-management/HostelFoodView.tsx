@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { notify } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import FoodFinanceDashboard from "./food-finance/FoodFinanceDashboard";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 interface ResidentFoodEntry {
@@ -110,6 +111,7 @@ export default function HostelFoodView({
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"attendance" | "finance">("attendance");
 
   // ── Fetch weekly data ──────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -280,8 +282,36 @@ export default function HostelFoodView({
     >
       <div className="w-full">
 
-      {/* ── Meal Counts (Today) ─────────────────────────────────────────────────── */}
-      <div className="mb-8">
+        {/* ── Tabs ── */}
+        <div className="flex items-center gap-6 border-b border-[#e5e7eb] mb-8">
+          <button
+            onClick={() => setActiveTab("attendance")}
+            className={cn(
+              "pb-3 text-[14px] font-medium transition-colors border-b-2",
+              activeTab === "attendance"
+                ? "border-[#111827] text-[#111827]"
+                : "border-transparent text-[#4b5563] hover:text-[#111827]"
+            )}
+          >
+            Attendance
+          </button>
+          <button
+            onClick={() => setActiveTab("finance")}
+            className={cn(
+              "pb-3 text-[14px] font-medium transition-colors border-b-2",
+              activeTab === "finance"
+                ? "border-[#111827] text-[#111827]"
+                : "border-transparent text-[#4b5563] hover:text-[#111827]"
+            )}
+          >
+            Finance
+          </button>
+        </div>
+
+        {activeTab === "attendance" ? (
+          <>
+            {/* ── Meal Counts (Today) ─────────────────────────────────────────────────── */}
+            <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-[18px] font-semibold text-[#1a1a1a]">Meal Counts (Today)</h2>
           <div className="flex items-center gap-3">
@@ -573,6 +603,10 @@ export default function HostelFoodView({
           </div>
         </div>
       </div>
+          </>
+        ) : (
+          <FoodFinanceDashboard hostelId={hostelId!} />
+        )}
       </div>
     </HostelWorkspaceLayout>
   );
