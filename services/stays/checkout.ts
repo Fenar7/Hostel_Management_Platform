@@ -110,6 +110,21 @@ export async function processEarlyCheckout(params: EarlyCheckoutParams): Promise
       },
     });
 
+    // Hook for Sprint 1.2: Close any open food billing cycle
+    // Note: Full financial settlement algorithm will be added in Sprint 4
+    await tx.foodBillingCycle.updateMany({
+      where: {
+        stayId,
+        status: "OPEN",
+      },
+      data: {
+        status: "CLOSED",
+        closedAt: new Date(),
+        closedByUserId: userId,
+        cycleEnd: checkoutDate, // truncate cycle to checkout date
+      },
+    });
+
     await tx.stayStatusEvent.create({
       data: {
         stayId,

@@ -58,6 +58,19 @@ export async function processNaturalCheckouts(params?: NaturalCheckoutParams): P
           note: `Stay naturally expired on ${stay.endDate.toISOString().split("T")[0]}. Bed released.`,
         },
       });
+
+      // Hook for Sprint 1.2: Close any open food billing cycle
+      await tx.foodBillingCycle.updateMany({
+        where: {
+          stayId: stay.id,
+          status: "OPEN",
+        },
+        data: {
+          status: "CLOSED",
+          closedAt: new Date(),
+          closedByUserId: "system",
+        },
+      });
     });
   }
 
