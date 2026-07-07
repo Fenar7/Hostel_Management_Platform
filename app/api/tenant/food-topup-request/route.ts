@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError } from "@/lib/errors";
-import { UserRole } from "@prisma/client";
+import { UserRole, Prisma } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,38 +47,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check for existing PENDING request to prevent spam
-    const existingPending = await prisma.foodWalletTopUp.findFirst({
-      where: {
-        stayId: stay.id,
-        cycleId: cycle.id,
-        status: "PENDING",
-      }
-    });
+    // 3. Create the TopUp request securely using a Serializable transaction
+    // This prevents race conditions where rapid double-clicks bypass the PENDING check
+    try {
+      const topUp = await prisma.$transaction(
+        async (tx) => {
+          const existingPending = await tx.foodWalletTopUp.findFirst({
+            where: {
+              stayId: stay.id,
+              cycleId: cycle.id,
+              status: "PENDING",
+            },
+          });
 
-    if (existingPending) {
-      return NextResponse.json(
-        { error: "You already have a pending top-up request. Please wait for the warden to approve it before submitting another." },
-        { status: 409 }
+          if (existingPending) {
+            throw new Error("ALREADY_PENDING");
+          }
+
+          return tx.foodWalletTopUp.create({
+            data: {
+              stayId: stay.id,
+              cycleId: cycle.id,
+              amountPaise,
+              reason,
+              requestedByTenantUserId: session.user.id,
+              status: "PENDING",
+            },
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
       );
-    }
 
-    // 4. Create the TopUp request
-    const topUp = await prisma.foodWalletTopUp.create({
-      data: {
-        stayId: stay.id,
-        cycleId: cycle.id,
-        amountPaise,
-        reason,
-        requestedByTenantUserId: session.user.id,
-        status: "PENDING",
+      // TODO: Send notification to Warden (via notification service once implemented)
+      // For now, it will appear in the warden's pending list.
+
+      return NextResponse.json(topUp);
+    } catch (e: any) {
+      if (e.message === "ALREADY_PENDING") {
+        return NextResponse.json(
+          { error: "You already have a pending top-up request. Please wait for the warden to approve it before submitting another." },
+          { status: 409 }
+        );
       }
-    });
-
-    // TODO: Send notification to Warden (via notification service once implemented)
-    // For now, it will appear in the warden's pending list.
-
-    return NextResponse.json(topUp);
+      throw e;
+    }
   } catch (error) {
     return handleApiError(error);
   }

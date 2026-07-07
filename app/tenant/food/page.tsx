@@ -175,20 +175,31 @@ export default function TenantFoodPage() {
   let activeOrderDay = null;
   if (data) {
     const now = new Date();
-    const istTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 60 * 60 * 1000));
-    const currentHour = istTime.getHours();
+    const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    const currentHour = istTime.getUTCHours();
     
-    const targetDate = new Date(istTime);
-    if (currentHour >= data.cutoffStartHour) {
-      targetDate.setDate(targetDate.getDate() + 1);
-    }
-    
-    const y = targetDate.getFullYear();
-    const m = String(targetDate.getMonth() + 1).padStart(2, "0");
-    const d = String(targetDate.getDate()).padStart(2, "0");
-    const targetDateString = `${y}-${m}-${d}`;
+    const isOvernight = data.cutoffStartHour > data.cutoffEndHour;
+    let isWindowOpen = false;
 
-    activeOrderDay = data.days.find((d) => d.forDate === targetDateString) || null;
+    if (isOvernight) {
+      isWindowOpen = currentHour >= data.cutoffStartHour || currentHour < data.cutoffEndHour;
+    } else {
+      isWindowOpen = currentHour >= data.cutoffStartHour && currentHour < data.cutoffEndHour;
+    }
+
+    if (isWindowOpen) {
+      const targetDate = new Date(istTime);
+      if (currentHour >= data.cutoffStartHour) {
+        targetDate.setUTCDate(targetDate.getUTCDate() + 1);
+      }
+      
+      const y = targetDate.getUTCFullYear();
+      const m = String(targetDate.getUTCMonth() + 1).padStart(2, "0");
+      const d = String(targetDate.getUTCDate()).padStart(2, "0");
+      const targetDateString = `${y}-${m}-${d}`;
+
+      activeOrderDay = data.days.find((d) => d.forDate === targetDateString) || null;
+    }
   }
 
   return (

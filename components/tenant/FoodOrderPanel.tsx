@@ -19,15 +19,21 @@ interface FoodOrderPanelProps {
 }
 
 export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay, onOrderUpdated }: FoodOrderPanelProps) {
-  const [saving, setSaving] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Determine if window is currently open based on local client time mapped to IST
   const now = new Date();
-  // Using simple timezone math for IST (UTC+5:30) for display purposes
-  const istTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (5.5 * 60 * 60 * 1000));
-  const currentHour = istTime.getHours();
+  const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+  const currentHour = istTime.getUTCHours();
   
-  const isWindowOpen = currentHour >= cutoffStartHour || currentHour < cutoffEndHour;
+  const isOvernight = cutoffStartHour > cutoffEndHour;
+  let isWindowOpen = false;
+
+  if (isOvernight) {
+    isWindowOpen = currentHour >= cutoffStartHour || currentHour < cutoffEndHour;
+  } else {
+    isWindowOpen = currentHour >= cutoffStartHour && currentHour < cutoffEndHour;
+  }
 
   const formattedStart = `${cutoffStartHour > 12 ? cutoffStartHour - 12 : cutoffStartHour}:00 ${cutoffStartHour >= 12 ? 'PM' : 'AM'}`;
   const formattedEnd = `${cutoffEndHour > 12 ? cutoffEndHour - 12 : cutoffEndHour}:00 ${cutoffEndHour >= 12 ? 'PM' : 'AM'}`;
@@ -35,7 +41,7 @@ export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay,
   const handleToggle = async (meal: "breakfast" | "lunch" | "dinner", currentValue: boolean) => {
     if (!activeOrderDay || !activeOrderDay.isEditable || !isWindowOpen) return;
     
-    setSaving(meal);
+    setIsSaving(true);
     try {
       const res = await fetch("/api/tenant/food-order", {
         method: "POST",
@@ -56,7 +62,7 @@ export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay,
     } catch (e: any) {
       notify.error(e.message || "Failed to update");
     } finally {
-      setSaving(null);
+      setIsSaving(false);
     }
   };
 
@@ -95,7 +101,7 @@ export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay,
         {/* Breakfast Toggle */}
         <button
           onClick={() => handleToggle("breakfast", activeOrderDay.breakfast)}
-          disabled={!activeOrderDay.isEditable || saving === "breakfast"}
+          disabled={!activeOrderDay.isEditable || isSaving}
           className={cn(
             "w-full h-14 px-5 rounded-[16px] flex items-center font-bold text-[15px] transition-all border-2",
             activeOrderDay.breakfast 
@@ -104,7 +110,7 @@ export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay,
             !activeOrderDay.isEditable ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.01]"
           )}
         >
-          {saving === "breakfast" ? (
+          {isSaving ? (
             <Loader2 className="w-5 h-5 mr-3 animate-spin" />
           ) : (
             <Coffee className={cn("w-5 h-5 mr-3", activeOrderDay.breakfast ? "text-amber-600 dark:text-amber-400" : "text-gray-400")} />
@@ -116,7 +122,7 @@ export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay,
         {/* Lunch Toggle */}
         <button
           onClick={() => handleToggle("lunch", activeOrderDay.lunch)}
-          disabled={!activeOrderDay.isEditable || saving === "lunch"}
+          disabled={!activeOrderDay.isEditable || isSaving}
           className={cn(
             "w-full h-14 px-5 rounded-[16px] flex items-center font-bold text-[15px] transition-all border-2",
             activeOrderDay.lunch 
@@ -125,7 +131,7 @@ export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay,
             !activeOrderDay.isEditable ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.01]"
           )}
         >
-          {saving === "lunch" ? (
+          {isSaving ? (
             <Loader2 className="w-5 h-5 mr-3 animate-spin" />
           ) : (
             <Sun className={cn("w-5 h-5 mr-3", activeOrderDay.lunch ? "text-orange-600 dark:text-orange-400" : "text-gray-400")} />
@@ -137,7 +143,7 @@ export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay,
         {/* Dinner Toggle */}
         <button
           onClick={() => handleToggle("dinner", activeOrderDay.dinner)}
-          disabled={!activeOrderDay.isEditable || saving === "dinner"}
+          disabled={!activeOrderDay.isEditable || isSaving}
           className={cn(
             "w-full h-14 px-5 rounded-[16px] flex items-center font-bold text-[15px] transition-all border-2",
             activeOrderDay.dinner 
@@ -146,7 +152,7 @@ export function FoodOrderPanel({ cutoffStartHour, cutoffEndHour, activeOrderDay,
             !activeOrderDay.isEditable ? "opacity-60 cursor-not-allowed" : "hover:scale-[1.01]"
           )}
         >
-          {saving === "dinner" ? (
+          {isSaving ? (
             <Loader2 className="w-5 h-5 mr-3 animate-spin" />
           ) : (
             <Moon className={cn("w-5 h-5 mr-3", activeOrderDay.dinner ? "text-indigo-600 dark:text-indigo-400" : "text-gray-400")} />

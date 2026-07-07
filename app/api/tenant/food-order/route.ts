@@ -33,18 +33,26 @@ export async function POST(request: NextRequest) {
     const nowIST = new Date(now.getTime() + istOffsetMs);
     const currentHourIST = nowIST.getUTCHours(); // Note: getUTCHours of the shifted date gives us the local IST hour
 
+    const isOvernight = foodOrderCutoffStartHour > foodOrderCutoffEndHour;
+    let isWindowOpen = false;
+
+    if (isOvernight) {
+      isWindowOpen = currentHourIST >= foodOrderCutoffStartHour || currentHourIST < foodOrderCutoffEndHour;
+    } else {
+      isWindowOpen = currentHourIST >= foodOrderCutoffStartHour && currentHourIST < foodOrderCutoffEndHour;
+    }
+
     let forDateIST: Date;
 
-    // Check if within window
-    if (currentHourIST >= foodOrderCutoffStartHour) {
-      // e.g. 20:00 to 23:59 -> ordering for tomorrow
-      forDateIST = new Date(nowIST);
-      forDateIST.setUTCDate(forDateIST.getUTCDate() + 1);
-    } else if (currentHourIST < foodOrderCutoffEndHour) {
-      // e.g. 00:00 to 05:59 -> ordering for today (since it's after midnight)
-      forDateIST = new Date(nowIST);
+    if (isWindowOpen) {
+      if (currentHourIST >= foodOrderCutoffStartHour) {
+        forDateIST = new Date(nowIST);
+        forDateIST.setUTCDate(forDateIST.getUTCDate() + 1);
+      } else {
+        forDateIST = new Date(nowIST);
+      }
     } else {
-      // Outside window (e.g. 06:00 to 19:59)
+      // Outside window
       const formattedStart = `${foodOrderCutoffStartHour > 12 ? foodOrderCutoffStartHour - 12 : foodOrderCutoffStartHour}:00 ${foodOrderCutoffStartHour >= 12 ? 'PM' : 'AM'}`;
       const formattedEnd = `${foodOrderCutoffEndHour > 12 ? foodOrderCutoffEndHour - 12 : foodOrderCutoffEndHour}:00 ${foodOrderCutoffEndHour >= 12 ? 'PM' : 'AM'}`;
       return NextResponse.json(
