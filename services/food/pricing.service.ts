@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getStartOfDayIST } from "@/lib/dates";
 
 export class PricingService {
   /**
@@ -61,17 +62,14 @@ export class PricingService {
   }) {
     // Validate effective date (must not be arbitrarily in the past, to prevent retrospective corruption)
     // We allow setting today or future (IST: UTC+5:30).
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000;
-    const todayIST = new Date(now.getTime() + istOffset);
-    todayIST.setUTCHours(0, 0, 0, 0);
+    const todayISTMidnight = getStartOfDayIST(new Date());
 
     const effectiveDate = new Date(data.effectiveFrom);
     // Assuming incoming effectiveFrom string doesn't have a time, its UTC equivalent matches the date.
     // Ensure effectiveDate is at 00:00 UTC for comparison.
     effectiveDate.setUTCHours(0, 0, 0, 0);
 
-    if (effectiveDate < todayIST) {
+    if (effectiveDate.getTime() < todayISTMidnight.getTime()) {
       throw new Error("Cannot set prices retrospectively. Effective date must be today or in the future.");
     }
 

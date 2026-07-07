@@ -77,17 +77,28 @@ export class FoodCycleService {
     }
 
     // Spin up a quick transaction to use our shared creation logic
-    return await prisma.$transaction(async (tx) => {
-      return await FoodCycleService.createCycleForStay(
-        tx,
-        stay.id,
-        stay.hostel.organizationId,
-        stay.hostelId,
-        stay.foodBillingMode,
-        stay.foodPlan,
-        stay.joiningDate
-      );
-    });
+    try {
+      return await prisma.$transaction(async (tx) => {
+        return await FoodCycleService.createCycleForStay(
+          tx,
+          stay.id,
+          stay.hostel.organizationId,
+          stay.hostelId,
+          stay.foodBillingMode,
+          stay.foodPlan,
+          new Date() // Use current date, NOT joining date
+        );
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        // Concurrent request already created it. Just return the newly created one.
+        return prisma.foodBillingCycle.findFirst({
+          where: { stayId: stay.id, status: "OPEN" },
+          orderBy: { cycleStart: "desc" },
+        });
+      }
+      throw error;
+    }
   }
 
   /**
