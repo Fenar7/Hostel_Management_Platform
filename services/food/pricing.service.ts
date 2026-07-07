@@ -60,19 +60,27 @@ export class PricingService {
     createdByUserId: string;
   }) {
     // Validate effective date (must not be arbitrarily in the past, to prevent retrospective corruption)
-    // We allow setting today or future.
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // We allow setting today or future (IST: UTC+5:30).
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(now.getTime() + istOffset);
+    todayIST.setUTCHours(0, 0, 0, 0);
 
     const effectiveDate = new Date(data.effectiveFrom);
-    effectiveDate.setHours(0, 0, 0, 0);
+    // Assuming incoming effectiveFrom string doesn't have a time, its UTC equivalent matches the date.
+    // Ensure effectiveDate is at 00:00 UTC for comparison.
+    effectiveDate.setUTCHours(0, 0, 0, 0);
 
-    if (effectiveDate < today) {
+    if (effectiveDate < todayIST) {
       throw new Error("Cannot set prices retrospectively. Effective date must be today or in the future.");
     }
 
-    if (data.breakfastPricePaise < 0 || data.lunchPricePaise < 0 || data.dinnerPricePaise < 0) {
-      throw new Error("Prices cannot be negative.");
+    if (
+      data.breakfastPricePaise < 1 || data.breakfastPricePaise > 100000 ||
+      data.lunchPricePaise < 1 || data.lunchPricePaise > 100000 ||
+      data.dinnerPricePaise < 1 || data.dinnerPricePaise > 100000
+    ) {
+      throw new Error("Prices must be between ₹0.01 and ₹1000.");
     }
 
     return prisma.foodPricing.create({

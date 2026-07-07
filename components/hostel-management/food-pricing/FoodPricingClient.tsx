@@ -75,7 +75,12 @@ export default function FoodPricingClient({
     effectiveFrom: format(new Date(), "yyyy-MM-dd"),
   });
 
-  const activePricing = history[0]; // Assuming history is sorted desc
+  const todayIST = new Date();
+  todayIST.setUTCHours(todayIST.getUTCHours() + 5, todayIST.getUTCMinutes() + 30);
+  
+  const activePricing = history.find((record) => {
+    return new Date(record.effectiveFrom) <= todayIST;
+  }) || history[0]; // Fallback to latest if somehow all are in the future
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,7 +209,8 @@ export default function FoodPricingClient({
                     <Input
                       type="number"
                       step="0.01"
-                      min="0"
+                      min="0.01"
+                      max="1000"
                       required
                       value={formData.breakfastPrice}
                       onChange={(e) =>
@@ -217,7 +223,8 @@ export default function FoodPricingClient({
                     <Input
                       type="number"
                       step="0.01"
-                      min="0"
+                      min="0.01"
+                      max="1000"
                       required
                       value={formData.lunchPrice}
                       onChange={(e) =>
@@ -230,7 +237,8 @@ export default function FoodPricingClient({
                     <Input
                       type="number"
                       step="0.01"
-                      min="0"
+                      min="0.01"
+                      max="1000"
                       required
                       value={formData.dinnerPrice}
                       onChange={(e) =>
