@@ -42,7 +42,7 @@ export class FoodSettlementService {
             closedByUserId: closingUserId,
           },
         });
-        await this.generateNextCycleIfNeeded(tx, stay, cycle.cycleEnd);
+        await this.generateNextCycleIfNeeded(tx, stay, cycle.cycleEnd, 0);
         return closedCycle;
       }
 
@@ -119,8 +119,8 @@ export class FoodSettlementService {
         },
       });
 
-      // 7. Create next cycle seamlessly
-      await this.generateNextCycleIfNeeded(tx, stay, cycle.cycleEnd);
+      // 7. Create next cycle seamlessly, carrying over any positive balance
+      await this.generateNextCycleIfNeeded(tx, stay, cycle.cycleEnd, balancePaise > 0 ? balancePaise : 0);
 
       // (Post-settlement notifications would be triggered async here)
       
@@ -128,12 +128,12 @@ export class FoodSettlementService {
     }, { isolationLevel: "Serializable" });
   }
 
-  private static async generateNextCycleIfNeeded(tx: Prisma.TransactionClient, stay: any, lastCycleEnd: Date) {
+  private static async generateNextCycleIfNeeded(tx: Prisma.TransactionClient, stay: any, lastCycleEnd: Date, carryoverPaise: number) {
     if (stay.status === StayStatus.ACTIVE || stay.status === StayStatus.EXTENDED) {
       if (stay.foodPlan !== FoodPlan.NOT_INCLUDED && stay.foodBillingMode !== FoodBillingMode.FLAT_RATE) {
         // Start the next cycle precisely 1 ms after the old cycle ends to prevent billing gaps.
         const nextCycleStart = new Date(lastCycleEnd.getTime() + 1);
-        await FoodCycleService.createCycleForStay(
+        const nextCycle = await FoodCycleService.createCycleForStay(
           tx,
           stay.id,
           stay.hostel.organizationId,
@@ -142,6 +142,19 @@ export class FoodSettlementService {
           stay.foodPlan,
           nextCycleStart
         );
+        
+        if (nextCycle && carryoverPaise > 0) {
+          await tx.foodWalletTopUp.create({
+            data: {
+              stayId: stay.id,
+              cycleId: nextCycle.id,
+              amountPaise: carryoverPaise,
+              status: "APPROVED",
+              reason: "Wallet balance carryover from previous cycle",
+              transactionRef: "SYSTEM_CARRYOVER"
+            }
+          });
+        }
       }
     }
   }

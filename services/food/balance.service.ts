@@ -113,6 +113,14 @@ export class FoodBalanceService {
       });
     }
 
+    // 4.5 Determine first cycles for deposit injection
+    const firstCycleDates = await prisma.foodBillingCycle.groupBy({
+      by: ['stayId'],
+      where: { stayId: { in: stayIds } },
+      _min: { cycleStart: true }
+    });
+    const firstCycleDateMap = new Map(firstCycleDates.map(f => [f.stayId, f._min.cycleStart?.getTime()]));
+
     // 5. Aggregate
     for (const stay of stays) {
       const cycle = stayToCycleMap.get(stay.id);
@@ -132,8 +140,9 @@ export class FoodBalanceService {
         continue;
       }
 
+      const isFirstCycle = cycle.cycleStart.getTime() === firstCycleDateMap.get(stay.id);
       const totalTopUp = topUpSums.get(cycle.id) || 0;
-      const totalPaidPaise = stay.foodChargesPaise + totalTopUp;
+      const totalPaidPaise = (isFirstCycle ? stay.foodChargesPaise : 0) + totalTopUp;
 
       let totalConsumedPaise = 0;
       for (const order of orders) {
