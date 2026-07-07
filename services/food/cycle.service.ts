@@ -63,9 +63,31 @@ export class FoodCycleService {
       return activeCycle;
     }
 
-    // Creating a cycle requires stay info, this method can be expanded in the future 
-    // to auto-spawn cycle if needed. For now just return null.
-    return null;
+    // Cycle doesn't exist. We must create it.
+    // To do this, we need the stay, its food plan, billing mode, and joining date.
+    const stay = await prisma.stay.findUnique({
+      where: { id: stayId },
+      include: {
+        hostel: { select: { organizationId: true } },
+      },
+    });
+
+    if (!stay || stay.foodPlan === FoodPlan.NOT_INCLUDED || stay.foodBillingMode === FoodBillingMode.FLAT_RATE) {
+      return null;
+    }
+
+    // Spin up a quick transaction to use our shared creation logic
+    return await prisma.$transaction(async (tx) => {
+      return await FoodCycleService.createCycleForStay(
+        tx,
+        stay.id,
+        stay.hostel.organizationId,
+        stay.hostelId,
+        stay.foodBillingMode,
+        stay.foodPlan,
+        stay.joiningDate
+      );
+    });
   }
 
   /**
@@ -75,7 +97,7 @@ export class FoodCycleService {
     tx: Prisma.TransactionClient,
     stayId: string,
     checkoutDate: Date,
-    userId: string
+    userId: string | null
   ) {
     await tx.foodBillingCycle.updateMany({
       where: {

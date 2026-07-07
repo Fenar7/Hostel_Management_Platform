@@ -61,7 +61,7 @@ export async function processNaturalCheckouts(params?: NaturalCheckoutParams): P
       });
 
       // Hook for Sprint 1.2: Close any open food billing cycle
-      await FoodCycleService.closeCycle(tx, stay.id, stay.endDate, "system");
+      await FoodCycleService.closeCycle(tx, stay.id, stay.endDate, null);
     });
   }
 
