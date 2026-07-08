@@ -100,7 +100,6 @@ export default async function HostelDashboardView({
             value={stats.availableBeds} 
             subtitle="Ready for booking"
             iconUrl="/icons/available-bed-card.png"
-            iconBgClass="bg-[#e8fce9] dark:bg-[#58ff48]/10"
             trend="23%"
             trendUp={true}
           />
@@ -109,7 +108,6 @@ export default async function HostelDashboardView({
             value={stats.occupiedBeds} 
             subtitle="Active tenants"
             iconUrl="/icons/occupied-bed-card.png"
-            iconBgClass="bg-[#e0f2fe] dark:bg-[#38bdf8]/10"
             trend="78%"
             trendUp={true}
           />
@@ -118,7 +116,6 @@ export default async function HostelDashboardView({
             value={stats.pendingOnboarding} 
             subtitle="onboarding/approval"
             iconUrl="/icons/pending-bookings-card.png"
-            iconBgClass="bg-[#fef9c3] dark:bg-[#facc15]/10"
             trend="+10%"
             trendUp={true}
           />
@@ -127,7 +124,6 @@ export default async function HostelDashboardView({
             value={stats.pendingPayments} 
             subtitle="Tenants need payment"
             iconUrl="/icons/rent-due-card.png"
-            iconBgClass="bg-[#fee2e2] dark:bg-[#f87171]/10"
             trend="-10%"
             trendUp={false}
           />
