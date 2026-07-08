@@ -27,9 +27,10 @@ const EVENT_COLORS: Record<ActivityEventType, string> = {
   STAY_STATUS_CHANGED: "#767676",
   SERVICE_REQUEST_CREATED: "#e1a918",
   SERVICE_REQUEST_RESOLVED: "#18b92b",
-  FOOD_CYCLE_CLOSED: "#285bc7", // blue
-  FOOD_WALLET_TOPPED_UP: "#18b92b", // green
-  FOOD_COMPLEMENTARY_ORDER_CREATED: "#767676", // gray
+  FOOD_CYCLE_CLOSED: "#10b981", // green-500
+  FOOD_WALLET_TOPPED_UP: "#3b82f6", // blue-500
+  FOOD_WALLET_TOPUP_REJECTED: "#ef4444", // red-500
+  FOOD_COMPLEMENTARY_ORDER_CREATED: "#8b5cf6", // violet-500
 };
 
 export function ActivityFeed({ role, hostelId, organizationId }: ActivityFeedWidgetProps) {
