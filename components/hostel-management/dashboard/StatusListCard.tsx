@@ -33,7 +33,7 @@ export function StatusListCard({ title, items }: StatusListCardProps) {
           const content = (
             <div className="flex items-center gap-3 min-w-0">
               {item.iconUrl ? (
-                <Image src={item.iconUrl} alt={item.label} width={20} height={20} className="size-4 shrink-0 opacity-70 dark:opacity-50 grayscale" />
+                <Image src={item.iconUrl} alt={item.label} width={20} height={20} className="size-4 shrink-0" />
               ) : Icon ? (
                 <Icon className={cn("size-4 shrink-0 text-[#767676] dark:text-[#a0a0a0]", item.iconColor)} />
               ) : null}
