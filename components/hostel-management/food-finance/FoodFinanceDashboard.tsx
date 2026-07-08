@@ -16,7 +16,7 @@ export default function FoodFinanceDashboard({ hostelId }: { hostelId: string })
       setLoading(true);
       const [finRes, topUpsRes] = await Promise.all([
         fetch(`/api/warden/food-finance?hostelId=${hostelId}`),
-        fetch(`/api/warden/food-topups`),
+        fetch(`/api/warden/food-topups?hostelId=${hostelId}`),
       ]);
       
       if (!finRes.ok) throw new Error("Failed to load finance data");
