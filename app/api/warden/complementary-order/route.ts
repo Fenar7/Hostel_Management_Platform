@@ -5,8 +5,10 @@ import { prisma } from "@/lib/db";
 import { handleApiError, ValidationError } from "@/lib/errors";
 import { UserRole, ComplementaryOrderCategory } from "@prisma/client";
 import { z } from "zod";
-import { FoodPricingService } from "@/services/food/pricing.service";
+import { PricingService } from "@/services/food/pricing.service";
 import { FoodNotificationService } from "@/services/food/notifications.service";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 
 const postSchema = z.object({
   forDate: z.string(), // YYYY-MM-DD
@@ -30,11 +32,15 @@ export async function POST(request: NextRequest) {
 
     const dateObj = new Date(`${data.forDate}T00:00:00.000+05:30`);
 
-    const pricing = await FoodPricingService.getActivePricing(
+    const pricing = await PricingService.getActivePricing(
       session.user.organizationId,
       hostelId,
       dateObj
     );
+
+    if (!pricing) {
+      throw new ValidationError("No pricing found for this date.");
+    }
 
     const totalCostPaise =
       data.breakfastQty * pricing.breakfastPricePaise +
@@ -58,6 +64,17 @@ export async function POST(request: NextRequest) {
     if (session.user.role === UserRole.WARDEN) {
       await FoodNotificationService.notifyAdminComplementaryOrder(order.id, hostelId).catch(console.error);
     }
+
+    await logActivity({
+      organizationId: session.user.organizationId,
+      hostelId,
+      eventType: ActivityEventType.FOOD_COMPLEMENTARY_ORDER_CREATED,
+      actorId: session.user.id,
+      actorName: session.user.email || session.user.phone || (session.user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden"),
+      subjectName: `Complementary Order - ${data.category}`,
+      subjectId: order.id,
+      subjectType: "ComplementaryFoodOrder",
+    });
 
     return NextResponse.json(order);
   } catch (error) {

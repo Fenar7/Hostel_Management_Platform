@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
-import { SettlementOutcome, FoodBillingMode, FoodPlan, StayStatus, Prisma } from "@prisma/client";
+import { SettlementOutcome, FoodBillingMode, FoodPlan, StayStatus, Prisma, ActivityEventType } from "@prisma/client";
 import { FoodCycleService } from "./cycle.service";
+import { FoodNotificationService } from "./notifications.service";
+import { logActivity } from "../activity/activity.service";
 
 export class FoodSettlementService {
   /**
@@ -8,13 +10,18 @@ export class FoodSettlementService {
    * Fully idempotent: returns the cycle immediately if already closed.
    */
   static async settleStayCycle(stayId: string, cycleId: string, closingUserId: string) {
-    return await prisma.$transaction(async (tx) => {
+    let sideEffects: any = null;
+
+    const result = await prisma.$transaction(async (tx) => {
       // 1. Fetch cycle and ensure it's OPEN
       const cycle = await tx.foodBillingCycle.findUnique({
         where: { id: cycleId },
         include: {
           stay: {
-            include: { hostel: { select: { organizationId: true } } }
+            include: { 
+              tenant: { select: { fullName: true } },
+              hostel: { select: { organizationId: true } } 
+            }
           }
         },
       });
@@ -122,10 +129,33 @@ export class FoodSettlementService {
       // 7. Create next cycle seamlessly, carrying over any positive balance
       await this.generateNextCycleIfNeeded(tx, stay, cycle.cycleEnd, balancePaise > 0 ? balancePaise : 0);
 
-      // (Post-settlement notifications would be triggered async here)
+      sideEffects = {
+        organizationId: stay.hostel.organizationId,
+        hostelId: stay.hostelId,
+        tenantFullName: stay.tenant?.fullName || "Unknown",
+        balancePaise,
+        outcome
+      };
       
       return closedCycle;
     }, { isolationLevel: "Serializable" });
+
+    if (sideEffects) {
+      FoodNotificationService.notifyTenantCycleSettled(cycleId, sideEffects.balancePaise, sideEffects.outcome).catch(console.error);
+
+      await logActivity({
+        organizationId: sideEffects.organizationId,
+        hostelId: sideEffects.hostelId,
+        eventType: ActivityEventType.FOOD_CYCLE_CLOSED,
+        actorId: closingUserId,
+        actorName: closingUserId === "SYSTEM_CRON" ? "System" : "Warden",
+        subjectName: `Cycle Settlement - ${sideEffects.tenantFullName}`,
+        subjectId: cycleId,
+        subjectType: "FoodBillingCycle",
+      }).catch(console.error);
+    }
+
+    return result;
   }
 
   private static async generateNextCycleIfNeeded(tx: Prisma.TransactionClient, stay: any, lastCycleEnd: Date, carryoverPaise: number) {
@@ -188,6 +218,9 @@ export class FoodSettlementService {
         errors.push({ stayId: cycle.stayId, cycleId: cycle.id, error: err.message });
       }
     }
+
+    // Send batch summary notification
+    FoodNotificationService.notifyHostelSettlementSummary(hostelId, successCount, failedCount).catch(console.error);
 
     return { successCount, failedCount, errors };
   }

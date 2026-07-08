@@ -5,6 +5,8 @@ import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ValidationError } from "@/lib/errors";
 import { UserRole, TopUpStatus, PaymentMode } from "@prisma/client";
 import { z } from "zod";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 
 const postSchema = z.object({
   stayId: z.string(),
@@ -26,6 +28,7 @@ export async function POST(request: NextRequest) {
 
     const stay = await prisma.stay.findUnique({
       where: { id: data.stayId },
+      include: { tenant: true, hostel: true },
     });
 
     if (!stay || stay.hostelId !== hostelId) {
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("No open billing cycle found for this tenant. Cannot record top-up.");
     }
 
-    const topUp = await prisma.$transaction(
+    const { topUp, isNew } = await prisma.$transaction(
       async (tx) => {
         const exactDuplicate = await tx.foodWalletTopUp.findUnique({
           where: { idempotencyKey: data.idempotencyKey },
@@ -52,10 +55,10 @@ export async function POST(request: NextRequest) {
           if (exactDuplicate.stayId !== stay.id) {
             throw new Error("IDEMPOTENCY_CONFLICT");
           }
-          return exactDuplicate;
+          return { topUp: exactDuplicate, isNew: false };
         }
 
-        return tx.foodWalletTopUp.create({
+        const newTopUp = await tx.foodWalletTopUp.create({
           data: {
             stayId: stay.id,
             cycleId: activeCycle.id,
@@ -68,9 +71,26 @@ export async function POST(request: NextRequest) {
             idempotencyKey: data.idempotencyKey,
           },
         });
+        
+        return { topUp: newTopUp, isNew: true };
       },
       { isolationLevel: "Serializable" }
     );
+
+    if (isNew) {
+      const actorName = session.user.email || session.user.phone || (session.user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden");
+      await logActivity({
+        organizationId: stay.hostel.organizationId,
+        hostelId: stay.hostelId,
+        eventType: ActivityEventType.FOOD_WALLET_TOPPED_UP,
+        actorId: session.user.id,
+        actorName: actorName,
+        subjectId: stay.id,
+        subjectName: stay.tenant.fullName,
+        subjectType: "Stay",
+        metadata: { amountPaise: topUp.amountPaise },
+      });
+    }
 
     return NextResponse.json(topUp);
   } catch (error: any) {

@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
       endDate: data.endDate,
       durationType: data.durationType,
       foodPlan: data.foodPlan,
-      foodBillingMode: data.foodBillingMode,
       isNewAdmission: data.isNewAdmission,
       admissionFee: data.admissionFee,
       monthlyRent: data.monthlyRent,
@@ -57,9 +56,9 @@ export async function POST(request: NextRequest) {
       actorId: session.user.id,
       actorName: session.user.phone ?? "Admin",
       subjectName: data.phone,
-      subjectId: result.stayId,
-      subjectType: "Stay",
-      targetUrl: `/warden/onboards/${result.stayId}`,
+      subjectId: result.requestId,
+      subjectType: "OnboardingRequest",
+      targetUrl: `/warden/onboards/${result.requestId}`,
     });
 
     return NextResponse.json(result);

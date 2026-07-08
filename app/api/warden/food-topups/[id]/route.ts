@@ -6,6 +6,8 @@ import { handleApiError, NotFoundError, ValidationError } from "@/lib/errors";
 import { UserRole, TopUpStatus, PaymentMode } from "@prisma/client";
 import { z } from "zod";
 import { FoodNotificationService } from "@/services/food/notifications.service";
+import { logActivity } from "@/services/activity/activity.service";
+import { ActivityEventType } from "@prisma/client";
 
 const patchSchema = z.object({
   action: z.enum(["APPROVE", "REJECT"]),
@@ -15,9 +17,10 @@ const patchSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: topUpId } = await params;
     const session = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
     const hostelId = await resolveHostelId(session, request);
     await requireHostelAccess(session, hostelId);
@@ -25,10 +28,9 @@ export async function PATCH(
     const body = await request.json();
     const data = patchSchema.parse(body);
 
-    const topUpId = params.id;
     const topUp = await prisma.foodWalletTopUp.findUnique({
       where: { id: topUpId },
-      include: { stay: true },
+      include: { stay: { include: { tenant: true, hostel: true } } },
     });
 
     if (!topUp) throw new NotFoundError("Top-up request not found");
@@ -43,16 +45,42 @@ export async function PATCH(
       where: { id: topUpId },
       data: {
         status: data.action === "APPROVE" ? TopUpStatus.APPROVED : TopUpStatus.REJECTED,
-        paymentMode: data.action === "APPROVE" ? data.paymentMode : null,
-        transactionRef: data.action === "APPROVE" ? data.transactionRef : null,
+        ...(data.action === "APPROVE" ? { 
+          paymentMode: data.paymentMode, 
+          transactionRef: data.transactionRef || null 
+        } : {}),
         approvedByUserId: session.user.id,
       },
     });
 
+    const actorName = session.user.email || session.user.phone || (session.user.role === UserRole.MAIN_ADMIN ? "Admin" : "Warden");
+
     if (data.action === "APPROVE") {
       await FoodNotificationService.notifyTenantTopUpApproved(updated.id).catch(console.error);
+      await logActivity({
+        organizationId: topUp.stay.hostel.organizationId,
+        hostelId: topUp.stay.hostelId,
+        eventType: ActivityEventType.FOOD_WALLET_TOPPED_UP,
+        actorId: session.user.id,
+        actorName: actorName,
+        subjectId: topUp.stayId,
+        subjectName: topUp.stay.tenant.fullName,
+        subjectType: "Stay",
+        metadata: { amountPaise: topUp.amountPaise },
+      });
     } else {
       await FoodNotificationService.notifyTenantTopUpRejected(updated.id).catch(console.error);
+      await logActivity({
+        organizationId: topUp.stay.hostel.organizationId,
+        hostelId: topUp.stay.hostelId,
+        eventType: ActivityEventType.FOOD_WALLET_TOPUP_REJECTED,
+        actorId: session.user.id,
+        actorName: actorName,
+        subjectId: topUp.stayId,
+        subjectName: topUp.stay.tenant.fullName,
+        subjectType: "Stay",
+        metadata: { amountPaise: topUp.amountPaise },
+      });
     }
 
     return NextResponse.json(updated);
