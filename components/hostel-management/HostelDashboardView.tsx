@@ -69,13 +69,13 @@ export default async function HostelDashboardView({
 
   const Actions = (
     <>
-      <button className="flex items-center justify-center size-10 premium-button-outline shrink-0">
-        <Bell className="size-5 text-black dark:text-white" />
+      <button className="flex items-center justify-center size-10 rounded-full border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-sm shrink-0">
+        <Bell className="size-[18px]" />
       </button>
-      <button className="flex items-center justify-center gap-2 premium-button-outline whitespace-nowrap">
+      <button className="flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-sm font-semibold text-[14px] whitespace-nowrap">
         Manage Rent <Plus className="size-4 text-[#58ff48]" />
       </button>
-      <button className="flex items-center justify-center gap-2 premium-button whitespace-nowrap">
+      <button className="flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-[#222222] dark:bg-[#58ff48] text-white dark:text-black hover:opacity-90 transition-all shadow-md font-semibold text-[14px] whitespace-nowrap">
         On Board a User <Plus className="size-4" />
       </button>
     </>
@@ -100,6 +100,7 @@ export default async function HostelDashboardView({
             value={stats.availableBeds} 
             subtitle="Ready for booking"
             iconUrl="/icons/available-bed-card.png"
+            iconBgClass="bg-[#e8fce9] dark:bg-[#58ff48]/10"
             trend="23%"
             trendUp={true}
           />
@@ -108,6 +109,7 @@ export default async function HostelDashboardView({
             value={stats.occupiedBeds} 
             subtitle="Active tenants"
             iconUrl="/icons/occupied-bed-card.png"
+            iconBgClass="bg-[#e0f2fe] dark:bg-[#38bdf8]/10"
             trend="78%"
             trendUp={true}
           />
@@ -116,6 +118,7 @@ export default async function HostelDashboardView({
             value={stats.pendingOnboarding} 
             subtitle="onboarding/approval"
             iconUrl="/icons/pending-bookings-card.png"
+            iconBgClass="bg-[#fef9c3] dark:bg-[#facc15]/10"
             trend="+10%"
             trendUp={true}
           />
@@ -124,6 +127,7 @@ export default async function HostelDashboardView({
             value={stats.pendingPayments} 
             subtitle="Tenants need payment"
             iconUrl="/icons/rent-due-card.png"
+            iconBgClass="bg-[#fee2e2] dark:bg-[#f87171]/10"
             trend="-10%"
             trendUp={false}
           />
