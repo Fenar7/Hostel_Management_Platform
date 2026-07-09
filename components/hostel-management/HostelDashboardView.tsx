@@ -50,11 +50,11 @@ export default async function HostelDashboardView({
   const organizationId = hostel?.organizationId;
 
   const occupancyItems: StatusItem[] = [
-    { id: "1", label: "Bedspaces Available", value: stats.availableBeds, iconUrl: "/icons/available-stat-icon.png" },
-    { id: "2", label: "Bedspaces on Hold", value: stats.bedsOnHold, iconUrl: "/icons/on-hold-stat-icon.png" },
-    { id: "3", label: "Bedspaces Reserved", value: stats.bedsReserved, iconUrl: "/icons/reserved-stat-icon.png" },
-    { id: "4", label: "Bedspaces Occupied", value: stats.occupiedBeds, iconUrl: "/icons/occupied-stat-icon.png" },
-    { id: "5", label: "BedspacesBlocked", value: stats.bedsBlocked, iconUrl: "/icons/blocked-stat-icon.png" },
+    { id: "1", label: "Bedspaces Available", value: stats.availableBeds, iconUrl: "/icons/available-stat-icon.png", href: `${baseRoute}/occupancy` },
+    { id: "2", label: "Bedspaces on Hold", value: stats.bedsOnHold, iconUrl: "/icons/on-hold-stat-icon.png", href: `${baseRoute}/occupancy` },
+    { id: "3", label: "Bedspaces Reserved", value: stats.bedsReserved, iconUrl: "/icons/reserved-stat-icon.png", href: `${baseRoute}/occupancy` },
+    { id: "4", label: "Bedspaces Occupied", value: stats.occupiedBeds, iconUrl: "/icons/occupied-stat-icon.png", href: `${baseRoute}/occupancy` },
+    { id: "5", label: "BedspacesBlocked", value: stats.bedsBlocked, iconUrl: "/icons/blocked-stat-icon.png", href: `${baseRoute}/occupancy` },
   ];
 
   const bookingItems: StatusItem[] = [

@@ -22,11 +22,11 @@ export default async function AdminPage() {
   const stats = await getAdminPortfolioStats();
 
   const occupancyItems: StatusItem[] = [
-    { id: "1", label: "Bedspaces Available", value: stats.totalBedsAvailable, iconUrl: "/icons/available-stat-icon.png" },
-    { id: "2", label: "Bedspaces on Hold", value: stats.totalBedsOnHold, iconUrl: "/icons/on-hold-stat-icon.png" },
-    { id: "3", label: "Bedspaces Reserved", value: stats.totalBedsReserved, iconUrl: "/icons/reserved-stat-icon.png" },
-    { id: "4", label: "Bedspaces Occupied", value: stats.totalOccupiedBeds, iconUrl: "/icons/occupied-stat-icon.png" },
-    { id: "5", label: "BedspacesBlocked", value: stats.totalBedsBlocked, iconUrl: "/icons/blocked-stat-icon.png" },
+    { id: "1", label: "Bedspaces Available", value: stats.totalBedsAvailable, iconUrl: "/icons/available-stat-icon.png", href: "/admin/hostels" },
+    { id: "2", label: "Bedspaces on Hold", value: stats.totalBedsOnHold, iconUrl: "/icons/on-hold-stat-icon.png", href: "/admin/hostels" },
+    { id: "3", label: "Bedspaces Reserved", value: stats.totalBedsReserved, iconUrl: "/icons/reserved-stat-icon.png", href: "/admin/hostels" },
+    { id: "4", label: "Bedspaces Occupied", value: stats.totalOccupiedBeds, iconUrl: "/icons/occupied-stat-icon.png", href: "/admin/hostels" },
+    { id: "5", label: "BedspacesBlocked", value: stats.totalBedsBlocked, iconUrl: "/icons/blocked-stat-icon.png", href: "/admin/hostels" },
   ];
 
   const bookingItems: StatusItem[] = [
