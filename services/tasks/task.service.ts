@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
-import { TaskStatus, TaskPriority } from "@prisma/client";
+import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 
 // ==========================================
 // SHARED UTILS
@@ -280,12 +280,20 @@ export async function addTaskComment(data: {
   taskId: string;
   organizationId: string;
   userId: string;
+  userRole: UserRole;
   message: string;
 }) {
-  const task = await prisma.task.findUnique({ where: { id: data.taskId } });
+  const task = await prisma.task.findUnique({ 
+    where: { id: data.taskId },
+    include: { assignedToWarden: true } 
+  });
 
   if (!task || task.organizationId !== data.organizationId) {
     throw new NotFoundError("Task not found.");
+  }
+
+  if (data.userRole === UserRole.WARDEN && task.assignedToWarden.userId !== data.userId) {
+    throw new ForbiddenError("You are not authorized to comment on this task.");
   }
 
   return prisma.taskComment.create({
@@ -301,11 +309,23 @@ export async function addTaskComment(data: {
   });
 }
 
-export async function getTaskComments(taskId: string, organizationId: string) {
-  const task = await prisma.task.findUnique({ where: { id: taskId } });
+export async function getTaskComments(
+  taskId: string, 
+  organizationId: string, 
+  userId: string, 
+  userRole: UserRole
+) {
+  const task = await prisma.task.findUnique({ 
+    where: { id: taskId },
+    include: { assignedToWarden: true } 
+  });
 
   if (!task || task.organizationId !== organizationId) {
     throw new NotFoundError("Task not found.");
+  }
+
+  if (userRole === UserRole.WARDEN && task.assignedToWarden.userId !== userId) {
+    throw new ForbiddenError("You are not authorized to view comments on this task.");
   }
 
   return prisma.taskComment.findMany({

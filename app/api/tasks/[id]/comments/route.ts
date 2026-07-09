@@ -20,6 +20,7 @@ export async function POST(
       taskId,
       organizationId: session.user.organizationId,
       userId: session.user.id,
+      userRole: session.user.role,
       message: data.message,
     });
 
@@ -37,7 +38,12 @@ export async function GET(
     const session = await requireRole([UserRole.MAIN_ADMIN, UserRole.WARDEN]);
     const { id: taskId } = await params;
 
-    const comments = await getTaskComments(taskId, session.user.organizationId);
+    const comments = await getTaskComments(
+      taskId, 
+      session.user.organizationId,
+      session.user.id,
+      session.user.role
+    );
 
     return Response.json(comments);
   } catch (error) {

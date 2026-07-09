@@ -19,14 +19,17 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const parsedPage = parseInt(searchParams.get("page") || "1");
+    const parsedLimit = parseInt(searchParams.get("limit") || "20");
+    
+    const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+    const limit = isNaN(parsedLimit) || parsedLimit < 1 ? 20 : Math.min(parsedLimit, 100);
     const status = searchParams.get("status") as TaskStatus | undefined;
 
     const tasks = await listTasksWarden({
       wardenId: warden.id,
       filters: { status },
-      pagination: { page, limit: Math.min(limit, 100) },
+      pagination: { page, limit },
     });
 
     return Response.json(tasks);

@@ -28,8 +28,11 @@ export async function GET(request: NextRequest) {
     const session = await requireRole([UserRole.MAIN_ADMIN]);
     const { searchParams } = new URL(request.url);
     
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const parsedPage = parseInt(searchParams.get("page") || "1");
+    const parsedLimit = parseInt(searchParams.get("limit") || "20");
+    
+    const page = isNaN(parsedPage) || parsedPage < 1 ? 1 : parsedPage;
+    const limit = isNaN(parsedLimit) || parsedLimit < 1 ? 20 : Math.min(parsedLimit, 100);
     const status = searchParams.get("status") as TaskStatus | undefined;
     const hostelId = searchParams.get("hostelId") || undefined;
     const wardenId = searchParams.get("wardenId") || undefined;
@@ -38,7 +41,7 @@ export async function GET(request: NextRequest) {
     const tasks = await listTasksAdmin({
       organizationId: session.user.organizationId,
       filters: { status, hostelId, wardenId, priority },
-      pagination: { page, limit: Math.min(limit, 100) },
+      pagination: { page, limit },
     });
 
     return Response.json(tasks);
