@@ -178,10 +178,10 @@ export function TaskDetailDrawer({
               </div>
             ) : null}
 
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-4">
               <PriorityBadge priority={task.priority} />
               <StatusBadge status={task.status} isOverdue={isOverdue} />
-              <span className="ml-auto text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+              <span className="ml-auto text-[13px] font-medium text-gray-500">
                 {task.hostel.name}
               </span>
             </div>
@@ -199,7 +199,7 @@ export function TaskDetailDrawer({
                 }
               }}
               readOnly={isReadOnly || mode === "warden"}
-              className="text-xl font-black bg-transparent outline-none w-full text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700"
+              className="text-[22px] font-semibold bg-transparent outline-none w-full text-gray-900 dark:text-white placeholder:text-gray-300 dark:placeholder:text-gray-700 leading-tight"
               placeholder="Task Title"
             />
             
@@ -212,7 +212,7 @@ export function TaskDetailDrawer({
                 }
               }}
               readOnly={isReadOnly || mode === "warden"}
-              className="mt-2 text-sm text-gray-500 bg-transparent outline-none w-full resize-none min-h-[60px]"
+              className="mt-3 text-[15px] leading-relaxed text-gray-600 dark:text-gray-400 bg-transparent outline-none w-full resize-none min-h-[80px]"
               placeholder="Add a description..."
             />
           </SheetHeader>
@@ -221,36 +221,36 @@ export function TaskDetailDrawer({
             <div className="p-6 space-y-6">
               
               {/* Metadata Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Assigned To</span>
-                  <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-white truncate">
+              <div className="grid grid-cols-2 gap-6 bg-gray-50/50 dark:bg-white/[0.02] p-4 rounded-xl border border-gray-100 dark:border-white/5">
+                <div className="space-y-1.5">
+                  <span className="text-[12px] font-medium text-gray-500">Assigned To</span>
+                  <div className="flex items-center gap-2 text-[14px] text-gray-900 dark:text-white truncate">
                     <User className="w-4 h-4 text-gray-400 shrink-0" />
                     <span className="truncate">{task.assignedToWarden.user.email || 'Warden'}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
-                    <Phone className="w-3 h-3 shrink-0" />
+                  <div className="flex items-center gap-2 text-[13px] text-gray-500 mt-1">
+                    <Phone className="w-3.5 h-3.5 shrink-0" />
                     {task.assignedToWarden.user.phone}
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Deadline</span>
-                  <div className={`flex items-center gap-1.5 text-sm font-bold ${isOverdue ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                <div className="space-y-1.5">
+                  <span className="text-[12px] font-medium text-gray-500">Deadline</span>
+                  <div className={`flex items-center gap-2 text-[14px] font-medium ${isOverdue ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
                     <Calendar className="w-4 h-4 shrink-0" />
                     {new Date(task.deadline).toLocaleDateString()}
                   </div>
-                  <div className={`flex items-center gap-1.5 text-xs ${isOverdue ? 'text-red-400' : 'text-gray-500'} mt-1`}>
-                    <Clock className="w-3 h-3 shrink-0" />
+                  <div className={`flex items-center gap-2 text-[13px] ${isOverdue ? 'text-red-400' : 'text-gray-500'} mt-1`}>
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
                     {new Date(task.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
               </div>
 
               {!isReadOnly && mode === "admin" && (
-                <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                <div className="space-y-6 pt-2">
                   <div className="space-y-2">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Update Priority</span>
+                    <span className="text-[13px] font-medium text-gray-500 block mb-2">Priority Level</span>
                     <div className="flex flex-wrap gap-2">
                       {(["LOW", "MEDIUM", "HIGH", "URGENT"] as TaskPriority[]).map((p) => {
                         const isSelected = task.priority === p;
@@ -258,13 +258,13 @@ export function TaskDetailDrawer({
                           <button
                             key={p}
                             onClick={() => updateField("priority", p)}
-                            className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                            className={`px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all ${
                               isSelected
-                                ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
-                                : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 dark:bg-transparent dark:border-white/10 dark:hover:border-white/20"
+                                ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm"
+                                : "bg-transparent text-gray-600 border border-gray-200 hover:bg-gray-50 dark:text-gray-400 dark:border-white/10 dark:hover:bg-white/5"
                             }`}
                           >
-                            {p}
+                            {p.charAt(0) + p.slice(1).toLowerCase()}
                           </button>
                         );
                       })}
@@ -272,26 +272,26 @@ export function TaskDetailDrawer({
                   </div>
 
                   <div className="space-y-2">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Update Deadline</span>
-                    <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium text-gray-500 block mb-2">Adjust Deadline</span>
+                    <div className="flex items-center gap-3">
                       <input
                         type="datetime-local"
                         value={deadlineInput}
                         min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                         onChange={(e) => setDeadlineInput(e.target.value)}
-                        className="text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 outline-none"
+                        className="flex-1 text-[14px] bg-transparent border-b border-gray-200 dark:border-white/10 pb-2 pt-1 outline-none focus:border-gray-900 dark:focus:border-white transition-colors"
                       />
                       <Button 
                         size="sm" 
-                        variant="outline"
+                        variant="secondary"
                         onClick={() => {
                           if (deadlineInput) {
                             updateField("deadline", new Date(deadlineInput).toISOString());
                           }
                         }}
-                        className="rounded-xl border-gray-200 dark:border-white/10 h-[38px]"
+                        className="rounded-lg h-9 px-4 font-medium"
                       >
-                        Save
+                        Update
                       </Button>
                     </div>
                   </div>
@@ -337,14 +337,13 @@ export function TaskDetailDrawer({
               )}
 
               {!isReadOnly && mode === "admin" && (
-                <div className="pt-6">
-                  <Button 
-                    variant="outline" 
-                    className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+                <div className="pt-8">
+                  <button 
+                    className="text-[13px] font-medium text-red-500 hover:text-red-600 transition-colors w-full text-center py-2"
                     onClick={() => setConfirmCancelOpen(true)}
                   >
-                    Cancel Task
-                  </Button>
+                    Delete / Cancel Task
+                  </button>
                 </div>
               )}
             </div>
