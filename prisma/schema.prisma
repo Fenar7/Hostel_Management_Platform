@@ -386,7 +386,7 @@ model Payment {
   screenshotDocument   Document?     @relation("PaymentScreenshot", fields: [screenshotDocumentId], references: [id])
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
-  receiptNumber        Int           @unique @default(autoincrement())
+  receiptNumber        Int           @default(autoincrement())
 
   serviceRequest ServiceRequest?
 
@@ -530,6 +530,7 @@ model Organization {
   activityLogs ActivityLog[]
   foodPricings FoodPricing[]
   tasks        Task[]
+  taskComments TaskComment[]
 }
 
 // ==========================================
@@ -848,7 +849,6 @@ enum TaskStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
-  OVERDUE
 }
 
 model Task {
@@ -857,12 +857,12 @@ model Task {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // Assignment
-  createdByUserId    String
-  createdBy          User   @relation("TasksCreated", fields: [createdByUserId], references: [id])
+  createdByUserId    String?
+  createdBy          User?  @relation("TasksCreated", fields: [createdByUserId], references: [id], onDelete: SetNull)
   assignedToWardenId String
   assignedToWarden   Warden @relation(fields: [assignedToWardenId], references: [id], onDelete: Restrict)
   hostelId           String
-  hostel             Hostel @relation(fields: [hostelId], references: [id])
+  hostel             Hostel @relation(fields: [hostelId], references: [id], onDelete: Cascade)
 
   // Task Content
   title       String
@@ -889,13 +889,16 @@ model Task {
 }
 
 model TaskComment {
-  id        String   @id @default(uuid())
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  message   String
-  createdAt DateTime @default(now())
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  taskId         String
+  task           Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  message        String
+  createdAt      DateTime     @default(now())
 
+  @@index([organizationId])
   @@index([taskId])
 }

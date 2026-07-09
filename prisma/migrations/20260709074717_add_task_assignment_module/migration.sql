@@ -48,7 +48,7 @@ CREATE TYPE "ComplementaryOrderCategory" AS ENUM ('GUEST', 'STAFF', 'EVENT', 'OT
 CREATE TYPE "TaskPriority" AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT');
 
 -- CreateEnum
-CREATE TYPE "TaskStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'OVERDUE');
+CREATE TYPE "TaskStatus" AS ENUM ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED');
 
 -- AlterTable
 ALTER TABLE "FoodOrder" DROP COLUMN "cutFruits",
@@ -317,7 +317,7 @@ CREATE TABLE "ComplementaryFoodOrder" (
 CREATE TABLE "Task" (
     "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
-    "createdByUserId" TEXT NOT NULL,
+    "createdByUserId" TEXT,
     "assignedToWardenId" TEXT NOT NULL,
     "hostelId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -336,8 +336,9 @@ CREATE TABLE "Task" (
 -- CreateTable
 CREATE TABLE "TaskComment" (
     "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
     "taskId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "userId" TEXT,
     "message" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -421,6 +422,9 @@ CREATE INDEX "Task_hostelId_idx" ON "Task"("hostelId");
 
 -- CreateIndex
 CREATE INDEX "Task_deadline_idx" ON "Task"("deadline");
+
+-- CreateIndex
+CREATE INDEX "TaskComment_organizationId_idx" ON "TaskComment"("organizationId");
 
 -- CreateIndex
 CREATE INDEX "TaskComment_taskId_idx" ON "TaskComment"("taskId");
@@ -528,16 +532,19 @@ ALTER TABLE "ComplementaryFoodOrder" ADD CONSTRAINT "ComplementaryFoodOrder_crea
 ALTER TABLE "Task" ADD CONSTRAINT "Task_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Task" ADD CONSTRAINT "Task_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Task" ADD CONSTRAINT "Task_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Task" ADD CONSTRAINT "Task_assignedToWardenId_fkey" FOREIGN KEY ("assignedToWardenId") REFERENCES "Warden"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Task" ADD CONSTRAINT "Task_hostelId_fkey" FOREIGN KEY ("hostelId") REFERENCES "Hostel"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Task" ADD CONSTRAINT "Task_hostelId_fkey" FOREIGN KEY ("hostelId") REFERENCES "Hostel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TaskComment" ADD CONSTRAINT "TaskComment_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "TaskComment" ADD CONSTRAINT "TaskComment_taskId_fkey" FOREIGN KEY ("taskId") REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TaskComment" ADD CONSTRAINT "TaskComment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TaskComment" ADD CONSTRAINT "TaskComment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
