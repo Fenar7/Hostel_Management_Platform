@@ -9,48 +9,45 @@ export function TaskCard({ task, onClick }: { task: TaskDTO; onClick: () => void
   return (
     <div 
       onClick={onClick}
-      className={`group flex flex-col sm:flex-row sm:items-center gap-4 p-4 md:p-5 bg-white dark:bg-[#111111] border rounded-2xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-all shadow-sm ${
-        isOverdue ? 'border-red-200 dark:border-red-900/50' : 'border-gray-200 dark:border-white/10'
+      className={`group flex flex-col sm:flex-row sm:items-start gap-3 p-4 bg-white dark:bg-[#111111] border rounded-[8px] cursor-pointer hover:bg-[#f9f9f9] dark:hover:bg-white/5 transition-colors ${
+        isOverdue ? 'border-red-200/60 dark:border-red-900/30' : 'border-[#e5e5e5] dark:border-white/10'
       }`}
     >
-      {/* Overdue indicator strip */}
-      {isOverdue && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 rounded-l-2xl" />
-      )}
-
-      <div className="flex-1 min-w-0 flex flex-col gap-1">
-        <div className="flex items-center gap-2 mb-1">
+      <div className="flex-1 min-w-0 flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <h4 className={`text-[15px] font-medium truncate ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-[#111111] dark:text-[#eeeeee]'}`}>
+            {task.title}
+          </h4>
           <PriorityBadge priority={task.priority} />
           <StatusBadge status={task.status} isOverdue={isOverdue} />
         </div>
-        <h4 className="text-[15px] font-semibold text-gray-900 dark:text-white truncate">
-          {task.title}
-        </h4>
+        
         {task.description && (
-          <p className="text-[13px] text-gray-500 truncate max-w-full">
+          <p className="text-[13.5px] text-[#707070] truncate max-w-full">
             {task.description}
           </p>
         )}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1 text-[13px] text-gray-500">
+        
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-1 text-[13px] text-[#707070]">
           <div className="flex items-center gap-1.5">
-            <span className="font-medium text-gray-900 dark:text-gray-300">Hostel:</span>
-            <span className="truncate max-w-[120px]">{task.hostel.name}</span>
+            <span>Hostel:</span>
+            <span className="font-medium text-[#111111] dark:text-[#eeeeee] truncate max-w-[150px]">{task.hostel.name}</span>
           </div>
-          <div className="hidden sm:block w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
+          <div className="w-[3px] h-[3px] rounded-full bg-[#d4d4d4]" />
           <div className="flex items-center gap-1.5">
-            <span className="font-medium text-gray-900 dark:text-gray-300">Warden:</span>
-            <span className="truncate max-w-[150px]">{task.assignedToWarden.user.email || task.assignedToWarden.user.phone}</span>
+            <span>Assignee:</span>
+            <span className="font-medium text-[#111111] dark:text-[#eeeeee] truncate max-w-[150px]">{task.assignedToWarden.user.email || task.assignedToWarden.user.phone}</span>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 min-w-[120px] gap-1 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-white/5">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-          Deadline
+      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start shrink-0 min-w-[100px] gap-1 pt-2 sm:pt-0">
+        <div className="text-[12px] font-medium text-[#707070]">
+          {isOverdue ? 'Overdue by' : 'Due'}
         </div>
-        <div className={`text-[14px] font-bold text-right leading-tight ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+        <div className={`text-[13.5px] font-medium text-right leading-tight ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-[#111111] dark:text-[#eeeeee]'}`}>
           {formatRelativeTime(task.deadline)}
-          <div className="text-[11px] font-medium text-gray-500 mt-0.5">
+          <div className="text-[12px] text-[#707070] mt-0.5 font-normal">
             {new Date(task.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </div>
         </div>
