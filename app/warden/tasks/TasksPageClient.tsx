@@ -145,7 +145,7 @@ export function TasksPageClient({
                   : "border-transparent text-[#999] dark:text-[#666] hover:text-[#555] dark:hover:text-[#aaa]"
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 ${id === "IN_PROGRESS" ? "animate-spin" : ""}`} />
+              <Icon className="w-3.5 h-3.5" />
               {label}
             </button>
           );
