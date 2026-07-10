@@ -11,6 +11,7 @@ import { StatusListCard, StatusItem } from "./dashboard/StatusListCard";
 import { ActivityFeed } from "./dashboard/ActivityFeed";
 import { TasksList } from "./dashboard/TasksList";
 import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
+import { NotificationBellClient } from "@/components/notifications/NotificationBellClient";
 
 export const dynamic = "force-dynamic";
 
@@ -69,9 +70,7 @@ export default async function HostelDashboardView({
 
   const Actions = (
     <>
-      <button className="flex items-center justify-center size-10 rounded-[6px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all shrink-0">
-        <Bell className="size-[18px]" />
-      </button>
+      <NotificationBellClient role={userRole === "MAIN_ADMIN" ? UserRole.MAIN_ADMIN : UserRole.WARDEN} baseRoute={baseRoute} />
       <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all font-semibold text-[15px] whitespace-nowrap">
         Manage Rent <Plus className="size-4 text-[#58ff48]" />
       </button>
