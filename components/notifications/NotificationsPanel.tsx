@@ -38,6 +38,7 @@ interface NotificationItem {
   dismissedFromHome: boolean;
   createdAt: string;
   referenceId: string | null;
+  targetUrl: string | null;
 }
 
 interface NotificationsPanelProps {
@@ -187,10 +188,19 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
 
   const getTicketLink = () => {
     if (!selectedNotification?.referenceId) return "#";
-    if (role === "TENANT") return `/tenant/tickets`; // Adjust based on actual routing
+    if (role === "TENANT") return `/tenant/tickets`;
     if (role === "WARDEN") return `/warden/tickets`;
     if (role === "MAIN_ADMIN") return `/admin/tickets`;
     return "#";
+  };
+
+  const getActionLabel = (type: string) => {
+    const t = type.toUpperCase();
+    if (t.includes("TASK")) return "View Task";
+    if (t.includes("PAY")) return "View Payment";
+    if (t.includes("ONBOARD")) return "View Application";
+    if (t.includes("FOOD")) return "View Food Orders";
+    return "View Details";
   };
 
   if (loading && notifications.length === 0) {
@@ -403,7 +413,7 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
                 Close
               </Button>
               <div className="flex items-center gap-2">
-                {selectedNotification.type === "TICKET" && selectedNotification.referenceId && (
+                {selectedNotification.type === "TICKET" && selectedNotification.referenceId ? (
                   <>
                     <Button 
                       variant="outline" 
@@ -424,12 +434,25 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
                       Add Note
                     </Button>
                   </>
-                )}
+                ) : selectedNotification.targetUrl ? (
+                  <Button 
+                    className="rounded-xl shadow-sm bg-gray-900 hover:bg-gray-800 text-white"
+                    onClick={() => {
+                      const url = selectedNotification.targetUrl;
+                      setSelectedNotification(null);
+                      if (url) router.push(url);
+                    }}
+                  >
+                    <ArrowRight className="size-4 mr-2" />
+                    {getActionLabel(selectedNotification.type)}
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
       )}
+
 
     </div>
   );
