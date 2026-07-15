@@ -39,7 +39,7 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
         subjectName: params.subjectName,
         subjectId: params.subjectId,
         subjectType: params.subjectType,
-        metadata: params.metadata ?? {},
+        metadata: (params.metadata ?? {}) as any,
         targetUrl: params.targetUrl,
       },
     });
@@ -68,30 +68,21 @@ export async function getActivityFeed(
     where.eventType = { in: params.eventTypes };
   }
 
-  const cursorOpts = params.cursorId
-    ? {
-        cursor: {
-          id: params.cursorId,
-        },
-        skip: 1, // Skip the cursor itself
-      }
-    : {};
-
-  const items = await prisma.activityLog.findMany({
+  const queryOpts: any = {
     where,
     take,
-    ...cursorOpts,
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: "desc" },
     include: {
-      hostel: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
+      hostel: { select: { name: true } }
+    }
+  };
+
+  if (params.cursorId) {
+    queryOpts.cursor = { id: params.cursorId };
+    queryOpts.skip = 1;
+  }
+
+  const items = await prisma.activityLog.findMany(queryOpts);
 
   let nextCursor: string | null = null;
   let nextCursorId: string | null = null;
@@ -141,21 +132,22 @@ export async function* streamActivityLogCsv(params: StreamCsvParams): AsyncGener
   yield "Date,Hostel,Event,Actor,Subject,Subject Type,Target URL\n";
 
   while (true) {
-    const cursorOpts = cursorId ? { cursor: { id: cursorId }, skip: 1 } : {};
-    
-    const items = await prisma.activityLog.findMany({
+    const queryOpts: any = {
       where,
       take: batchSize,
-      ...cursorOpts,
       orderBy: { createdAt: "desc" },
-      include: {
-        hostel: { select: { name: true } }
-      }
-    });
+      include: { hostel: { select: { name: true } } }
+    };
+    if (cursorId) {
+      queryOpts.cursor = { id: cursorId };
+      queryOpts.skip = 1;
+    }
+    
+    const items = await prisma.activityLog.findMany(queryOpts);
 
     if (items.length === 0) break;
 
-    for (const item of items) {
+    for (const item of items as any[]) {
       const date = item.createdAt.toISOString();
       const hostel = item.hostel?.name ?? "";
       const event = item.eventType;

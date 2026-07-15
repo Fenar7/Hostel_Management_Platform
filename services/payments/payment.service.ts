@@ -198,7 +198,7 @@ export async function verifyPayment(
         data: {
           status: StayStatus.ACTIVE,
         },
-        include: { payments: true },
+        include: { tenant: true, hostel: true },
       });
 
       await tx.stayStatusEvent.create({
