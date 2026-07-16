@@ -43,6 +43,8 @@ jobs:
                 "set -e",
                 "echo 'Deploying latest staye-backend...'",
                 "aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}",
+                "echo 'Cleaning up old docker images to free disk space...'",
+                "docker system prune -af",
                 "docker pull ${{ steps.login-ecr.outputs.registry }}/staye-backend:latest",
                 "docker stop staye-api || true",
                 "docker rm staye-api || true",
