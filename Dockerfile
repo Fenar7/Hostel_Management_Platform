@@ -23,6 +23,7 @@ COPY --from=builder /app/public ./public
 # prisma.config.ts is required by Prisma v7 CLI to find the database URL at runtime
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
+COPY --from=builder /app/scripts ./scripts
 RUN npm install prisma dotenv
 
 # Set production env

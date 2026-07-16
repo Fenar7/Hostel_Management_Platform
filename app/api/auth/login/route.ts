@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createClient as createSupabaseServerClient, createAdminClient } from "@/lib/auth/server";
-import { authenticateUser } from "@/services/auth/auth.service";
+import { encode } from "next-auth/jwt";
+import { prisma } from "@/lib/db";
 import { handleApiError } from "@/lib/errors";
 import { loginSchema } from "@/lib/validation/auth";
-import { prisma } from "@/lib/db";
+import { UserRole } from "@prisma/client";
 
-
+function getRedirectUrl(role: UserRole): string {
+  switch (role) {
+    case UserRole.MAIN_ADMIN:
+      return "/admin";
+    case UserRole.WARDEN:
+      return "/warden";
+    case UserRole.TENANT:
+      return "/tenant";
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,40 +25,25 @@ export async function POST(request: NextRequest) {
 
     const isEmail = identifier.includes("@");
 
-    // Set remember_me cookie BEFORE creating the Supabase client so that
-    // the createClient() call can read it and apply maxAge to setAll()
-    if (rememberMe) {
-      const cookieStore = await cookies();
-      cookieStore.set("remember_me", "true", {
-        maxAge: 30 * 24 * 60 * 60,
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-      });
-    }
-
     // Helper to normalize phone for DB lookup
     const normalizePhone = (p: string) => p.replace(/^\+91/, "").replace(/^\+/, "").trim();
-    
-    // 1. Look up user in Prisma first to tolerate formatting differences
+
+    // 1. Look up user in DB
     let dbUser = null;
     if (isEmail) {
       dbUser = await prisma.user.findUnique({ where: { email: identifier.toLowerCase() } });
     } else {
-      // Try exact match first
       dbUser = await prisma.user.findUnique({ where: { phone: identifier } });
       if (!dbUser) {
-        // Try normalized match
         const norm = normalizePhone(identifier);
         dbUser = await prisma.user.findFirst({
           where: {
             OR: [
               { phone: norm },
               { phone: `+91${norm}` },
-              { phone: `+${norm}` }
-            ]
-          }
+              { phone: `+${norm}` },
+            ],
+          },
         });
       }
     }
@@ -61,51 +55,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createSupabaseServerClient();
-    
-    // 2. Fetch the exact phone/email from Supabase using their Auth ID to ensure we use the exact string Supabase expects
-    // Note: We always prefer EMAIL here, even if they logged in with their phone number, 
-    // because Phone Auth is often disabled in Supabase project settings.
-    let authIdentifier = {};
-    if (dbUser.supabaseAuthId) {
-      const { data: authDataObj } = await createAdminClient().auth.admin.getUserById(dbUser.supabaseAuthId);
-      if (authDataObj?.user) {
-        if (authDataObj.user.email) {
-          authIdentifier = { email: authDataObj.user.email };
-        } else if (authDataObj.user.phone) {
-          authIdentifier = { phone: authDataObj.user.phone };
-        } else {
-          // fallback
-          authIdentifier = dbUser.email ? { email: dbUser.email } : { phone: dbUser.phone };
-        }
-      } else {
-        authIdentifier = dbUser.email ? { email: dbUser.email } : { phone: dbUser.phone };
-      }
-    } else {
-      authIdentifier = dbUser.email ? { email: dbUser.email } : { phone: dbUser.phone };
-    }
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      ...authIdentifier,
-      password,
-    } as any);
-
-    if (error || !data.session) {
-      // Auth failed — clean up the remember_me cookie
-      const cookieStore = await cookies();
-      cookieStore.set("remember_me", "", { maxAge: 0, path: "/" });
+    // 2. Validate password against stored plainTextPassword
+    if (!dbUser.plainTextPassword || dbUser.plainTextPassword !== password) {
       return NextResponse.json(
         { error: "Invalid credentials", code: "UNAUTHORIZED" },
         { status: 401 }
       );
     }
 
-    const result = await authenticateUser({ identifier: isEmail ? dbUser.email! : dbUser.phone, password });
+    // 3. Create a NextAuth-compatible JWT and set the session cookie
+    const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days or 1 day
+    const now = Math.floor(Date.now() / 1000);
+
+    const sessionToken = await encode({
+      token: {
+        // sub must equal supabaseAuthId so that requireRole() can look up the user
+        sub: dbUser.supabaseAuthId,
+        id: dbUser.id,
+        role: dbUser.role,
+        passwordSetAt: dbUser.passwordSetAt?.toISOString() ?? null,
+        iat: now,
+        exp: now + maxAge,
+        jti: crypto.randomUUID(),
+      },
+      secret: process.env.NEXTAUTH_SECRET!,
+      maxAge,
+    });
+
+    // NextAuth uses __Secure- prefix when NEXTAUTH_URL is https://
+    const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
+    const cookieName = useSecureCookies
+      ? "__Secure-next-auth.session-token"
+      : "next-auth.session-token";
+
+    const cookieStore = await cookies();
+
+    if (rememberMe) {
+      cookieStore.set("remember_me", "true", {
+        maxAge: 30 * 24 * 60 * 60,
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: useSecureCookies,
+      });
+    }
+
+    cookieStore.set(cookieName, sessionToken, {
+      httpOnly: true,
+      secure: useSecureCookies,
+      sameSite: "lax",
+      path: "/",
+      maxAge,
+    });
 
     return NextResponse.json({
-      role: result.user.role,
-      redirectUrl: result.redirectUrl,
-      passwordSetAt: result.user.passwordSetAt,
+      role: dbUser.role,
+      redirectUrl: getRedirectUrl(dbUser.role),
+      passwordSetAt: dbUser.passwordSetAt,
     });
   } catch (error) {
     return handleApiError(error);
