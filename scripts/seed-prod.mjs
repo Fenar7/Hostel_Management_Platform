@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { randomUUID } from 'crypto';
-import { CognitoIdentityProviderClient, AdminCreateUserCommand, AdminSetUserPasswordCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { CognitoIdentityProviderClient, AdminCreateUserCommand, AdminSetUserPasswordCommand, AdminGetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 
 const { Pool } = pg;
 
@@ -57,8 +57,27 @@ async function seed() {
         return sub;
       } catch (e) {
         if (e.name === 'UsernameExistsException') {
-          console.warn(`User ${email} already exists in Cognito. Skipping creation. (Cannot reliably get SUB)`);
-          return randomUUID(); // fallback for dev safety, though login will fail
+          console.warn(`User ${email} already exists in Cognito. Fetching existing SUB...`);
+          try {
+            const getRes = await cognitoClient.send(new AdminGetUserCommand({
+              UserPoolId: userPoolId,
+              Username: email
+            }));
+            const existingSub = getRes.UserAttributes.find(a => a.Name === 'sub').Value;
+            
+            // Ensure password is set for existing users so we can definitely log in
+            await cognitoClient.send(new AdminSetUserPasswordCommand({
+              UserPoolId: userPoolId,
+              Username: email,
+              Password: password,
+              Permanent: true
+            }));
+            
+            return existingSub;
+          } catch (fetchErr) {
+            console.error(`Failed to fetch existing Cognito user ${email}:`, fetchErr);
+            throw fetchErr;
+          }
         }
         throw e;
       }
