@@ -14,7 +14,6 @@ import {
   Utensils,
   Map,
   List,
-  Activity,
   ChevronLeft,
   Menu,
   LogOut,
@@ -27,9 +26,7 @@ import {
   HelpCircle,
   Settings,
   ArrowLeft,
-  LayoutGrid,
-  AlertCircle,
-  ClipboardList
+  LayoutGrid
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -59,8 +56,6 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Hostels", href: "/admin/hostels", icon: Building2 },
         { label: "All Users", href: "/admin/users", icon: Users },
         { label: "Wardens", href: "/admin/wardens", icon: Shield },
-        { label: "Tasks", href: "/admin/tasks", icon: ClipboardList },
-        { label: "Complaints", href: "/admin/tickets", icon: AlertCircle },
       ],
     },
     {
@@ -74,8 +69,6 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Food Dashboard", href: "/warden/food", icon: Utensils },
         { label: "Occupancy", href: "/warden/occupancy", icon: Map },
         { label: "Worklists", href: "/warden/worklists", icon: List },
-        { label: "Notifications", href: "/admin/notifications", icon: Bell },
-        { label: "Activity Log", href: "/admin/activity", icon: Activity },
       ],
     },
   ],
@@ -86,12 +79,11 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
         { label: "Beds", href: "/warden/occupancy", icon: Bed },
         { label: "Bookings", href: "/warden/onboards", icon: FileText },
         { label: "Tenants", href: "/warden/stays", icon: Users },
-        { label: "Tasks", href: "/warden/tasks", icon: ClipboardList },
-        { label: "Complaints", href: "/warden/tickets", icon: AlertCircle },
+        { label: "Rent", href: "/warden/leads", icon: UserSquare }, // Placeholder
+        { label: "Invoices", href: "/warden/onboard", icon: FileText }, // Placeholder
         { label: "Incidents", href: "/warden/worklists", icon: Shield }, // Placeholder
         { label: "House Keeping", href: "/warden/food", icon: Utensils }, // Placeholder
-        { label: "Notifications", href: "/warden/notifications", icon: Bell }, 
-        { label: "Activity Log", href: "/warden/activity", icon: Activity },
+        { label: "Referrals", href: "/warden", icon: Users }, // Placeholder
       ],
     },
   ],
@@ -184,7 +176,7 @@ function SidebarContent({
   const pathname = usePathname();
   const router = useRouter();
   const groups = NAV_CONFIG[role] ?? [];
-  const { data: counts = { pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0, openTickets: 0, unreadNotifications: 0, pendingTasks: 0 } } = useSWR(
+  const { data: counts = { pendingReviews: 0, pendingPayments: 0, rentDueSoon: 0 } } = useSWR(
     role === "WARDEN" || role === "MAIN_ADMIN" ? "/api/warden/action-counts" : null,
     (url: string) => fetch(url).then(res => res.json()),
     { refreshInterval: 60000, dedupingInterval: 10000 }
@@ -308,9 +300,7 @@ function SidebarContent({
                   badge={
                     item.label === "Onboards" ? counts.pendingReviews + counts.pendingPayments :
                     item.label === "Worklists" ? counts.rentDueSoon :
-                    item.label === "Complaints" ? counts.openTickets :
-                    item.label === "Tasks" ? counts.pendingTasks :
-                    item.label === "Notifications" ? (role === "TENANT" ? unreadCount : counts.unreadNotifications) : 0
+                    item.label === "Notifications" ? unreadCount : 0
                   }
                 />
               ))}

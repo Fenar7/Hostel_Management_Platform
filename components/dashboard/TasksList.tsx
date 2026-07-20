@@ -46,14 +46,14 @@ export async function TasksList({ organizationId }: { organizationId: string }) 
   const sortedDates = Object.keys(grouped).sort().slice(0, 4);
 
   return (
-    <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 p-5">
+    <div className="premium-card p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[16px] font-semibold text-black dark:text-white">Tasks</h3>
         <Link 
           href="/admin/tasks"
-          className="bg-[#282828] text-[#58ff48] rounded-[4px] px-3 py-1.5 text-[13px] font-semibold hover:opacity-90 transition-opacity"
+          className="text-[#0052FF] text-[13px] font-medium hover:underline flex items-center gap-1"
         >
-          View All
+          View All &rarr;
         </Link>
       </div>
 

@@ -1,5 +1,6 @@
 import { LucideIcon, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface StatCardProps {
   title: string;
@@ -7,17 +8,18 @@ interface StatCardProps {
   subtitle: string;
   icon?: LucideIcon;
   iconUrl?: string;
+  iconBgClass?: string;
   trend: string;
   trendUp?: boolean;
 }
 
-export function StatCard({ title, value, subtitle, icon: Icon, iconUrl, trend, trendUp }: StatCardProps) {
+export function StatCard({ title, value, subtitle, icon: Icon, iconUrl, iconBgClass, trend, trendUp }: StatCardProps) {
   return (
-    <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 flex flex-col justify-between p-5 gap-5">
+    <div className="premium-card flex flex-col justify-between p-6 gap-6">
       {/* Top row: title + icon */}
       <div className="flex justify-between items-start">
         <h3 className="text-[15px] font-semibold text-black dark:text-white leading-snug">{title}</h3>
-        <div className="size-12 rounded-[6px] bg-[#5c5c5c] flex items-center justify-center shrink-0">
+        <div className={cn("size-12 rounded-[6px] flex items-center justify-center shrink-0", iconBgClass || "bg-[#5c5c5c]")}>
           {iconUrl ? (
             <Image src={iconUrl} alt={title} width={24} height={24} className="size-6 object-contain" />
           ) : Icon ? (

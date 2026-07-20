@@ -20,12 +20,12 @@ interface StatusListCardProps {
 
 export function StatusListCard({ title, items }: StatusListCardProps) {
   return (
-    <div className="rounded-[7px] border border-[#dedede] bg-white dark:bg-zinc-900 p-5">
+    <div className="premium-card p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[16px] font-semibold text-black dark:text-white">{title}</h3>
-        <button className="bg-[#282828] text-[#58ff48] rounded-[4px] px-3 py-1.5 text-[13px] font-semibold hover:opacity-90 transition-opacity whitespace-nowrap">
-          Know More
-        </button>
+        <Link href={items[0]?.href || "#"} className="text-[#0052FF] text-[13px] font-medium hover:underline flex items-center gap-1">
+          View All &rarr;
+        </Link>
       </div>
       <div className="flex flex-col divide-y divide-[#f2f2f2] dark:divide-zinc-800">
         {items.map((item, idx) => {

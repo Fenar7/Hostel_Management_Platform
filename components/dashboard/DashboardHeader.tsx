@@ -23,7 +23,7 @@ export function DashboardHeader() {
   }).format(new Date());
 
   const { data: counts = { unreadNotifications: 0 } } = useSWR(
-    "/api/warden/action-counts",
+    pathname.startsWith("/admin") ? null : "/api/warden/action-counts",
     (url: string) => fetch(url).then(res => res.json()),
     { refreshInterval: 60000, dedupingInterval: 10000 }
   );

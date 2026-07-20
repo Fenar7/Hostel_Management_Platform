@@ -26,5 +26,14 @@ export default async function WardenFoodPage({
     hostelId = user.warden?.hostelId ?? null;
   }
 
+  if (!hostelId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full pt-20">
+        <h2 className="text-[20px] font-semibold text-black dark:text-white mb-2">No Hostels Found</h2>
+        <p className="text-[#767676] text-[14px]">Please create a hostel first to manage food.</p>
+      </div>
+    );
+  }
+
   return <HostelFoodView hostelId={hostelId} baseRoute="/warden" />;
 }
