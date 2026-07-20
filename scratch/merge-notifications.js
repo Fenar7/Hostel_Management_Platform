@@ -1,4 +1,6 @@
-"use client";
+const fs = require('fs');
+
+const content = `"use client";
 
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -79,7 +81,7 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
   const handleMarkAsRead = async (id: string, readStatus: boolean, skipToast = false) => {
     try {
       setActioningId(id);
-      const res = await fetch(`/api/notifications/${id}`, {
+      const res = await fetch(\`/api/notifications/\${id}\`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ read: readStatus }),
@@ -122,7 +124,7 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
     e?.stopPropagation();
     try {
       setActioningId(id);
-      const res = await fetch(`/api/notifications/${id}`, {
+      const res = await fetch(\`/api/notifications/\${id}\`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dismissedFromHome: true }),
@@ -151,7 +153,7 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
     
     try {
       setSubmittingNote(true);
-      const res = await fetch(`/api/tickets/${selectedNotification.referenceId}/comments`, {
+      const res = await fetch(\`/api/tickets/\${selectedNotification.referenceId}/comments\`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: noteText }),
@@ -188,9 +190,9 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
 
   const getTicketLink = () => {
     if (!selectedNotification?.referenceId) return "#";
-    if (role === "TENANT") return `/tenant/tickets`;
-    if (role === "WARDEN") return `/warden/tickets`;
-    if (role === "MAIN_ADMIN") return `/admin/tickets`;
+    if (role === "TENANT") return \`/tenant/tickets\`;
+    if (role === "WARDEN") return \`/warden/tickets\`;
+    if (role === "MAIN_ADMIN") return \`/admin/tickets\`;
     return "#";
   };
 
@@ -283,11 +285,11 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
               <Card
                 key={notif.id}
                 onClick={() => handleOpenNotification(notif)}
-                className={`transition-all duration-150 rounded-xl border border-border hover:border-muted-foreground/30 cursor-pointer ${
+                className={\`transition-all duration-150 rounded-xl border border-border hover:border-muted-foreground/30 cursor-pointer \${
                   notif.read
                     ? "bg-card/70 opacity-80"
                     : "bg-card border-l-2 border-l-primary"
-                }`}
+                }\`}
               >
                 <CardContent className="p-4 md:p-5">
                   <div className="flex items-start gap-4">
@@ -445,3 +447,7 @@ export function NotificationsPanel({ role = "TENANT" }: NotificationsPanelProps)
     </div>
   );
 }
+`;
+
+fs.writeFileSync('components/notifications/NotificationsPanel.tsx', content);
+console.log('Successfully applied notifications design');
