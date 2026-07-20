@@ -18,7 +18,11 @@ export const prisma = new Proxy({} as PrismaClient, {
             log: ["error"],
           });
         } else {
-          const pool = new Pool({ connectionString });
+          const pool = new Pool({
+            connectionString,
+            // AWS RDS requires SSL; rejectUnauthorized:false accepts RDS self-signed certs
+            ssl: { rejectUnauthorized: false },
+          });
           const adapter = new PrismaPg(pool);
           prismaInstance = new PrismaClient({
             adapter,
