@@ -112,8 +112,8 @@ async function seed() {
     const adminSub = await createCognitoUser(adminEmail, commonPassword);
     const adminId = randomUUID();
     await client.query(
-      `INSERT INTO "User" (id, "supabaseAuthId", phone, email, role, "passwordSetAt", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW(), $6)`,
-      [adminId, adminSub, '9999999990', adminEmail, 'MAIN_ADMIN', orgId]
+      `INSERT INTO "User" (id, "supabaseAuthId", phone, email, role, "passwordSetAt", "plainTextPassword", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), NOW(), $7)`,
+      [adminId, adminSub, '9999999990', adminEmail, 'MAIN_ADMIN', commonPassword, orgId]
     );
 
     // Food Pricing
@@ -164,8 +164,8 @@ async function seed() {
       const wardenId = randomUUID();
       
       await client.query(
-        `INSERT INTO "User" (id, "supabaseAuthId", phone, email, role, "passwordSetAt", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW(), $6)`,
-        [wardenUserId, wardenSub, `888888888${h}`, wardenEmail, 'WARDEN', orgId]
+        `INSERT INTO "User" (id, "supabaseAuthId", phone, email, role, "passwordSetAt", "plainTextPassword", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), NOW(), $7)`,
+        [wardenUserId, wardenSub, `888888888${h}`, wardenEmail, 'WARDEN', commonPassword, orgId]
       );
       await client.query(
         `INSERT INTO "Warden" (id, "userId", "hostelId", "createdAt") VALUES ($1, $2, $3, NOW())`,
@@ -214,8 +214,8 @@ async function seed() {
         
         const tUserId = randomUUID();
         await client.query(
-          `INSERT INTO "User" (id, "supabaseAuthId", phone, email, role, "passwordSetAt", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW(), $6)`,
-          [tUserId, tSub, phone, tEmail, 'TENANT', orgId]
+          `INSERT INTO "User" (id, "supabaseAuthId", phone, email, role, "passwordSetAt", "plainTextPassword", "createdAt", "updatedAt", "organizationId") VALUES ($1, $2, $3, $4, $5, NOW(), $6, NOW(), NOW(), $7)`,
+          [tUserId, tSub, phone, tEmail, 'TENANT', commonPassword, orgId]
         );
 
         const tenantId = randomUUID();
