@@ -25,9 +25,8 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/scripts ./scripts
 
-# Install Prisma, pg, dotenv, and aws-sdk globally for migrations and seeding without polluting Next.js standalone node_modules
-RUN npm install -g prisma pg dotenv @aws-sdk/client-cognito-identity-provider
-ENV NODE_PATH="/usr/local/lib/node_modules"
+# Install Prisma, pg, dotenv, and aws-sdk locally for migrations and seeding because ESM (.mjs) ignores NODE_PATH
+RUN npm install prisma pg dotenv @aws-sdk/client-cognito-identity-provider
 
 # Set production env
 ENV NODE_ENV=production
