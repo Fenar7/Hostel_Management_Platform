@@ -18,10 +18,11 @@ export const prisma = new Proxy({} as PrismaClient, {
             log: ["error"],
           });
         } else {
+          const isLocal = connectionString.includes("localhost") || connectionString.includes("127.0.0.1");
           const pool = new Pool({
             connectionString,
-            // AWS RDS requires SSL; rejectUnauthorized:false accepts RDS self-signed certs
-            ssl: { rejectUnauthorized: false },
+            // AWS RDS requires SSL; local Supabase does not
+            ssl: isLocal ? false : { rejectUnauthorized: false },
           });
           const adapter = new PrismaPg(pool);
           prismaInstance = new PrismaClient({

@@ -1,11 +1,11 @@
-// @ts-nocheck
-import { UserRole, OccupationType, AccommodationType, SharingType, BedStatus, StayStatus, DurationType, FoodPlan, FoodBillingMode, TopUpStatus } from '@prisma/client';
+import { UserRole, AccommodationType, SharingType, BedStatus, StayStatus, DurationType, FoodPlan, FoodBillingMode, TopUpStatus } from '@prisma/client';
 import { prisma } from '../lib/db';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { createClient } from '@supabase/supabase-js';
 
-// Load environment variables from .env
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// Load environment variables from .env.local
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -16,10 +16,22 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Utility to delay execution (prevents Supabase rate limits)
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function main() {
-  console.log('Seeding database with Next Home dummy data...');
+  console.log('Seeding database with Next Home mock data (5 Hostels, 50 Tenants)...');
 
   // Clean the database in reverse order of relations
+  console.log('Cleaning up existing data...');
+  await prisma.activityLog.deleteMany();
+  await prisma.foodSettlementStatement.deleteMany();
+  await prisma.foodWalletTopUp.deleteMany();
+  await prisma.foodBillingCycle.deleteMany();
+  await prisma.ticketComment.deleteMany();
+  await prisma.ticket.deleteMany();
+  await prisma.serviceRequest.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.taskComment.deleteMany();
   await prisma.task.deleteMany();
   await prisma.stayStatusEvent.deleteMany();
@@ -38,13 +50,14 @@ async function main() {
   await prisma.warden.deleteMany();
   await prisma.tenant.deleteMany();
   await prisma.hostelPaymentConfig.deleteMany();
+  await prisma.foodPricing.deleteMany();
   await prisma.hostel.deleteMany();
   await prisma.user.deleteMany();
   await prisma.location.deleteMany();
   await prisma.organization.deleteMany();
 
-  // Clean Supabase Auth users to start fresh
-  console.log('Cleaning auth.users...');
+  // Clean Supabase Auth users
+  console.log('Cleaning auth.users in Supabase...');
   try {
     await prisma.$executeRawUnsafe(`TRUNCATE auth.users CASCADE;`);
   } catch (e) {
@@ -53,6 +66,7 @@ async function main() {
 
   // Helper function to create user in Supabase Auth
   async function createAuthUser(email: string, password: string): Promise<string> {
+    await delay(300); // 300ms delay to avoid rate limits
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -61,7 +75,6 @@ async function main() {
 
     if (error || !data.user) {
       if (error?.message.includes("already registered")) {
-        console.log(`Auth user ${email} already exists in Supabase. Using existing.`);
         const { data: list } = await supabase.auth.admin.listUsers();
         const user = list?.users?.find(u => u.email === email);
         if (user) return user.id;
@@ -82,18 +95,16 @@ async function main() {
     },
   });
 
-  // 1.5 Create Location
-  const location = await prisma.location.create({
-    data: {
-      name: 'Bangalore, Koramangala'
-    }
-  });
+  // 1.5 Create Locations
+  const locKoramangala = await prisma.location.create({ data: { name: 'Koramangala' } });
+  const locHSR = await prisma.location.create({ data: { name: 'HSR Layout' } });
+  const locIndiranagar = await prisma.location.create({ data: { name: 'Indiranagar' } });
 
-  // 2. Create Admin
+  // 2. Create Global Admin
   const adminEmail = 'admin@nexthome.io';
-  const adminPassword = 'Password@123';
+  const commonPassword = 'Password@123';
   console.log('Creating Admin User...');
-  const adminAuthId = await createAuthUser(adminEmail, adminPassword);
+  const adminAuthId = await createAuthUser(adminEmail, commonPassword);
   const admin = await prisma.user.create({
     data: {
       supabaseAuthId: adminAuthId,
@@ -105,40 +116,65 @@ async function main() {
     },
   });
 
-  // 3. Create Hostels & Structure
+  // 3. Global Food Pricing
+  const globalPricing = await prisma.foodPricing.create({
+    data: {
+      organizationId: org.id,
+      breakfastPricePaise: 5000, // ₹50
+      lunchPricePaise: 8000,     // ₹80
+      dinnerPricePaise: 8000,    // ₹80
+      effectiveFrom: new Date('2024-01-01'),
+      createdByUserId: admin.id,
+    }
+  });
+
+  // 4. Hostels Data
   const hostelsInfo = [
-    { name: 'NextHome Paradise', type: AccommodationType.MENS, wardenName: 'John', prefix: 'NHP' },
-    { name: 'NextHome Oasis', type: AccommodationType.WOMENS, wardenName: 'Sarah', prefix: 'NHO' },
-    { name: 'NextHome Central', type: AccommodationType.MENS, wardenName: 'Mike', prefix: 'NHC' },
+    { name: 'NextHome Paradise', type: AccommodationType.MENS, locId: locKoramangala.id, prefix: 'NHP', wardenName: 'Ravi' },
+    { name: 'NextHome Oasis', type: AccommodationType.WOMENS, locId: locKoramangala.id, prefix: 'NHO', wardenName: 'Priya' },
+    { name: 'NextHome Central', type: AccommodationType.MENS, locId: locHSR.id, prefix: 'NHC', wardenName: 'Amit' },
+    { name: 'NextHome Serenity', type: AccommodationType.WOMENS, locId: locHSR.id, prefix: 'NHS', wardenName: 'Anjali' },
+    { name: 'NextHome Elite', type: AccommodationType.MENS, locId: locIndiranagar.id, prefix: 'NHE', wardenName: 'Vikram' },
   ];
 
-  const createdHostels = [];
+  const tenantNames = [
+    "Rahul Sharma", "Sneha Patel", "Aditya Verma", "Kavya Singh", "Rohit Das",
+    "Neha Gupta", "Arjun Nair", "Pooja Desai", "Siddharth Rao", "Meera Reddy",
+    "Karan Malhotra", "Riya Kapoor", "Vikash Yadav", "Aarti Joshi", "Manish Tiwari",
+    "Tanvi Bhatia", "Sameer Ahluwalia", "Ananya Menon", "Rishi Agarwal", "Simran Kaur",
+    "Gaurav Chawla", "Divya Pillai", "Nitin Sethi", "Isha Chopra", "Akash Jain",
+    "Kritika Mehra", "Varun Chauhan", "Shruti Iyer", "Pranav Kulkarni", "Nandini Rathi",
+    "Yash Khurana", "Tanya Bansal", "Harsh Vardhan", "Priyanka Soni", "Ayush Mittal",
+    "Snehal Kadam", "Abhinav Saxena", "Rachna Prasad", "Kartik Shenoy", "Sonal Dixit",
+    "Uday Kiran", "Bhavna Mishra", "Vishal Thakur", "Jyoti Dubey", "Tariq Khan",
+    "Aisha Sheikh", "Imran Ali", "Zara Qureshi", "Faizan Ahmed", "Sana Syed"
+  ];
 
-  for (let i = 0; i < hostelsInfo.length; i++) {
-    const info = hostelsInfo[i];
-    console.log(`Creating Hostel: ${info.name}...`);
+  let tenantCounter = 0;
+
+  for (let h = 0; h < hostelsInfo.length; h++) {
+    const info = hostelsInfo[h];
+    console.log(`\nCreating Hostel ${h+1}/5: ${info.name}...`);
     
     const hostel = await prisma.hostel.create({
       data: {
         name: info.name,
-        address: `Block ${i + 1}, ${location.name}`,
+        address: `Block ${h + 1}, ${info.name} Building`,
         accommodationType: info.type,
-        locationId: location.id,
+        locationId: info.locId,
         organizationId: org.id,
       },
     });
-    createdHostels.push(hostel);
 
     // Warden
     const wardenEmail = `warden.${info.prefix.toLowerCase()}@nexthome.io`;
-    const wardenPassword = 'Password@123';
-    const wardenAuthId = await createAuthUser(wardenEmail, wardenPassword);
+    const wardenAuthId = await createAuthUser(wardenEmail, commonPassword);
     
-    await prisma.user.create({
+    const wardenUser = await prisma.user.create({
       data: {
         supabaseAuthId: wardenAuthId,
         email: wardenEmail,
-        phone: `888888888${i}`,
+        phone: `888888888${h}`,
         role: UserRole.WARDEN,
         passwordSetAt: new Date(),
         organizationId: org.id,
@@ -150,22 +186,22 @@ async function main() {
       },
     });
 
-    // Structure (1 Floor, 2 Rooms, 4 Beds)
-    const floor = await prisma.floor.create({
-      data: { hostelId: hostel.id, name: 'Ground Floor', sortOrder: 1 }
-    });
-
-    for (let r = 1; r <= 2; r++) {
-      const room = await prisma.room.create({
-        data: { floorId: floor.id, roomNumber: `G0${r}`, sharingType: SharingType.DOUBLE }
+    // Structure (2 Floors, 5 Rooms each, 2 beds per room -> 20 beds)
+    const availableBeds = [];
+    for (let f = 1; f <= 2; f++) {
+      const floor = await prisma.floor.create({
+        data: { hostelId: hostel.id, name: `Floor ${f}`, sortOrder: f }
       });
 
-      await prisma.bed.create({
-        data: { roomId: room.id, label: `G0${r}-A`, status: BedStatus.AVAILABLE }
-      });
-      await prisma.bed.create({
-        data: { roomId: room.id, label: `G0${r}-B`, status: BedStatus.AVAILABLE }
-      });
+      for (let r = 1; r <= 5; r++) {
+        const room = await prisma.room.create({
+          data: { floorId: floor.id, roomNumber: `${f}0${r}`, sharingType: SharingType.DOUBLE }
+        });
+
+        const bedA = await prisma.bed.create({ data: { roomId: room.id, label: `${f}0${r}-A`, status: BedStatus.AVAILABLE } });
+        const bedB = await prisma.bed.create({ data: { roomId: room.id, label: `${f}0${r}-B`, status: BedStatus.AVAILABLE } });
+        availableBeds.push(bedA, bedB);
+      }
     }
 
     // Payment config
@@ -176,279 +212,170 @@ async function main() {
       }
     });
 
-    // Add some leads
-    await prisma.lead.create({
-      data: {
-        hostelId: hostel.id,
-        organizationId: org.id,
-        phone: `777777777${i}`,
-        source: 'MANUAL',
-        status: 'NEW',
-        notes: {
-          create: {
-            note: 'Inquired about double sharing.',
-            authorId: admin.id
-          }
-        }
-      }
-    });
-  }
+    // Tenants (10 per hostel)
+    for (let t = 0; t < 10; t++) {
+      const tenantIdx = tenantCounter++;
+      const tEmail = `tenant${tenantIdx + 1}@nexthome.io`;
+      const tName = tenantNames[tenantIdx];
+      const bed = availableBeds[t];
 
-  // 4. Create Active Tenants for the first hostel (NextHome Paradise)
-  const mainHostel = createdHostels[0];
-  const firstRoom = await prisma.room.findFirst({
-    where: { floor: { hostelId: mainHostel.id } },
-    include: { beds: true }
-  });
-
-  if (firstRoom && firstRoom.beds.length >= 2) {
-    console.log('Creating Tenants and Active Stays...');
-
-    // Tenant 1
-    const t1Email = 'tenant1@nexthome.io';
-    const t1Password = 'Password@123';
-    const t1AuthId = await createAuthUser(t1Email, t1Password);
-    
-    const t1User = await prisma.user.create({
-      data: {
-        supabaseAuthId: t1AuthId,
-        email: t1Email,
-        phone: '9111111111',
-        role: UserRole.TENANT,
-        passwordSetAt: new Date(),
-        organizationId: org.id,
-      }
-    });
-
-    const tenant1 = await prisma.tenant.create({
-      data: {
-        userId: t1User.id,
-        fullName: 'Rahul Sharma',
-        gender: 'MALE',
-        dateOfBirth: new Date('1998-05-15'),
-        permanentAddress: 'Delhi',
-        emergencyContactNumber: '9111111112',
-      }
-    });
-
-    // Mark bed occupied
-    await prisma.bed.update({
-      where: { id: firstRoom.beds[0].id },
-      data: { status: BedStatus.OCCUPIED }
-    });
-
-    // Active Stay
-    await prisma.stay.create({
-      data: {
-        tenantId: tenant1.id,
-        bedId: firstRoom.beds[0].id,
-        hostelId: mainHostel.id,
-        status: StayStatus.ACTIVE,
-        durationType: DurationType.MONTHLY,
-        joiningDate: new Date(),
-        endDate: new Date('2027-01-01'),
-        isNewAdmission: true,
-        admissionFeePaise: 100000,
-        monthlyRentPaise: 1500000, // 15,000 INR
-        securityDepositPaise: 3000000, // 30,000 INR
-        foodChargesPaise: 0,
-        discountPaise: 0,
-        totalPayablePaise: 4500000,
-      }
-    });
-
-    // Tenant 2
-    const t2Email = 'tenant2@nexthome.io';
-    const t2Password = 'Password@123';
-    const t2AuthId = await createAuthUser(t2Email, t2Password);
-    
-    const t2User = await prisma.user.create({
-      data: {
-        supabaseAuthId: t2AuthId,
-        email: t2Email,
-        phone: '9222222222',
-        role: UserRole.TENANT,
-        passwordSetAt: new Date(),
-        organizationId: org.id,
-      }
-    });
-
-    const tenant2 = await prisma.tenant.create({
-      data: {
-        userId: t2User.id,
-        fullName: 'Amit Kumar',
-        gender: 'MALE',
-        dateOfBirth: new Date('1999-08-20'),
-        permanentAddress: 'Mumbai',
-        emergencyContactNumber: '9222222223',
-      }
-    });
-
-    // Mark bed occupied
-    await prisma.bed.update({
-      where: { id: firstRoom.beds[1].id },
-      data: { status: BedStatus.OCCUPIED }
-    });
-
-    // Active Stay
-    await prisma.stay.create({
-      data: {
-        tenantId: tenant2.id,
-        bedId: firstRoom.beds[1].id,
-        hostelId: mainHostel.id,
-        status: StayStatus.ACTIVE,
-        durationType: DurationType.DAILY,
-        joiningDate: new Date(),
-        endDate: new Date(new Date().setDate(new Date().getDate() + 10)),
-        isNewAdmission: false,
-        admissionFeePaise: 0,
-        monthlyRentPaise: 50000, // 500 INR per day
-        securityDepositPaise: 100000,
-        foodChargesPaise: 0,
-        discountPaise: 0,
-        totalPayablePaise: 600000,
-        foodPlan: FoodPlan.NOT_INCLUDED,
-        foodBillingMode: FoodBillingMode.POSTPAID,
-      }
-    });
-
-    console.log('Seeding Food Billing Configurations & Mock Data...');
-    
-    // 5. Global Food Pricing
-    const globalPricing = await prisma.foodPricing.create({
-      data: {
-        organizationId: org.id,
-        breakfastPricePaise: 5000, // 50 INR
-        lunchPricePaise: 8000,
-        dinnerPricePaise: 8000,
-        effectiveFrom: new Date('2024-01-01'),
-        createdByUserId: admin.id,
-      }
-    });
-
-    // 6. FoodBillingCycles for active tenants
-    const tenant1Stay = await prisma.stay.findFirst({ where: { tenantId: tenant1.id }});
-    const tenant2Stay = await prisma.stay.findFirst({ where: { tenantId: tenant2.id }});
-
-    if (tenant1Stay) {
-      // Setup prepaid monthly subscription
-      await prisma.stay.update({
-        where: { id: tenant1Stay.id },
-        data: { foodPlan: FoodPlan.BLD, foodBillingMode: FoodBillingMode.FLAT_RATE }
-      });
+      process.stdout.write(`\r  Creating Tenant ${t+1}/10: ${tName} (${tEmail})...`);
       
-      const t1Cycle = await prisma.foodBillingCycle.create({
+      const tAuthId = await createAuthUser(tEmail, commonPassword);
+      
+      const tUser = await prisma.user.create({
         data: {
-          stayId: tenant1Stay.id,
-          cycleStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          cycleEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999),
+          supabaseAuthId: tAuthId,
+          email: tEmail,
+          phone: `9${String(tenantIdx + 1).padStart(9, '0')}`,
+          role: UserRole.TENANT,
+          passwordSetAt: new Date(),
+          organizationId: org.id,
+        }
+      });
+
+      const tenant = await prisma.tenant.create({
+        data: {
+          userId: tUser.id,
+          fullName: tName,
+          gender: info.type === AccommodationType.MENS ? 'MALE' : 'FEMALE',
+          dateOfBirth: new Date(1995 + (tenantIdx % 5), (tenantIdx % 12), 15),
+          permanentAddress: 'Bangalore, India',
+          emergencyContactNumber: `9${String(tenantIdx + 1).padStart(9, '1')}`,
+        }
+      });
+
+      // Mark bed occupied
+      await prisma.bed.update({
+        where: { id: bed.id },
+        data: { status: BedStatus.OCCUPIED }
+      });
+
+      // Rent config mix
+      const rentAmt = 1200000 + ((tenantIdx % 4) * 200000); // ₹12k to ₹18k
+      
+      // Active Stay
+      const stay = await prisma.stay.create({
+        data: {
+          tenantId: tenant.id,
+          bedId: bed.id,
+          hostelId: hostel.id,
+          status: StayStatus.ACTIVE,
+          durationType: DurationType.MONTHLY,
+          joiningDate: new Date(new Date().setDate(new Date().getDate() - (10 + (tenantIdx % 30)))), // joined 10-40 days ago
+          endDate: new Date(new Date().setMonth(new Date().getMonth() + 6)),
+          isNewAdmission: true,
+          admissionFeePaise: 100000, // ₹1k
+          monthlyRentPaise: rentAmt, 
+          securityDepositPaise: rentAmt * 2,
+          foodChargesPaise: 0,
+          discountPaise: 0,
+          totalPayablePaise: rentAmt * 3 + 100000,
+          foodPlan: (tenantIdx % 3 === 0) ? FoodPlan.BLD : ((tenantIdx % 2 === 0) ? FoodPlan.BREAKFAST_DINNER : FoodPlan.NOT_INCLUDED),
+          foodBillingMode: (tenantIdx % 2 === 0) ? FoodBillingMode.FLAT_RATE : FoodBillingMode.POSTPAID,
+        }
+      });
+
+      // Payments
+      await prisma.payment.create({
+        data: {
+          stayId: stay.id,
+          amountPaidPaise: rentAmt * 3 + 100000,
+          paymentMode: 'UPI',
+          paymentStatus: 'PAID',
+          verifiedByUserId: admin.id,
+          verifiedAt: new Date(),
+        }
+      });
+
+      // Food Billing Cycles
+      const currentMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const currentMonthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
+
+      const tCycle = await prisma.foodBillingCycle.create({
+        data: {
+          stayId: stay.id,
+          cycleStart: currentMonthStart,
+          cycleEnd: currentMonthEnd,
           status: "OPEN",
           breakfastPricePaise: 5000,
           lunchPricePaise: 8000,
           dinnerPricePaise: 8000,
-          totalConsumedPaise: 0,
-          totalPaidPaise: 450000,
+          totalConsumedPaise: (tenantIdx % 5) * 13000, // some arbitrary consumption
+          totalPaidPaise: (tenantIdx % 2 === 0) ? 300000 : 0, // ₹3000 wallet for even tenants
         }
       });
 
-      // Give them a topup
-      await prisma.foodWalletTopUp.create({
-        data: {
-          stayId: tenant1Stay.id,
-          cycleId: t1Cycle.id,
-          amountPaise: 450000,
-          status: TopUpStatus.APPROVED,
-          approvedByUserId: admin.id,
-          createdAt: new Date(),
-        }
-      });
+      if (tCycle.totalPaidPaise && tCycle.totalPaidPaise > 0) {
+        await prisma.foodWalletTopUp.create({
+          data: {
+            stayId: stay.id,
+            cycleId: tCycle.id,
+            amountPaise: tCycle.totalPaidPaise,
+            status: TopUpStatus.APPROVED,
+            approvedByUserId: admin.id,
+          }
+        });
+      }
+
+      // Random Tickets (1 in 5 tenants creates a ticket)
+      if (tenantIdx % 5 === 0) {
+        const ticket = await prisma.ticket.create({
+          data: {
+            tenantId: tenant.id,
+            hostelId: hostel.id,
+            title: `Issue with AC in Room ${bed.label.split('-')[0]}`,
+            description: `The AC is not cooling properly since yesterday. Please fix it.`,
+            priority: 'HIGH',
+            status: 'OPEN',
+            category: 'MAINTENANCE',
+          }
+        });
+
+        // Add a comment
+        await prisma.ticketComment.create({
+          data: {
+            ticketId: ticket.id,
+            userId: tenant.user!.id,
+            message: 'It is very hot, please arrange a technician ASAP.',
+          }
+        });
+      }
     }
+    console.log(); // newline after tenants
 
-    if (tenant2Stay) {
-      const t2Cycle = await prisma.foodBillingCycle.create({
-        data: {
-          stayId: tenant2Stay.id,
-          cycleStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          cycleEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999),
-          status: "OPEN",
-          breakfastPricePaise: 5000,
-          lunchPricePaise: 8000,
-          dinnerPricePaise: 8000,
-          totalConsumedPaise: 13000, // 50+80
-          totalPaidPaise: 0,
-        }
-      });
-
-      // Some orders
-      await prisma.foodOrder.create({
-        data: {
-          stayId: tenant2Stay.id,
-          forDate: new Date(),
-          breakfast: true,
-          lunch: true,
-          dinner: false,
-          confirmedAt: new Date(),
-        }
-      });
-    }
-
-    console.log('Seeding Tasks...');
-    // Create Tasks for Warden 1 (Hostel 1)
-    const wardenUser = await prisma.user.findFirst({
-      where: { role: UserRole.WARDEN, warden: { hostelId: mainHostel.id } },
-      include: { warden: true }
+    // Tasks for Warden
+    await prisma.task.create({
+      data: {
+        organizationId: org.id,
+        createdByUserId: admin.id,
+        assignedToWardenId: wardenUser.warden!.id,
+        hostelId: hostel.id,
+        title: 'Collect pending electricity bills',
+        description: 'Please collect the bills from the ground floor tenants.',
+        priority: 'MEDIUM',
+        status: 'PENDING',
+        deadline: new Date(new Date().setDate(new Date().getDate() + 2)), 
+      }
     });
 
-    if (wardenUser && wardenUser.warden) {
-      await prisma.task.create({
-        data: {
-          organizationId: org.id,
-          createdByUserId: admin.id,
-          assignedToWardenId: wardenUser.warden.id,
-          hostelId: mainHostel.id,
-          title: 'Do Grocery Purchases',
-          description: 'Need to restock on rice and dal for next week.',
-          priority: 'HIGH',
-          status: 'PENDING',
-          deadline: new Date(new Date().setHours(15, 33, 0, 0)), // Today 3:33 PM
-        }
-      });
-
-      await prisma.task.create({
-        data: {
-          organizationId: org.id,
-          createdByUserId: admin.id,
-          assignedToWardenId: wardenUser.warden.id,
-          hostelId: mainHostel.id,
-          title: 'Onboard Ashiq',
-          description: 'New tenant arriving today, please complete onboarding.',
-          priority: 'MEDIUM',
-          status: 'PENDING',
-          deadline: new Date(new Date().setDate(new Date().getDate() + 1)), // Tomorrow
-        }
-      });
-    }
+    // Activity Log
+    await prisma.activityLog.create({
+      data: {
+        organizationId: org.id,
+        hostelId: hostel.id,
+        eventType: 'TENANT_PAYMENT_RECEIVED',
+        actorId: admin.id,
+        actorName: 'Admin',
+        subjectName: `Monthly Batch Rent`,
+        subjectType: 'Payment',
+      }
+    });
   }
 
   console.log('\n=============================================');
   console.log('✅ DATABASE SEEDING COMPLETE! 🎉');
   console.log('=============================================');
-  console.log('You can now log in using the following credentials:');
-  console.log('\n🛡️ MAIN ADMIN');
-  console.log('Email:     admin@nexthome.io');
-  console.log('Password:  Password@123');
-  
-  console.log('\n🏢 WARDENS');
-  console.log('Hostel 1:  warden.nhp@nexthome.io');
-  console.log('Hostel 2:  warden.nho@nexthome.io');
-  console.log('Hostel 3:  warden.nhc@nexthome.io');
-  console.log('Password:  Password@123 (for all)');
-
-  console.log('\n🛏️ TENANTS (Active in Hostel 1)');
-  console.log('Tenant 1:  tenant1@nexthome.io');
-  console.log('Tenant 2:  tenant2@nexthome.io');
-  console.log('Password:  Password@123 (for all)');
-  console.log('=============================================\n');
 }
 
 main()
