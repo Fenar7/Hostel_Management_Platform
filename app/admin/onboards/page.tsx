@@ -397,5 +397,6 @@ export default function AdminOnboardsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  </div>
   );
 }
