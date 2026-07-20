@@ -5,6 +5,14 @@
 # Usage: Right-click -> Run with PowerShell
 # Then connect with any Postgres client to: localhost:5432
 
+# Add SessionManagerPlugin to PATH dynamically to avoid terminal restart requirements
+$pluginPath = "C:\Program Files\Amazon\SessionManagerPlugin\bin\"
+if (Test-Path $pluginPath) {
+    if ($env:PATH -notlike "*$pluginPath*") {
+        $env:PATH = "$pluginPath;$env:PATH"
+    }
+}
+
 $INSTANCE_ID = "i-066e2193c831d8495"
 $RDS_HOST = "database-1.cj2woqyom1ds.ap-south-1.rds.amazonaws.com"
 $RDS_PORT = "5432"
