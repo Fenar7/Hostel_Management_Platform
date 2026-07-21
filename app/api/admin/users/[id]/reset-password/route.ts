@@ -5,6 +5,7 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createAdminClient } from "@/lib/auth/server";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 
 export async function POST(
   request: NextRequest,
@@ -39,7 +40,7 @@ export async function POST(
 
     const supabase = createAdminClient();
     
-    let activeSupabaseAuthId = user.supabaseAuthId;
+    let activeCognitoSub = user.cognitoSub;
 
     // Helper to create a brand new Supabase Auth user if missing, or link to an orphaned one
     const createAuthUser = async () => {
@@ -74,31 +75,34 @@ export async function POST(
       return data.user.id;
     };
 
-    if (!activeSupabaseAuthId) {
+    if (!activeCognitoSub) {
       // Scenario 1: User never had an auth account
-      activeSupabaseAuthId = await createAuthUser();
+      activeCognitoSub = await createAuthUser();
     } else {
       // Scenario 2: User has an auth account, try updating it
       const { error: authError } = await supabase.auth.admin.updateUserById(
-        activeSupabaseAuthId,
+        activeCognitoSub,
         { password: tempPassword }
       );
 
       // Scenario 3: The auth account was deleted manually in Supabase dashboard
       if (authError && authError.message.toLowerCase().includes("user not found")) {
-        activeSupabaseAuthId = await createAuthUser();
+        activeCognitoSub = await createAuthUser();
       } else if (authError) {
         throw new ConflictError(`Failed to update password: ${authError.message}`);
       }
     }
 
-    // Update passwordSetAt timestamp and the (possibly new) supabaseAuthId
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    // Update passwordSetAt timestamp and the (possibly new) cognitoSub
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        supabaseAuthId: activeSupabaseAuthId,
+        cognitoSub: activeCognitoSub,
         passwordSetAt: new Date(),
-        plainTextPassword: tempPassword,
+        plainTextPassword: tempPassword, // Keep for backward compatibility
+        hashedPassword: hashedPassword,
       },
     });
 

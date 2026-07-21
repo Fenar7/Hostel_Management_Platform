@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { handleApiError } from "@/lib/errors";
 import { loginSchema } from "@/lib/validation/auth";
 import { UserRole } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 function getRedirectUrl(role: UserRole): string {
   switch (role) {
@@ -55,8 +56,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Validate password against stored plainTextPassword
-    if (!dbUser.plainTextPassword || dbUser.plainTextPassword !== password) {
+    // 2. Validate password
+    // Prefer bcrypt hashedPassword if present; fall back to plainTextPassword
+    // for existing users who haven't reset their password yet.
+    let passwordValid = false;
+    if (dbUser.hashedPassword) {
+      passwordValid = await bcrypt.compare(password, dbUser.hashedPassword);
+    } else if (dbUser.plainTextPassword) {
+      passwordValid = dbUser.plainTextPassword === password;
+    }
+
+    if (!passwordValid) {
       return NextResponse.json(
         { error: "Invalid credentials", code: "UNAUTHORIZED" },
         { status: 401 }
@@ -69,8 +79,8 @@ export async function POST(request: NextRequest) {
 
     const sessionToken = await encode({
       token: {
-        // sub must equal supabaseAuthId so that requireRole() can look up the user
-        sub: dbUser.supabaseAuthId,
+        // sub must equal cognitoSub so that requireRole() can look up the user
+        sub: dbUser.cognitoSub,
         id: dbUser.id,
         role: dbUser.role,
         passwordSetAt: dbUser.passwordSetAt?.toISOString() ?? null,

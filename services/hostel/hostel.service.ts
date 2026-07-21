@@ -40,13 +40,13 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
     throw new ValidationError(`Failed to create auth user: ${authError?.message}`);
   }
 
-  const supabaseAuthId = authData.user.id;
+  const cognitoSub = authData.user.id;
 
   try {
     const [dbUser, hostel] = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          supabaseAuthId,
+          cognitoSub,
           phone: input.wardenPhone,
           email: input.wardenEmail.toLowerCase(),
           passwordSetAt: null,
@@ -91,7 +91,7 @@ export async function createHostelWithWarden(input: CreateHostelInput) {
       },
     };
   } catch (error) {
-    await supabase.auth.admin.deleteUser(supabaseAuthId).catch(() => {});
+    await supabase.auth.admin.deleteUser(cognitoSub).catch(() => {});
     throw error;
   }
 }

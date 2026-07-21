@@ -5,6 +5,7 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createAdminClient } from "@/lib/auth/server";
 import { adminResetWardenPasswordSchema } from "@/lib/validation/auth";
+import bcrypt from "bcryptjs";
 
 
 
@@ -23,7 +24,7 @@ export async function POST(
       where: { id: wardenId },
       include: {
         user: {
-          select: { id: true, supabaseAuthId: true, email: true, phone: true, organizationId: true },
+          select: { id: true, cognitoSub: true, email: true, phone: true, organizationId: true },
         },
       },
     });
@@ -38,7 +39,7 @@ export async function POST(
 
     const supabase = createAdminClient();
     
-    let activeSupabaseAuthId = warden.user.supabaseAuthId;
+    let activeCognitoSub = warden.user.cognitoSub;
 
     // Helper to create a brand new Supabase Auth user if missing, or link to an orphaned one
     const createAuthUser = async () => {
@@ -72,28 +73,31 @@ export async function POST(
       return newAuthData.user.id;
     };
 
-    if (!activeSupabaseAuthId) {
-      activeSupabaseAuthId = await createAuthUser();
+    if (!activeCognitoSub) {
+      activeCognitoSub = await createAuthUser();
     } else {
       const { error: authError } = await supabase.auth.admin.updateUserById(
-        activeSupabaseAuthId,
+        activeCognitoSub,
         { password: data.password }
       );
 
       if (authError && authError.message.toLowerCase().includes("user not found")) {
-        activeSupabaseAuthId = await createAuthUser();
+        activeCognitoSub = await createAuthUser();
       } else if (authError) {
         throw new ConflictError(`Failed to update password: ${authError.message}`);
       }
     }
 
-    // Update passwordSetAt timestamp and supabaseAuthId
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    // Update passwordSetAt timestamp and cognitoSub
     await prisma.user.update({
       where: { id: warden.user.id },
       data: {
-        supabaseAuthId: activeSupabaseAuthId,
+        cognitoSub: activeCognitoSub,
         passwordSetAt: new Date(),
-        plainTextPassword: data.password,
+        plainTextPassword: data.password, // Keep for backward compatibility
+        hashedPassword: hashedPassword,
       },
     });
 

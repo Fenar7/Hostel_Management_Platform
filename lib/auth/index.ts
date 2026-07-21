@@ -24,7 +24,7 @@ export async function requireRole(allowedRoles: UserRole[]): Promise<Authenticat
 
   // Look up the user in our database including role-specific records
   const dbUser = await prisma.user.findUnique({
-    where: { supabaseAuthId: authUser.id },
+    where: { cognitoSub: authUser.id },
     include: {
       warden: true,
       tenant: true,

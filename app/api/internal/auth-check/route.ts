@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { supabaseAuthId: userId },
+      where: { cognitoSub: userId },
       select: { role: true, passwordSetAt: true },
     });
 

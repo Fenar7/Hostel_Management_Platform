@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/auth/server";
-import { fetchUserBySupabaseId, setUserPasswordSetAt } from "@/services/auth/auth.service";
+import { fetchUserByCognitoSub, setUserPasswordSetAt } from "@/services/auth/auth.service";
 import { handleApiError } from "@/lib/errors";
 import { setPasswordSchema } from "@/lib/validation/auth";
-
-
+import { prisma } from "@/lib/db";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,8 +30,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const dbUser = await fetchUserBySupabaseId(authUser.id);
-    await setUserPasswordSetAt(dbUser.id, password);
+    const dbUser = await fetchUserByCognitoSub(authUser.id);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    await prisma.user.update({
+      where: { id: dbUser.id },
+      data: {
+        passwordSetAt: new Date(),
+        hashedPassword: hashedPassword,
+      },
+    });
 
     const redirectMap = {
       MAIN_ADMIN: "/admin",

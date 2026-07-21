@@ -50,11 +50,11 @@ export async function POST(
         const user = await tx.user.findUnique({
           where: { id: stay.tenant.userId },
         });
-        if (user?.supabaseAuthId) {
+        if (user?.cognitoSub) {
           try {
             const supabase = createAdminClient();
-            await supabase.auth.admin.deleteUser(user.supabaseAuthId);
-          } catch {
+            await supabase.auth.admin.deleteUser(user.cognitoSub);
+          } catch (error) {
             // Non-blocking: auth user deletion is best-effort
           }
         }

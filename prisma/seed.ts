@@ -107,7 +107,7 @@ async function main() {
   const adminAuthId = await createAuthUser(adminEmail, commonPassword);
   const admin = await prisma.user.create({
     data: {
-      supabaseAuthId: adminAuthId,
+        cognitoSub: adminAuthId,
       email: adminEmail,
       phone: '9999999990',
       role: UserRole.MAIN_ADMIN,
@@ -169,10 +169,9 @@ async function main() {
     // Warden
     const wardenEmail = `warden.${info.prefix.toLowerCase()}@nexthome.io`;
     const wardenAuthId = await createAuthUser(wardenEmail, commonPassword);
-    
     const wardenUser = await prisma.user.create({
       data: {
-        supabaseAuthId: wardenAuthId,
+        cognitoSub: wardenAuthId,
         email: wardenEmail,
         phone: `888888888${h}`,
         role: UserRole.WARDEN,
@@ -226,7 +225,7 @@ async function main() {
       
       const tUser = await prisma.user.create({
         data: {
-          supabaseAuthId: tAuthId,
+          cognitoSub: tAuthId,
           email: tEmail,
           phone: `9${String(tenantIdx + 1).padStart(9, '0')}`,
           role: UserRole.TENANT,
@@ -337,7 +336,7 @@ async function main() {
         await prisma.ticketComment.create({
           data: {
             ticketId: ticket.id,
-            userId: tenant.userId!,
+            userId: tUser.id,
             message: 'It is very hot, please arrange a technician ASAP.',
           }
         });

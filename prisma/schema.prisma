@@ -21,11 +21,12 @@ enum UserRole {
 
 model User {
   id                String       @id @default(uuid())
-  supabaseAuthId    String       @unique
+  cognitoSub        String       @unique
   phone             String       @unique
   email             String?      @unique
   passwordSetAt     DateTime?
   plainTextPassword String?
+  hashedPassword    String?
   role              UserRole
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt

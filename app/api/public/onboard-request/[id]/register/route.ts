@@ -18,6 +18,7 @@ import {
   DocumentOwnerType,
   DocumentType,
 } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
 
@@ -187,7 +188,7 @@ export async function POST(
 
     const tenantId = stay.tenant.id;
 
-    let supabaseAuthId: string;
+    let cognitoSub: string;
 
     // 7. Supabase Auth User creation (with orphan cleanup retry)
     const supabase = createAdminClient();
@@ -232,7 +233,9 @@ export async function POST(
       return authData.user.id;
     };
 
-    supabaseAuthId = await createAuthUser();
+    cognitoSub = await createAuthUser();
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
     try {
       // 8. Compress Profile Photo & Upload all files to private Supabase storage
@@ -275,11 +278,12 @@ export async function POST(
         // Create User record in Prisma
         const user = await tx.user.create({
           data: {
-            supabaseAuthId,
+            cognitoSub,
             phone,
             email: data.email?.toLowerCase() || null,
             passwordSetAt: new Date(),
-            plainTextPassword: data.password,
+            plainTextPassword: data.password, // Keep for backward compatibility
+            hashedPassword: hashedPassword,
             role: UserRole.TENANT,
             organizationId: onboardingRequest.hostel.organizationId,
           },
@@ -351,7 +355,7 @@ export async function POST(
       });
     } catch (err) {
       // In case of any DB/Storage error, delete the Supabase Auth user to roll back auth state
-      await supabase.auth.admin.deleteUser(supabaseAuthId);
+      await supabase.auth.admin.deleteUser(cognitoSub);
       throw err;
     }
   } catch (error) {

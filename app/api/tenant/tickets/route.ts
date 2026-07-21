@@ -22,7 +22,7 @@ export async function GET() {
     }
 
     const user = await prisma.user.findUnique({
-      where: { supabaseAuthId: authUser.id },
+      where: { cognitoSub: authUser.id },
       include: { tenant: true }
     });
 
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { supabaseAuthId: authUser.id },
+      where: { cognitoSub: authUser.id },
       include: { 
         tenant: {
           include: {

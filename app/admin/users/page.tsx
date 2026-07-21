@@ -22,7 +22,7 @@ function useDebounce<T>(value: T, delay: number): T {
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface UserItem {
   id: string;
-  supabaseAuthId: string;
+  cognitoSub: string;
   phone: string;
   email: string | null;
   role: "MAIN_ADMIN" | "WARDEN" | "TENANT";

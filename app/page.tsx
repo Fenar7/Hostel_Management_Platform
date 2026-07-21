@@ -12,7 +12,7 @@ export default async function Home() {
   }
 
   const dbUser = await prisma.user.findUnique({
-    where: { supabaseAuthId: authUser.id },
+    where: { cognitoSub: authUser.id },
     select: { role: true },
   });
 

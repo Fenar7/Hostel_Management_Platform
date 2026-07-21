@@ -5,6 +5,7 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createAdminClient } from "@/lib/auth/server";
 import { assignWardenSchema } from "@/lib/validation/hostel";
+import bcrypt from "bcryptjs";
 
 
 
@@ -88,18 +89,20 @@ export async function POST(
       return authData.user.id;
     };
 
-    const supabaseAuthId = await createAuthUser();
+    const cognitoSub = await createAuthUser();
 
     // 4. Create Prisma User + Warden record atomically
+    const hashedPassword = await bcrypt.hash(data.password || "", 10);
     try {
       const [user, warden] = await prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
           data: {
-            supabaseAuthId,
+            cognitoSub,
             phone: data.phone,
             email: data.email?.toLowerCase() || null,
             passwordSetAt: null,
-            plainTextPassword: data.password,
+            plainTextPassword: data.password, // Keep for backward compatibility
+            hashedPassword: hashedPassword,
             role: UserRole.WARDEN,
             organizationId: session.user.organizationId,
           },
@@ -130,7 +133,7 @@ export async function POST(
         },
       }, { status: 201 });
     } catch (error) {
-      await supabase.auth.admin.deleteUser(supabaseAuthId).catch(() => {});
+      await supabase.auth.admin.deleteUser(cognitoSub).catch(() => {});
       throw error;
     }
   } catch (error) {

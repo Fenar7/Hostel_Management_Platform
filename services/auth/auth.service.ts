@@ -49,9 +49,9 @@ export async function authenticateUser(input: LoginInput): Promise<LoginResult> 
   };
 }
 
-export async function fetchUserBySupabaseId(supabaseAuthId: string) {
+export async function fetchUserByCognitoSub(cognitoSub: string) {
   const user = await prisma.user.findUnique({
-    where: { supabaseAuthId },
+    where: { cognitoSub },
     include: { warden: true, tenant: true },
   });
 

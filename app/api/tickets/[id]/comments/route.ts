@@ -17,7 +17,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     const user = await prisma.user.findUnique({
-      where: { supabaseAuthId: authUser.id },
+      where: { cognitoSub: authUser.id },
       include: { tenant: true, warden: true }
     });
 

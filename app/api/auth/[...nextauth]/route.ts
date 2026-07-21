@@ -24,7 +24,7 @@ export const authOptions: NextAuthOptions = {
       if (token.sub && !token.role) {
         try {
           const dbUser = await prisma.user.findUnique({
-            where: { supabaseAuthId: token.sub },
+            where: { cognitoSub: token.sub },
             select: { role: true, passwordSetAt: true }
           });
           if (dbUser) {

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/auth/server";
 import { UserRole } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 export interface PasswordResetTarget {
   targetUserId: string;
@@ -72,17 +73,20 @@ export async function resetPasswordViaAdmin(targetUserId: string, newPassword: s
   }
 
   const adminClient = createAdminClient();
-  const { error } = await adminClient.auth.admin.updateUserById(user.supabaseAuthId, { password: newPassword });
+  const { error } = await adminClient.auth.admin.updateUserById(user.cognitoSub, { password: newPassword });
 
   if (error) {
     throw new Error(`Failed to reset password: ${error.message}`);
   }
 
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
   await prisma.user.update({
     where: { id: targetUserId },
     data: {
       passwordSetAt: new Date(),
-      plainTextPassword: newPassword,
+      plainTextPassword: newPassword, // Keep for backward compatibility until fully migrated
+      hashedPassword: hashedPassword,
     },
   });
 }

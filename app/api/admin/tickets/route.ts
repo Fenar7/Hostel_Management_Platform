@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { supabaseAuthId: authUser.id }
+      where: { cognitoSub: authUser.id }
     });
 
     if (!user || user.role !== "MAIN_ADMIN") {
@@ -65,7 +65,7 @@ export async function PATCH(req: Request) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { supabaseAuthId: authUser.id }
+      where: { cognitoSub: authUser.id }
     });
 
     if (!user || user.role !== "MAIN_ADMIN") {
