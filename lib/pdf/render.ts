@@ -3,6 +3,17 @@ import React from "react";
 import { PaymentReceiptDocument, ReceiptData } from "./templates/payment-receipt";
 import { RegistrationFormDocument, RegistrationFormData } from "./templates/registration-form";
 import { RefundInvoiceDocument, RefundInvoiceData } from "./templates/refund-invoice";
+import { MealOrderReportDocument, MealReportData } from "./templates/meal-order-report";
+
+/**
+ * Render a Meal Order Report PDF to a Buffer.
+ */
+export async function renderMealOrderReport(data: MealReportData): Promise<Buffer> {
+  const element = React.createElement(MealOrderReportDocument, { data });
+  // @ts-expect-error react-pdf typing mismatch
+  const buffer = await renderToBuffer(element);
+  return buffer as unknown as Buffer;
+}
 
 /**
  * Render a Payment Receipt PDF to a Buffer for storage upload.

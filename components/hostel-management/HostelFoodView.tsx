@@ -196,6 +196,35 @@ export default function HostelFoodView({
     fetchPeriodStats();
   }, [fetchPeriodStats]);
 
+  // ── Handle Export ──────────────────────────────────────────────────────────────
+  const handleExport = useCallback(() => {
+    if (!hostelId) return;
+    const params = new URLSearchParams({ hostelId });
+    
+    const todayDate = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+    if (selectedPeriod === "Today") {
+      params.append("date", todayDate);
+    } else if (selectedPeriod === "Specific Date") {
+      params.append("date", specificDate);
+    } else if (selectedPeriod === "This Week") {
+      const monday = getMondayOfWeek(new Date());
+      const sunday = shiftWeek(monday, 1);
+      const endOfWeek = new Date(new Date(sunday).getTime() - 24*60*60*1000).toISOString().split("T")[0];
+      params.append("startDate", monday);
+      params.append("endDate", endOfWeek);
+    } else if (selectedPeriod === "This Month") {
+      const d = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+      const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split("T")[0];
+      const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split("T")[0];
+      params.append("startDate", startOfMonth);
+      params.append("endDate", endOfMonth);
+    }
+
+    // Open download endpoint
+    window.open(`/api/warden/food-stats/export?${params.toString()}`, "_blank");
+  }, [hostelId, selectedPeriod, specificDate]);
+
   // ── Toggle a meal (optimistic) ─────────────────────────────────────────────────
   const handleToggle = async (
     stayId: string,
@@ -399,7 +428,7 @@ export default function HostelFoodView({
             )}
             
             <button
-              onClick={() => notify.info("Export coming soon!")}
+              onClick={handleExport}
               className="h-[36px] px-3.5 rounded-md border border-[#e5e7eb] bg-white text-[13px] font-medium text-[#1a1a1a] hover:bg-[#f9fafb] transition-colors flex items-center gap-2"
             >
               Export Order <Download className="size-[15px] text-[#4b5563]" />
@@ -645,7 +674,7 @@ export default function HostelFoodView({
                 </div>
                 
                 <button
-                  onClick={() => notify.info("Export coming soon!")}
+                  onClick={handleExport}
                   className="h-[36px] px-3 rounded-md border border-[#e5e7eb] flex items-center gap-3 bg-white hover:bg-[#f9fafb] transition-colors text-left"
                 >
                   <Download className="size-4 text-[#4b5563]" strokeWidth={1.5} />
