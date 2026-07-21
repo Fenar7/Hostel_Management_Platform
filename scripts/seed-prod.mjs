@@ -16,6 +16,7 @@ async function seed() {
   const client = await pool.connect();
   try {
     const adminEmail = 'admin@nexthome.io';
+    const commonPassword = 'Password@123';
     const existingAdmin = await client.query(`SELECT id FROM "User" WHERE email = $1`, [adminEmail]);
     if (existingAdmin.rows.length > 0) {
       console.log('Database already contains data (Admin exists). Skipping production seed.');
@@ -113,8 +114,6 @@ async function seed() {
     await client.query(`INSERT INTO "Location" (id, name, "createdAt") VALUES ($1, $2, NOW())`, [locIndiranagar, 'Indiranagar']);
 
     // Global Admin
-    const adminEmail = 'admin@nexthome.io';
-    const commonPassword = 'Password@123';
     console.log(`Creating Admin: ${adminEmail} in Cognito...`);
     const adminSub = await createCognitoUser(adminEmail, commonPassword);
     const adminId = randomUUID();
