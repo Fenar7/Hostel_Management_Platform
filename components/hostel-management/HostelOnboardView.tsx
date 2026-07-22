@@ -321,10 +321,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
   }, [showHostelPicker]);
 
   const inputClass =
-    "w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all h-11";
+    "w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/60 px-4 py-3 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all h-12";
 
   const selectClass =
-    "w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50 transition-all h-11";
+    "w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/60 px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/30 focus-visible:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 transition-all h-12";
 
   return (
     <HostelWorkspaceLayout
@@ -334,15 +334,15 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
       subtitle="Create a new onboarding request for a prospective tenant"
       hideAdminNav={baseRoute === "/warden"}
     >
-      <div className="w-full min-h-[calc(100vh-65px)] bg-background">
+      <div className="w-full min-h-[calc(100vh-65px)] bg-zinc-50/50 dark:bg-[#09090b]">
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
             {/* ── LEFT CANVAS (Col 1-8: 66% Width) ── */}
             <div className="lg:col-span-8 space-y-6">
 
-              {/* Apple Segmented Stepper Bar */}
-              <div className="p-1.5 rounded-2xl bg-muted/40 backdrop-blur-md border border-border/60 shadow-2xs flex items-center justify-between gap-1 overflow-x-auto custom-scrollbar">
+              {/* Apple Segmented Studio Stage Bar */}
+              <div className="p-1.5 rounded-2xl bg-zinc-200/50 dark:bg-zinc-900/60 backdrop-blur-xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-2xs flex items-center justify-between gap-1 overflow-x-auto custom-scrollbar">
                 {stepLabels.map((s) => {
                   const isActive = step === s.num;
                   const isCompleted = step > s.num;
@@ -357,10 +357,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                       disabled={!isCompleted && !isActive}
                       className={`flex items-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 ${
                         isActive
-                          ? "bg-black text-white dark:bg-white dark:text-black shadow-sm scale-[1.02] cursor-default"
+                          ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-[1.02] cursor-default"
                           : isCompleted
                           ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 cursor-pointer"
-                          : "text-muted-foreground opacity-50 cursor-not-allowed"
+                          : "text-zinc-400 dark:text-zinc-500 opacity-60 cursor-not-allowed"
                       }`}
                     >
                       <span className={`flex h-5 w-5 items-center justify-center rounded-lg text-[10px] font-bold ${
@@ -368,7 +368,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                           ? "bg-white/20 text-white dark:bg-black/20 dark:text-black"
                           : isCompleted
                           ? "bg-emerald-500 text-white"
-                          : "bg-muted text-muted-foreground"
+                          : "bg-zinc-300 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
                       }`}>
                         {isCompleted ? "✓" : s.num}
                       </span>
@@ -378,19 +378,23 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                 })}
               </div>
 
-              {/* Form Step Canvas Card */}
-              <div className="rounded-2xl border border-border/70 bg-card p-6 sm:p-8 shadow-xs space-y-6">
-          {/* ── Step 1: Hostel Selection (admin only, when no hostel pre-selected) ── */}
+              {/* Apple Studio Main Stage Card Container */}
+              <div className="rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-card/90 backdrop-blur-2xl p-6 sm:p-8 shadow-xl shadow-black/5 dark:shadow-black/50 space-y-6">
+
+          {/* ── Step 1: Hostel Selection (admin only) ── */}
           {step === 1 && showHostelPicker && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">
-                Step 1: Select Hostel
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Choose which hostel to onboard this tenant into.
-              </p>
+            <div className="animate-in fade-in-50 slide-in-from-right-4 duration-300 ease-out space-y-6">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-foreground">
+                  Step 1: Select Hostel
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Choose which hostel property to onboard this prospective tenant into.
+                </p>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="hostel-select">Hostel</Label>
+                <Label htmlFor="hostel-select" className="text-xs font-semibold text-foreground">Hostel Property</Label>
                 <Select value={selectedHostelId} onValueChange={(val) => setSelectedHostelId(val || "")}>
                   <SelectTrigger id="hostel-select" className={selectClass}>
                     <SelectValue placeholder="-- Select a Hostel --" />
@@ -404,10 +408,11 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-2">
+
+              <div className="flex items-center gap-3 pt-2">
                 <Button
-                  variant="outline"
                   onClick={() => router.push(baseRoute)}
+                  className="bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-200 dark:hover:bg-zinc-700 h-12 rounded-2xl font-medium text-sm transition-all px-5 border-0 shadow-none"
                 >
                   Back to Dashboard
                 </Button>
@@ -419,7 +424,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                     }
                     setStep(2);
                   }}
-                  className="flex-1"
+                  className="flex-1 bg-zinc-900 text-white hover:bg-black dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 h-12 rounded-2xl font-semibold text-sm shadow-md active:scale-[0.98] transition-all border-0"
                 >
                   Continue
                 </Button>
@@ -429,16 +434,19 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
 
           {/* ── Step 1 (or 2): Phone ── */}
           {step === 1 && !showHostelPicker && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">
-                Step 1: Prospect Phone Number
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Enter the Indian mobile number of the new prospect.
-              </p>
+            <div className="animate-in fade-in-50 slide-in-from-right-4 duration-300 ease-out space-y-6">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-foreground">
+                  Step 1: Prospect Phone Number
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter the Indian mobile number of the prospective tenant to verify their account.
+                </p>
+              </div>
+
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="phone-input">
-                  Phone Number
+                <label className="text-xs font-semibold text-foreground" htmlFor="phone-input">
+                  Mobile Phone Number
                 </label>
                 <PhoneInput
                   id="phone-input"
@@ -450,16 +458,17 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   error={!!phoneError}
                 />
                 {phoneError && (
-                  <p className="text-xs text-red-600">{phoneError}</p>
+                  <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">{phoneError}</p>
                 )}
               </div>
+
               <Button
                 onClick={() => {
                   if (handlePhoneValidation()) {
                     setStep(2);
                   }
                 }}
-                className="w-full"
+                className="w-full bg-zinc-900 text-white hover:bg-black dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 h-12 rounded-2xl font-semibold text-sm shadow-md active:scale-[0.98] transition-all border-0"
               >
                 Continue
               </Button>
@@ -467,16 +476,19 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
           )}
 
           {step === 2 && showHostelPicker && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">
-                Step 2: Prospect Phone Number
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Enter the Indian mobile number of the new prospect.
-              </p>
+            <div className="animate-in fade-in-50 slide-in-from-right-4 duration-300 ease-out space-y-6">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-foreground">
+                  Step 2: Prospect Phone Number
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter the Indian mobile number of the prospective tenant.
+                </p>
+              </div>
+
               <div className="space-y-2">
-                <label className="text-sm font-medium" htmlFor="phone-input-2">
-                  Phone Number
+                <label className="text-xs font-semibold text-foreground" htmlFor="phone-input-2">
+                  Mobile Phone Number
                 </label>
                 <PhoneInput
                   id="phone-input-2"
@@ -488,15 +500,14 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   error={!!phoneError}
                 />
                 {phoneError && (
-                  <p className="text-xs text-red-600">{phoneError}</p>
+                  <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">{phoneError}</p>
                 )}
               </div>
-              <div className="flex gap-2">
+
+              <div className="flex items-center gap-3 pt-2">
                 <Button
-                  variant="outline"
-                  onClick={() => {
-                    setStep(1);
-                  }}
+                  onClick={() => setStep(1)}
+                  className="bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-200 dark:hover:bg-zinc-700 h-12 rounded-2xl font-medium text-sm transition-all px-5 border-0 shadow-none"
                 >
                   Back
                 </Button>
@@ -506,7 +517,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                       setStep(3);
                     }
                   }}
-                  className="flex-1"
+                  className="flex-1 bg-zinc-900 text-white hover:bg-black dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 h-12 rounded-2xl font-semibold text-sm shadow-md active:scale-[0.98] transition-all border-0"
                 >
                   Continue
                 </Button>
@@ -514,16 +525,22 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
             </div>
           )}
 
-          {/* ── Step 2/3: Dates & Bed ── */}
+          {/* ── Step 2/3: Dates & Bed Selection ── */}
           {((step === 2 && !showHostelPicker) || (step === 3 && showHostelPicker)) && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">
-                Step {showHostelPicker ? 3 : 2}: Dates &amp; Bed Selection
-              </h2>
-              {/* Duration Mode Selector Toggle */}
+            <div className="animate-in fade-in-50 slide-in-from-right-4 duration-300 ease-out space-y-6">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-foreground">
+                  Step {showHostelPicker ? 3 : 2}: Dates &amp; Bed Selection
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Configure stay duration type and select an available room bed.
+                </p>
+              </div>
+
+              {/* Apple Segmented Duration Switcher */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Stay Duration Type</label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-muted/40 rounded-xl border border-border/50">
+                <label className="text-xs font-semibold text-foreground">Stay Duration Type</label>
+                <div className="grid grid-cols-2 gap-2 p-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80">
                   <button
                     type="button"
                     onClick={() => {
@@ -532,10 +549,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                       setAvailableBeds([]);
                       setSelectedBedId("");
                     }}
-                    className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    className={`py-3 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                       durationType === DurationType.MONTHLY
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-[1.01]"
+                        : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white font-medium"
                     }`}
                   >
                     <span>🔄 Monthly (Open-Ended)</span>
@@ -547,10 +564,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                       setAvailableBeds([]);
                       setSelectedBedId("");
                     }}
-                    className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    className={`py-3 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                       durationType !== DurationType.MONTHLY
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-md scale-[1.01]"
+                        : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white font-medium"
                     }`}
                   >
                     <span>⏱️ Fixed Duration Stay</span>
@@ -560,10 +577,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="joining-date"
-                  >
+                  <label className="text-xs font-semibold text-foreground" htmlFor="joining-date">
                     Joining Date
                   </label>
                   <Input
@@ -580,17 +594,19 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                 </div>
 
                 {durationType === DurationType.MONTHLY ? (
-                  <div className="flex items-center p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
+                  <div className="flex items-center p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-300">
                     <div>
-                      <p className="font-semibold text-xs text-blue-700 dark:text-blue-300 mb-0.5">🔄 Monthly Recurring Stay</p>
-                      <p className="text-[11px] leading-relaxed text-muted-foreground">
-                        Resident stays open-ended. Next rent invoice automatically scheduled in 30 days from joining date.
+                      <p className="font-bold text-xs text-emerald-900 dark:text-emerald-200 mb-0.5 flex items-center gap-1.5">
+                        <span>🔄</span> Monthly Recurring Stay Active
+                      </p>
+                      <p className="text-[11px] leading-relaxed text-emerald-700/80 dark:text-emerald-400/80">
+                        Resident stays open-ended. Rent invoice automatically scheduled every 30 days.
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="end-date">
+                    <label className="text-xs font-semibold text-foreground" htmlFor="end-date">
                       End Date
                     </label>
                     <Input
@@ -610,8 +626,8 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
               </div>
 
               {durationType !== DurationType.MONTHLY && (
-                <div className="space-y-1.5">
-                  <label className="text-xs text-muted-foreground font-medium">Quick Duration Presets</label>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Quick Duration Presets</label>
                   <div className="flex flex-wrap gap-2">
                     {[
                       { label: "1 Month", days: 30 },
@@ -633,7 +649,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                           setAvailableBeds([]);
                           setSelectedBedId("");
                         }}
-                        className="px-2.5 py-1 text-xs font-medium rounded-lg border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary transition-colors"
+                        className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100/70 dark:bg-zinc-900/60 hover:bg-zinc-900 hover:text-white dark:hover:bg-white dark:hover:text-zinc-900 transition-all"
                       >
                         +{preset.label}
                       </button>
@@ -645,19 +661,18 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
               <Button
                 onClick={handleSearchBeds}
                 disabled={loading || !joiningDate || (durationType !== DurationType.MONTHLY && !endDate)}
-                className="w-full"
-                variant="outline"
+                className="w-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-100 dark:hover:bg-zinc-700 h-12 rounded-2xl font-semibold text-sm transition-all border-0 shadow-none"
               >
-                {loading ? "Searching..." : "Find Available Beds"}
+                {loading ? "Searching Available Beds..." : "Refresh Bed Availability"}
               </Button>
 
               {/* Apple-Grade Visual Spatial Bed Matrix */}
               {availableBeds.length > 0 && (
-                <div className="space-y-4 pt-2 border-t border-border/40">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-border/50">
+                <div className="space-y-4 pt-4 border-t border-zinc-200/60 dark:border-zinc-800/60">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-zinc-200/60 dark:border-zinc-800/60">
                     <div>
-                      <h3 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
-                        <BedDouble className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+                        <BedDouble className="h-4 w-4 text-emerald-500" />
                         Available Beds Spatial Matrix
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -667,13 +682,13 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
 
                     {/* Quick Search */}
                     <div className="relative w-full sm:w-64">
-                      <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         type="text"
                         placeholder="Search room or bed..."
                         value={bedSearchTerm}
                         onChange={(e) => setBedSearchTerm(e.target.value)}
-                        className="pl-8 h-8 text-xs bg-muted/30 rounded-lg border-border/60 focus-visible:ring-1"
+                        className="pl-9 h-10 text-xs bg-zinc-50 dark:bg-zinc-900/60 rounded-xl border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-emerald-500/30"
                       />
                     </div>
                   </div>
@@ -681,16 +696,16 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   {/* Floor Filter Pills */}
                   {availableFloors.length > 1 && (
                     <div className="flex flex-wrap items-center gap-1.5 pb-1">
-                      <span className="text-xs font-medium text-muted-foreground mr-1 flex items-center gap-1">
-                        <Layers className="h-3 w-3" /> Floor:
+                      <span className="text-xs font-semibold text-muted-foreground mr-1 flex items-center gap-1">
+                        <Layers className="h-3.5 w-3.5" /> Floor:
                       </span>
                       <button
                         type="button"
                         onClick={() => setSelectedFloorFilter("ALL")}
-                        className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                        className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
                           selectedFloorFilter === "ALL"
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted"
+                            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
+                            : "bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-foreground"
                         }`}
                       >
                         All ({availableBeds.length})
@@ -702,10 +717,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                             key={floor}
                             type="button"
                             onClick={() => setSelectedFloorFilter(floor)}
-                            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
                               selectedFloorFilter === floor
-                                ? "bg-primary text-primary-foreground shadow-xs"
-                                : "bg-muted/40 text-muted-foreground hover:text-foreground hover:bg-muted"
+                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
+                                : "bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-foreground"
                             }`}
                           >
                             {floor} ({count})
@@ -716,10 +731,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   )}
 
                   {/* Bed Spatial Matrix Container */}
-                  <div className="max-h-[380px] overflow-y-auto space-y-6 pr-1 custom-scrollbar">
+                  <div className="max-h-[400px] overflow-y-auto space-y-6 pr-1 custom-scrollbar">
                     {filteredBeds.length === 0 ? (
-                      <div className="p-8 text-center rounded-xl border border-dashed border-border/60 bg-muted/10">
-                        <p className="text-xs text-muted-foreground">No beds match your filter criteria.</p>
+                      <div className="p-8 text-center rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30">
+                        <p className="text-xs text-muted-foreground font-medium">No beds match your filter criteria.</p>
                       </div>
                     ) : (
                       Array.from(bedHierarchy.entries()).map(([floorName, roomMap]) => (
@@ -727,10 +742,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                           {/* Floor Header */}
                           <div className="flex items-center gap-2 px-1">
                             <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            <h4 className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
                               {floorName}
                             </h4>
-                            <div className="h-px flex-1 bg-border/40" />
+                            <div className="h-px flex-1 bg-zinc-200/60 dark:bg-zinc-800/60" />
                           </div>
 
                           {/* Room Cards Grid */}
@@ -740,21 +755,21 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                               return (
                                 <div
                                   key={roomNumber}
-                                  className="p-3 rounded-xl border border-border/60 bg-card/60 backdrop-blur-sm shadow-2xs space-y-2.5 hover:border-border transition-all"
+                                  className="p-3.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 backdrop-blur-sm space-y-3 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all"
                                 >
                                   {/* Room Card Header */}
-                                  <div className="flex items-center justify-between gap-2 border-b border-border/30 pb-2">
+                                  <div className="flex items-center justify-between gap-2 border-b border-zinc-200/60 dark:border-zinc-800/60 pb-2">
                                     <div className="flex items-center gap-1.5">
-                                      <span className="text-xs font-semibold text-foreground">
+                                      <span className="text-xs font-bold text-foreground">
                                         Room {roomNumber}
                                       </span>
                                       {firstBed.flatName && (
-                                        <span className="text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded">
+                                        <span className="text-[10px] font-semibold text-muted-foreground bg-zinc-200/60 dark:bg-zinc-800/80 px-1.5 py-0.5 rounded-md">
                                           {firstBed.flatName}
                                         </span>
                                       )}
                                     </div>
-                                    <span className="text-[10px] font-medium text-primary/80 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                                       {firstBed.sharingType}
                                     </span>
                                   </div>
@@ -768,10 +783,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                                           key={bed.id}
                                           type="button"
                                           onClick={() => setSelectedBedId(bed.id)}
-                                          className={`relative p-2.5 rounded-lg border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer ${
+                                          className={`relative p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between cursor-pointer ${
                                             isSelected
-                                              ? "border-primary bg-primary/10 text-primary ring-2 ring-primary/40 shadow-xs scale-[1.02]"
-                                              : "border-border/60 bg-background/80 hover:bg-accent/60 hover:border-primary/40 text-foreground"
+                                              ? "border-emerald-500 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-bold ring-2 ring-emerald-500 shadow-md scale-[1.03]"
+                                              : "border-zinc-200/80 dark:border-zinc-800/80 bg-background/80 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-foreground"
                                           }`}
                                         >
                                           <div className="flex items-center justify-between w-full">
@@ -779,10 +794,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                                               {bed.label}
                                             </span>
                                             {isSelected && (
-                                              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                                              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                                             )}
                                           </div>
-                                          <span className="text-[10px] text-muted-foreground mt-1">
+                                          <span className={`text-[10px] mt-1 ${isSelected ? "text-white/80 dark:text-black/80 font-medium" : "text-muted-foreground"}`}>
                                             Available
                                           </span>
                                         </button>
@@ -800,21 +815,17 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                 </div>
               )}
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-3 pt-2">
                 <Button
-                  variant="outline"
-                  onClick={() => {
-                    setStep(showHostelPicker ? 2 : 1);
-                  }}
+                  onClick={() => setStep(showHostelPicker ? 2 : 1)}
+                  className="bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-200 dark:hover:bg-zinc-700 h-12 rounded-2xl font-medium text-sm transition-all px-5 border-0 shadow-none"
                 >
                   Back
                 </Button>
                 <Button
-                  onClick={() => {
-                    setStep(showHostelPicker ? 4 : 3);
-                  }}
+                  onClick={() => setStep(showHostelPicker ? 4 : 3)}
                   disabled={!selectedBedId}
-                  className="flex-1"
+                  className="flex-1 bg-zinc-900 text-white hover:bg-black dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 disabled:opacity-40 h-12 rounded-2xl font-semibold text-sm shadow-md active:scale-[0.98] transition-all border-0"
                 >
                   Continue
                 </Button>
@@ -822,18 +833,21 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
             </div>
           )}
 
-          {/* ── Step 3/4: Fees ── */}
+          {/* ── Step 3/4: Fees & Food Configuration ── */}
           {((step === 3 && !showHostelPicker) || (step === 4 && showHostelPicker)) && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">
-                Step {showHostelPicker ? 4 : 3}: Fees &amp; Food Configuration
-              </h2>
+            <div className="animate-in fade-in-50 slide-in-from-right-4 duration-300 ease-out space-y-6">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-foreground">
+                  Step {showHostelPicker ? 4 : 3}: Fees &amp; Food Configuration
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Specify admission fee, monthly rent, security deposit, and meal preferences.
+                </p>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="admission-fee"
-                  >
+                  <label className="text-xs font-semibold text-foreground" htmlFor="admission-fee">
                     Admission Fee (₹)
                   </label>
                   <Input
@@ -849,10 +863,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="monthly-rent"
-                  >
+                  <label className="text-xs font-semibold text-foreground" htmlFor="monthly-rent">
                     Monthly Rent (₹)
                   </label>
                   <Input
@@ -868,10 +879,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="security-deposit"
-                  >
+                  <label className="text-xs font-semibold text-foreground" htmlFor="security-deposit">
                     Security Deposit (₹)
                   </label>
                   <Input
@@ -887,10 +895,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label
-                    className="text-sm font-medium"
-                    htmlFor="food-charges"
-                  >
+                  <label className="text-xs font-semibold text-foreground" htmlFor="food-charges">
                     Food Charges (₹)
                   </label>
                   <Input
@@ -906,8 +911,8 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="discount">
-                    Discount (₹)
+                  <label className="text-xs font-semibold text-foreground" htmlFor="discount">
+                    Discount Amount (₹)
                   </label>
                   <Input
                     id="discount"
@@ -922,7 +927,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="duration-type">Duration Type</Label>
+                  <Label htmlFor="duration-type" className="text-xs font-semibold text-foreground">Duration Type</Label>
                   <Select value={durationType} onValueChange={(val) => setDurationType(val as DurationType)}>
                     <SelectTrigger id="duration-type" className={selectClass}>
                       <SelectValue placeholder="Select duration" />
@@ -936,7 +941,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   </Select>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="food-plan">Food Plan</Label>
+                  <Label htmlFor="food-plan" className="text-xs font-semibold text-foreground">Food Plan Preference</Label>
                   <Select value={foodPlan} onValueChange={(val) => setFoodPlan(val as FoodPlan)}>
                     <SelectTrigger id="food-plan" className={selectClass}>
                       <SelectValue placeholder="Select food plan" />
@@ -951,53 +956,45 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                 </div>
               </div>
 
+              {/* Total Payable Emerald Glass Card */}
               <div
-                className={`rounded-lg border p-4 ${
+                className={`rounded-2xl border p-5 space-y-1 ${
                   totalPayable < 0
-                    ? "border-red-400 bg-red-50 dark:bg-red-900/20"
-                    : "border-green-400 bg-green-50 dark:bg-green-900/20"
+                    ? "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
+                    : "border-emerald-500/20 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
                 }`}
               >
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Payable
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Initial Total Payable Amount
                 </p>
-                <p
-                  className={`text-2xl font-bold ${
-                    totalPayable < 0
-                      ? "text-red-600"
-                      : "text-green-700 dark:text-green-400"
-                  }`}
-                >
-                  ₹{totalPayable.toFixed(2)}
+                <p className="text-3xl font-black text-foreground tracking-tight">
+                  ₹{totalPayable > 0 ? totalPayable.toLocaleString("en-IN") : "0.00"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  = Admission + Rent + Deposit + Food − Discount
+                <p className="text-[11px] text-muted-foreground font-medium">
+                  = Admission Fee + Monthly Rent + Security Deposit + Food Charges − Discount
                 </p>
               </div>
 
-              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              <label className="flex items-center gap-3 text-xs font-semibold text-foreground cursor-pointer p-1">
                 <Checkbox
                   checked={isNewAdmission}
                   onCheckedChange={(checked) => setIsNewAdmission(!!checked)}
+                  className="rounded-md h-5 w-5 data-[state=checked]:bg-zinc-900 dark:data-[state=checked]:bg-white data-[state=checked]:text-white dark:data-[state=checked]:text-zinc-900 border-zinc-300 dark:border-zinc-700"
                 />
-                New Admission
+                New Tenant Admission
               </label>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-3 pt-2">
                 <Button
-                  variant="outline"
-                  onClick={() => {
-                    setStep(showHostelPicker ? 3 : 2);
-                  }}
+                  onClick={() => setStep(showHostelPicker ? 3 : 2)}
+                  className="bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-200 dark:hover:bg-zinc-700 h-12 rounded-2xl font-medium text-sm transition-all px-5 border-0 shadow-none"
                 >
                   Back
                 </Button>
                 <Button
-                  onClick={() => {
-                    setStep(showHostelPicker ? 5 : 4);
-                  }}
+                  onClick={() => setStep(showHostelPicker ? 5 : 4)}
                   disabled={totalPayable < 0}
-                  className="flex-1"
+                  className="flex-1 bg-zinc-900 text-white hover:bg-black dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 disabled:opacity-40 h-12 rounded-2xl font-semibold text-sm shadow-md active:scale-[0.98] transition-all border-0"
                 >
                   Review &amp; Submit
                 </Button>
@@ -1007,77 +1004,80 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
 
           {/* ── Step 4/5: Review & Submit ── */}
           {((step === 4 && !showHostelPicker) || (step === 5 && showHostelPicker)) && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">
-                Step {showHostelPicker ? 5 : 4}: Review &amp; Submit
-              </h2>
-              <div className="rounded-lg border bg-muted p-4 space-y-2 text-sm">
+            <div className="animate-in fade-in-50 slide-in-from-right-4 duration-300 ease-out space-y-6">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-foreground">
+                  Step {showHostelPicker ? 5 : 4}: Review &amp; Submit
+                </h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Confirm the onboarding request summary before generating access links.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 p-5 space-y-3 text-xs">
                 {hostelSelected && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Hostel</span>
-                    <span className="font-medium">
+                  <div className="flex justify-between items-center pb-2 border-b border-zinc-200/40 dark:border-zinc-800/40">
+                    <span className="text-muted-foreground font-medium">Target Hostel</span>
+                    <span className="font-bold text-foreground">
                       {hostels.find((h) => h.id === selectedHostelId)?.name || selectedHostelId}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Phone</span>
-                  <span className="font-medium">{phone}</span>
+                <div className="flex justify-between items-center pb-2 border-b border-zinc-200/40 dark:border-zinc-800/40">
+                  <span className="text-muted-foreground font-medium">Prospect Phone</span>
+                  <span className="font-bold text-foreground font-mono">{phone}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Bed</span>
-                  <span className="font-medium">
+                <div className="flex justify-between items-center pb-2 border-b border-zinc-200/40 dark:border-zinc-800/40">
+                  <span className="text-muted-foreground font-medium">Selected Bed</span>
+                  <span className="font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
                     {availableBeds.find((b) => b.id === selectedBedId)?.label}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Joining Date</span>
-                  <span className="font-medium">{joiningDate}</span>
+                <div className="flex justify-between items-center pb-2 border-b border-zinc-200/40 dark:border-zinc-800/40">
+                  <span className="text-muted-foreground font-medium">Joining Date</span>
+                  <span className="font-bold text-foreground">{joiningDate}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">End Date</span>
-                  <span className="font-medium">{endDate}</span>
+                <div className="flex justify-between items-center pb-2 border-b border-zinc-200/40 dark:border-zinc-800/40">
+                  <span className="text-muted-foreground font-medium">Stay Duration</span>
+                  <span className="font-bold text-foreground">{durationType}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Duration</span>
-                  <span className="font-medium">{durationType}</span>
+                <div className="flex justify-between items-center pb-2 border-b border-zinc-200/40 dark:border-zinc-800/40">
+                  <span className="text-muted-foreground font-medium">Food Plan</span>
+                  <span className="font-bold text-foreground">{foodPlan}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Food Plan</span>
-                  <span className="font-medium">{foodPlan}</span>
-                </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span className="font-semibold">Total Payable</span>
-                  <span className="font-bold text-green-700">
-                    ₹{totalPayable.toFixed(2)}
+                <div className="flex justify-between items-center pt-2 text-sm">
+                  <span className="font-bold text-foreground">Initial Total Payable</span>
+                  <span className="font-black text-foreground text-lg">
+                    ₹{totalPayable > 0 ? totalPayable.toLocaleString("en-IN") : "0.00"}
                   </span>
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer rounded-lg border p-3">
+              <label className="flex items-center gap-3 text-xs font-medium text-foreground cursor-pointer rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/30 p-4">
                 <Checkbox
                   checked={confirmed}
                   onCheckedChange={(checked) => setConfirmed(!!checked)}
+                  className="rounded-md h-5 w-5 data-[state=checked]:bg-zinc-900 dark:data-[state=checked]:bg-white data-[state=checked]:text-white dark:data-[state=checked]:text-zinc-900 border-zinc-300 dark:border-zinc-700"
                 />
-                I confirm all the details above are correct and I am authorized to onboard this tenant.
+                I confirm that all prospect details above are accurate and authorized.
               </label>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-3 pt-2">
                 <Button
-                  variant="outline"
                   onClick={() => {
                     setConfirmed(false);
                     setStep(showHostelPicker ? 4 : 3);
                   }}
+                  className="bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-200 dark:hover:bg-zinc-700 h-12 rounded-2xl font-medium text-sm transition-all px-5 border-0 shadow-none"
                 >
                   Back
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={loading || !confirmed}
-                  className="flex-1"
+                  className="flex-1 bg-zinc-900 text-white hover:bg-black dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 disabled:opacity-40 h-12 rounded-2xl font-semibold text-sm shadow-md active:scale-[0.98] transition-all border-0"
                 >
-                  {loading ? "Submitting..." : "Confirm & Send Onboarding Link"}
+                  {loading ? "Creating Request..." : "Confirm & Send Onboarding Link"}
                 </Button>
               </div>
             </div>
@@ -1085,56 +1085,52 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
 
           {/* ── Step 5/6: Success ── */}
           {((step === 5 && !showHostelPicker) || (step === 6 && showHostelPicker)) && (
-            <div className="space-y-6 text-center">
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400 text-3xl">
+            <div className="animate-in fade-in-50 slide-in-from-right-4 duration-300 ease-out space-y-6 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-4xl shadow-inner">
                   ✓
                 </div>
-                <h2 className="text-xl font-bold">
+                <h2 className="text-2xl font-black tracking-tight text-foreground">
                   Onboarding Request Created!
                 </h2>
-                <p className="text-sm text-muted-foreground">
-                  Share the link below with the prospect to complete their
-                  registration.
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Share the secure registration link and password below with the prospect to complete their account setup.
                 </p>
               </div>
 
-              <div className="rounded-lg border bg-muted p-4 text-left space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Registration Link
+              <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 p-4 text-left space-y-2">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Secure Registration Link
                 </p>
-                <p className="break-all text-sm font-mono">{submittedLink}</p>
+                <p className="break-all text-xs font-mono font-semibold text-foreground">{submittedLink}</p>
               </div>
 
               {submittedPassword && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/30 p-4 text-left space-y-2">
-                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide">
-                    Access Password (one-time)
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-left space-y-1.5">
+                  <p className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
+                    Temporary Access Password
                   </p>
-                  <p className="text-lg font-bold font-mono tracking-wider text-amber-900 dark:text-amber-200">
+                  <p className="text-xl font-black font-mono tracking-widest text-amber-900 dark:text-amber-200">
                     {submittedPassword}
                   </p>
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Share this password with the prospect along with the link above.
-                    It is valid until they set their own account password.
+                  <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-medium">
+                    Share this one-time password with the prospect alongside the link above.
                   </p>
                 </div>
               )}
 
-              <div className="flex flex-col gap-2">
-                <div className="flex gap-2">
+              <div className="flex flex-col gap-3 pt-2">
+                <div className="flex gap-3">
                   <Button
                     onClick={handleCopyLink}
-                    variant="outline"
-                    className="flex-1"
+                    className="flex-1 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-100 h-12 rounded-2xl font-semibold text-xs border-0 shadow-none"
                   >
-                    {linkCopied ? "✓ Link Copied!" : "Copy Link"}
+                    {linkCopied ? "✓ Link Copied!" : "Copy Registration Link"}
                   </Button>
                   {submittedPassword && (
                     <Button
                       onClick={handleCopyPassword}
-                      variant="outline"
-                      className="flex-1"
+                      className="flex-1 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-100 h-12 rounded-2xl font-semibold text-xs border-0 shadow-none"
                     >
                       {passwordCopied ? "✓ Password Copied!" : "Copy Password"}
                     </Button>
@@ -1142,40 +1138,41 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                 </div>
                 <Button
                   onClick={handleWhatsAppShare}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-12 rounded-2xl font-bold text-sm shadow-md transition-all active:scale-[0.98] border-0"
                 >
-                  Share on WhatsApp
+                  Share via WhatsApp
                 </Button>
                 <Button
-                  variant="ghost"
                   onClick={() => router.push(baseRoute)}
-                  className="w-full"
+                  className="w-full bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:text-zinc-200 h-12 rounded-2xl font-medium text-xs border-0 shadow-none"
                 >
                   Back to Dashboard
                 </Button>
               </div>
             </div>
           )}
-          </div>
-        </div>
+              </div>
+            </div>
 
-        <div className="lg:col-span-4 sticky top-6 space-y-4">
-              <div className="rounded-2xl border border-border/70 bg-card p-6 space-y-5 shadow-xs">
-                <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                  <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+            {/* ── RIGHT PANEL: STICKY PROSPECT PASSPORT CARD (Col 9-12: 34% Width) ── */}
+            <div className="lg:col-span-4 sticky top-6 space-y-4">
+              <div className="rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-card/90 backdrop-blur-2xl p-6 space-y-5 shadow-xl shadow-black/5 dark:shadow-black/50">
+                <div className="flex items-center justify-between border-b border-zinc-200/60 dark:border-zinc-800/60 pb-3.5">
+                  <h3 className="text-xs font-extrabold tracking-wider uppercase text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-emerald-500" />
-                    Live Prospect Summary
+                    Prospect Passport
                   </h3>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    Draft Request
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Drafting
                   </span>
                 </div>
 
                 <div className="space-y-3.5 text-xs">
                   {/* Prospect Phone */}
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground font-medium">Prospect Phone</span>
-                    <span className="font-semibold text-foreground font-mono">
+                    <span className="text-muted-foreground font-medium">Prospect Mobile</span>
+                    <span className="font-bold text-foreground font-mono">
                       {phone || "Not entered"}
                     </span>
                   </div>
@@ -1184,7 +1181,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   {showHostelPicker && (
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">Target Hostel</span>
-                      <span className="font-semibold text-foreground">
+                      <span className="font-bold text-foreground">
                         {hostels.find((h) => h.id === selectedHostelId)?.name || "Select hostel"}
                       </span>
                     </div>
@@ -1193,54 +1190,54 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                   {/* Stay Duration Type */}
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground font-medium">Stay Duration</span>
-                    <span className="font-semibold text-foreground">
+                    <span className="font-bold text-foreground">
                       {durationType === DurationType.MONTHLY ? "Monthly (Open-Ended)" : "Fixed Term"}
                     </span>
                   </div>
 
                   {/* Selected Bed */}
-                  <div className="flex items-center justify-between border-t border-border/30 pt-3">
-                    <span className="text-muted-foreground font-medium">Selected Bed</span>
+                  <div className="flex items-center justify-between border-t border-zinc-200/40 dark:border-zinc-800/40 pt-3">
+                    <span className="text-muted-foreground font-medium">Allocated Bed</span>
                     {selectedBedId ? (
-                      <span className="font-bold text-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-lg border border-primary/20">
+                      <span className="font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
                         {availableBeds.find((b) => b.id === selectedBedId)?.label || "Bed selected"}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground italic">No bed selected</span>
+                      <span className="text-muted-foreground italic font-normal">No bed selected</span>
                     )}
                   </div>
 
                   {/* Financial Breakdown */}
                   {selectedBedId && (
-                    <div className="space-y-2 border-t border-border/30 pt-3">
+                    <div className="space-y-2 border-t border-zinc-200/40 dark:border-zinc-800/40 pt-3">
                       <div className="flex items-center justify-between text-muted-foreground">
                         <span>Admission Fee</span>
-                        <span>₹{admissionFee || "0"}</span>
+                        <span className="font-semibold text-foreground">₹{admissionFee || "0"}</span>
                       </div>
                       <div className="flex items-center justify-between text-muted-foreground">
                         <span>Monthly Rent</span>
-                        <span>₹{monthlyRent || "0"}</span>
+                        <span className="font-semibold text-foreground">₹{monthlyRent || "0"}</span>
                       </div>
                       <div className="flex items-center justify-between text-muted-foreground">
                         <span>Security Deposit</span>
-                        <span>₹{securityDeposit || "0"}</span>
+                        <span className="font-semibold text-foreground">₹{securityDeposit || "0"}</span>
                       </div>
                       {parseFloat(foodCharges) > 0 && (
                         <div className="flex items-center justify-between text-muted-foreground">
                           <span>Food Charges</span>
-                          <span>₹{foodCharges}</span>
+                          <span className="font-semibold text-foreground">₹{foodCharges}</span>
                         </div>
                       )}
                       {parseFloat(discount) > 0 && (
-                        <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                        <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
                           <span>Discount Applied</span>
                           <span>-₹{discount}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between text-sm font-bold text-foreground border-t border-border/40 pt-2.5">
-                        <span>Total Payable Initial</span>
-                        <span className="text-base text-foreground">
-                          ₹{totalPayable > 0 ? totalPayable.toLocaleString("en-IN") : "0"}
+                      <div className="flex items-center justify-between text-sm font-extrabold text-foreground border-t border-zinc-200/60 dark:border-zinc-800/60 pt-3">
+                        <span>Initial Total</span>
+                        <span className="text-base font-black text-foreground">
+                          ₹{totalPayable > 0 ? totalPayable.toLocaleString("en-IN") : "0.00"}
                         </span>
                       </div>
                     </div>
