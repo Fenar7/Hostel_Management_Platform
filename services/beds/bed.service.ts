@@ -7,35 +7,36 @@ export async function checkBedConflict(
   endDate?: Date | null,
   excludeStayId?: string
 ): Promise<boolean> {
-  const overlappingStay = await prisma.stay.findFirst({
+  const activeStays = await prisma.stay.findMany({
     where: {
       bedId,
       ...(excludeStayId ? { id: { not: excludeStayId } } : {}),
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
-      ...(endDate ? { joiningDate: { lte: endDate } } : {}),
-      OR: [
-        { endDate: { equals: null } },
-        { endDate: { gte: joiningDate } },
-      ],
     },
+    select: { joiningDate: true, endDate: true },
   });
 
-  return !!overlappingStay;
+  const targetStart = joiningDate.getTime();
+  const targetEnd = endDate ? endDate.getTime() : null;
+
+  return activeStays.some((stay) => {
+    const stayStart = new Date(stay.joiningDate).getTime();
+    const stayEnd = stay.endDate ? new Date(stay.endDate).getTime() : null;
+
+    if (stayEnd !== null && stayEnd < targetStart) return false;
+    if (targetEnd !== null && stayStart > targetEnd) return false;
+    return true;
+  });
 }
 
 export async function getAvailableBeds(hostelId: string, joiningDate: Date, endDate?: Date | null) {
-  const [occupiedStays, pendingOnboardRequests] = await Promise.all([
+  const [activeStays, pendingOnboardRequests] = await Promise.all([
     prisma.stay.findMany({
       where: {
         hostelId,
         status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
-        ...(endDate ? { joiningDate: { lte: endDate } } : {}),
-        OR: [
-          { endDate: { equals: null } },
-          { endDate: { gte: joiningDate } },
-        ],
       },
-      select: { bedId: true },
+      select: { bedId: true, joiningDate: true, endDate: true },
     }),
     prisma.onboardingRequest.findMany({
       where: {
@@ -46,8 +47,22 @@ export async function getAvailableBeds(hostelId: string, joiningDate: Date, endD
     }),
   ]);
 
+  const targetStart = joiningDate.getTime();
+  const targetEnd = endDate ? endDate.getTime() : null;
+
+  const occupiedBedIdsFromStays = activeStays
+    .filter((stay) => {
+      const stayStart = new Date(stay.joiningDate).getTime();
+      const stayEnd = stay.endDate ? new Date(stay.endDate).getTime() : null;
+
+      if (stayEnd !== null && stayEnd < targetStart) return false;
+      if (targetEnd !== null && stayStart > targetEnd) return false;
+      return true;
+    })
+    .map((s) => s.bedId);
+
   const occupiedBedIdSet = new Set([
-    ...occupiedStays.map((s) => s.bedId),
+    ...occupiedBedIdsFromStays,
     ...pendingOnboardRequests.map((r) => r.bedId),
   ]);
 

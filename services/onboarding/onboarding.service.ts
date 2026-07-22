@@ -124,19 +124,27 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
     foodChargesPaise -
     discountPaise;
 
-  const overlappingStay = await prisma.stay.findFirst({
+  const activeStaysForBed = await prisma.stay.findMany({
     where: {
       bedId,
       status: { in: [StayStatus.ACTIVE, StayStatus.EXTENDED, StayStatus.ONBOARDING_PENDING] },
-      ...(endDate ? { joiningDate: { lte: endDate } } : {}),
-      OR: [
-        { endDate: { equals: null } },
-        { endDate: { gte: joiningDate } },
-      ],
     },
+    select: { joiningDate: true, endDate: true },
   });
 
-  if (overlappingStay) {
+  const targetStart = joiningDate.getTime();
+  const targetEnd = endDate ? endDate.getTime() : null;
+
+  const hasOverlap = activeStaysForBed.some((stay) => {
+    const stayStart = new Date(stay.joiningDate).getTime();
+    const stayEnd = stay.endDate ? new Date(stay.endDate).getTime() : null;
+
+    if (stayEnd !== null && stayEnd < targetStart) return false;
+    if (targetEnd !== null && stayStart > targetEnd) return false;
+    return true;
+  });
+
+  if (hasOverlap) {
     throw new ConflictError("The selected bed is occupied or reserved during the specified dates");
   }
 
