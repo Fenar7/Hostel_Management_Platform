@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Building2, BedDouble, CheckCircle2, Layers, Phone, CreditCard, Sparkles } from "lucide-react";
+import { Search, Building2, BedDouble, CheckCircle2, Layers, Phone, CreditCard, Sparkles, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -347,17 +347,59 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
               {/* Main Apple Stage Card */}
               <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 sm:p-8 space-y-6">
 
-                {/* Integrated Progress Stepper Line */}
-                <div className="space-y-3 pb-6 border-b border-zinc-200/80 dark:border-zinc-800/80">
-                  <div className="flex items-center justify-between text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                    <span className="uppercase tracking-wider">
-                      Step {step} of {totalStepsCount}
-                    </span>
-                    <span className="text-zinc-900 dark:text-zinc-100 font-bold">
-                      {stepLabels.find((s) => s.num === step)?.label || ""}
-                    </span>
+                {/* Handcrafted Apple Stepper Navigation Bar & Top Back Action */}
+                <div className="space-y-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    {/* Top Left Back Navigation Link */}
+                    {step > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setStep(step - 1)}
+                        className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <ArrowLeft className="h-3.5 w-3.5" />
+                        <span>Back</span>
+                      </button>
+                    ) : (
+                      <span className="text-xs font-extrabold uppercase tracking-wider text-zinc-400">
+                        Step 1 of {totalStepsCount}
+                      </span>
+                    )}
+
+                    {/* Interactive Step Breadcrumb Tabs */}
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      {stepLabels.map((s) => {
+                        const isActive = step === s.num;
+                        const isCompleted = step > s.num;
+
+                        return (
+                          <button
+                            key={s.num}
+                            type="button"
+                            onClick={() => {
+                              if (isCompleted) setStep(s.num);
+                            }}
+                            disabled={!isCompleted && !isActive}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                              isActive
+                                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-xs cursor-default"
+                                : isCompleted
+                                ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer"
+                                : "text-zinc-400 opacity-50 cursor-not-allowed"
+                            }`}
+                          >
+                            <span className="text-[10px] font-bold">
+                              {isCompleted ? "✓" : s.num}
+                            </span>
+                            <span className="tracking-tight">{s.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
+
+                  {/* Subtle 2px Emerald Progress Line */}
+                  <div className="h-1 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-emerald-500 transition-all duration-300 ease-out"
                       style={{ width: `${currentStepProgress}%` }}
