@@ -187,9 +187,9 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
 
     const stay = await tx.stay.create({
       data: {
-        tenantId: tenant.id,
-        bedId,
-        hostelId,
+        tenant: { connect: { id: tenant.id } },
+        bed: { connect: { id: bedId } },
+        hostel: { connect: { id: hostelId } },
         status: StayStatus.ONBOARDING_PENDING,
         durationType,
         joiningDate,

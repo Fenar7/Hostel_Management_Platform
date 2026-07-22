@@ -106,6 +106,7 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
   const [linkCopied, setLinkCopied] = useState(false);
   const [passwordCopied, setPasswordCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
   const [hostels, setHostels] = useState<HostelOption[]>([]);
   const [selectedHostelId, setSelectedHostelId] = useState(
@@ -253,7 +254,12 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
       const fullLink = `${window.location.origin}${data.entryGateLink}`;
       setSubmittedLink(fullLink);
       setSubmittedPassword(data.tempPassword || "");
-      setStep(5);
+      setStep(showHostelPicker ? 6 : 5);
+      setShowWhatsAppModal(true);
+
+      // Auto-trigger WhatsApp dispatch tab
+      const message = onboardingLinkWithPassword(fullLink, data.tempPassword || "");
+      window.open(buildWaMeLink(phone, message), "_blank");
     } catch (err: unknown) {
       notify.error(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -1244,6 +1250,82 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
           </div>
         </div>
       </div>
+
+      {/* ── WHATSAPP AUTO-DISPATCH MODAL ── */}
+      {showWhatsAppModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-full bg-[#25D366]/10 flex items-center justify-center text-[#25D366] font-bold text-xs border border-[#25D366]/20">
+                  WA
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                    Dispatch via WhatsApp
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 font-medium">Recipient: {phone}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWhatsAppModal(false)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xs font-bold px-2 py-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                Formatted WhatsApp Message
+              </label>
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70 p-3.5 text-xs font-mono text-zinc-800 dark:text-zinc-200 max-h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                {onboardingLinkWithPassword(submittedLink, submittedPassword)}
+              </div>
+            </div>
+
+            <div className="space-y-2.5 pt-1">
+              <Button
+                onClick={() => {
+                  const message = onboardingLinkWithPassword(submittedLink, submittedPassword);
+                  window.open(buildWaMeLink(phone, message), "_blank");
+                }}
+                className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white h-11 rounded-xl font-semibold text-sm transition-all border-0 shadow-xs flex items-center justify-center gap-2"
+              >
+                <span>Send via WhatsApp</span>
+              </Button>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCopyLink}
+                  className="flex-1 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 h-10 rounded-xl font-semibold text-xs border-0"
+                >
+                  {linkCopied ? "✓ Link Copied" : "Copy Link"}
+                </Button>
+                {submittedPassword && (
+                  <Button
+                    onClick={handleCopyPassword}
+                    className="flex-1 bg-zinc-100 text-zinc-800 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 h-10 rounded-xl font-semibold text-xs border-0"
+                  >
+                    {passwordCopied ? "✓ Password Copied" : "Copy Password"}
+                  </Button>
+                )}
+              </div>
+
+              <Button
+                onClick={() => {
+                  setShowWhatsAppModal(false);
+                  router.push(baseRoute);
+                }}
+                className="w-full bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 h-9 rounded-xl font-medium text-xs border-0 transition-colors"
+              >
+                Close & Return to Dashboard
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </HostelWorkspaceLayout>
   );
 }

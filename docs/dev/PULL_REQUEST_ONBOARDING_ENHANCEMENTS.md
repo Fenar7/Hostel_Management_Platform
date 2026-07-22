@@ -33,11 +33,14 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Updated query parameter validation to allow searching available beds with `joiningDate` alone when `endDate` is omitted for open-ended stays.
 
 ### C. Stay Management & Business Logic Fixes
+- **Prisma `tx.stay.create()` Relation Input Fix (`services/onboarding/onboarding.service.ts`):**
+  - Resolved `PrismaClientValidationError` (`Argument tenant is missing`) on `POST /api/warden/onboard` by replacing scalar foreign key parameters with relation connection objects (`tenant: { connect: { id: tenant.id } }`, `bed: { connect: { id: bedId } }`, `hostel: { connect: { id: hostelId } }`).
 - **Refund Estimate Calculation (`app/api/warden/stays/[id]/refund-estimate/route.ts`):**
   - Updated date boundary check so early exit calculations for open-ended stays (`stay.endDate: null`) do not fail with upper date bound errors.
 - **Stay Extensions (`services/stays/extend.ts`):**
   - Updated overlapping stay query for open-ended stay extensions to evaluate extension start date (`stay.endDate ?? new Date()`) against active stay bounds, resolving false conflict errors against historical completed stays.
 ### D. Stripe & Linear Fintech Onboarding Studio Redesign (`components/hostel-management/HostelOnboardView.tsx`)
+- **Automatic WhatsApp Dispatch Modal:** Added an automated Apple-style WhatsApp Dispatch Dialog that triggers immediately when an onboarding request is generated. Features a formatted message preview, phone target badge (`📱 +91 ...`), one-click **Send via WhatsApp** CTA, and clipboard copy controls.
 - **Linear Connected Step Node Track:** Replaced cluttered step pills with a sleek connected track line featuring circular step nodes `(1)` ➔ `(2)` ➔ `(3)` ➔ `(4)` ➔ `(5)`. Completed steps display glowing emerald `✓` checkmark circles with instant step-jump navigation.
 - **Contextual Top-Left Back Action:** Added a contextual top back button (`← Back to [Previous Step Name]`) enabling effortless reverse navigation without scrolling down.
 - **Stripe Checkout Live Receipt Passport:** Upgraded the right sidebar into a Stripe Checkout live receipt record with itemized fee rows, dashed border separators, live status indicators (`● DRAFT`), and a high-contrast total price callout.
