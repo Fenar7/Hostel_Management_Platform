@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Search, Building2, BedDouble, CheckCircle2, Layers, Phone, CreditCard } from "lucide-react";
+import { Search, Building2, BedDouble, CheckCircle2, Layers, Phone, CreditCard, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -145,7 +145,10 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
     return true;
   };
 
-  const handleSearchBeds = async () => {
+  const hostelSelected = !!selectedHostelId;
+  const showHostelPicker = isAdmin && !hostelSelected && !hostelsLoading;
+
+  const handleSearchBeds = useCallback(async () => {
     if (!joiningDate) {
       notify.error("Please select a joining date");
       return;
@@ -192,7 +195,14 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
     } finally {
       setLoading(false);
     }
-  };
+  }, [joiningDate, endDate, durationType, selectedHostelId]);
+
+  useEffect(() => {
+    const isStep2 = (step === 2 && !showHostelPicker) || (step === 3 && showHostelPicker);
+    if (isStep2 && joiningDate && availableBeds.length === 0 && !loading) {
+      handleSearchBeds();
+    }
+  }, [step, showHostelPicker, joiningDate, availableBeds.length, loading, handleSearchBeds]);
 
   const handleSubmit = async () => {
     if (!selectedBedId) {
@@ -290,8 +300,6 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
     window.open(buildWaMeLink(phone, message), "_blank");
   };
 
-  const hostelSelected = !!selectedHostelId;
-  const showHostelPicker = isAdmin && !hostelSelected && !hostelsLoading;
   const totalSteps = showHostelPicker ? 5 : 4;
 
   const stepLabels = useMemo(() => {
@@ -326,52 +334,52 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
       subtitle="Create a new onboarding request for a prospective tenant"
       hideAdminNav={baseRoute === "/warden"}
     >
-      <div className="max-w-3xl mx-auto space-y-6 p-4 sm:p-6">
+      <div className="w-full min-h-[calc(100vh-65px)] bg-background">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-        {/* Apple Glassmorphism Segmented Stepper Bar */}
-        <div className="p-1.5 rounded-2xl bg-muted/40 backdrop-blur-md border border-border/50 shadow-2xs flex items-center justify-between gap-1 overflow-x-auto custom-scrollbar">
-          {stepLabels.map((s) => {
-            const IconComponent = s.icon;
-            const isActive = step === s.num;
-            const isCompleted = step > s.num;
+            {/* ── LEFT CANVAS (Col 1-8: 66% Width) ── */}
+            <div className="lg:col-span-8 space-y-6">
 
-            return (
-              <button
-                key={s.num}
-                type="button"
-                onClick={() => {
-                  if (isCompleted) setStep(s.num);
-                }}
-                disabled={!isCompleted && !isActive}
-                className={`flex items-center gap-2 py-2 px-3 sm:px-4 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 ${
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02] cursor-default"
-                    : isCompleted
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 cursor-pointer"
-                    : "text-muted-foreground opacity-60 cursor-not-allowed"
-                }`}
-              >
-                <span className={`flex h-5 w-5 items-center justify-center rounded-lg text-[10px] font-bold ${
-                  isActive
-                    ? "bg-white/20 text-white"
-                    : isCompleted
-                    ? "bg-emerald-500 text-white"
-                    : "bg-muted text-muted-foreground"
-                }`}>
-                  {isCompleted ? "✓" : s.num}
-                </span>
-                <span className="hidden sm:inline tracking-tight">{s.label}</span>
-              </button>
-            );
-          })}
-        </div>
+              {/* Apple Segmented Stepper Bar */}
+              <div className="p-1.5 rounded-2xl bg-muted/40 backdrop-blur-md border border-border/60 shadow-2xs flex items-center justify-between gap-1 overflow-x-auto custom-scrollbar">
+                {stepLabels.map((s) => {
+                  const isActive = step === s.num;
+                  const isCompleted = step > s.num;
 
-        {/* Apple Glassmorphism Main Container Card */}
-        <div className="relative rounded-2xl border border-border/70 bg-card/90 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/40 overflow-hidden transition-all duration-300">
-          {/* Top Gradient Accent Bar */}
-          <div className="h-1 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" />
+                  return (
+                    <button
+                      key={s.num}
+                      type="button"
+                      onClick={() => {
+                        if (isCompleted) setStep(s.num);
+                      }}
+                      disabled={!isCompleted && !isActive}
+                      className={`flex items-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold transition-all duration-200 shrink-0 ${
+                        isActive
+                          ? "bg-black text-white dark:bg-white dark:text-black shadow-sm scale-[1.02] cursor-default"
+                          : isCompleted
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/25 cursor-pointer"
+                          : "text-muted-foreground opacity-50 cursor-not-allowed"
+                      }`}
+                    >
+                      <span className={`flex h-5 w-5 items-center justify-center rounded-lg text-[10px] font-bold ${
+                        isActive
+                          ? "bg-white/20 text-white dark:bg-black/20 dark:text-black"
+                          : isCompleted
+                          ? "bg-emerald-500 text-white"
+                          : "bg-muted text-muted-foreground"
+                      }`}>
+                        {isCompleted ? "✓" : s.num}
+                      </span>
+                      <span className="tracking-tight">{s.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-          <div className="p-6 sm:p-8">
+              {/* Form Step Canvas Card */}
+              <div className="rounded-2xl border border-border/70 bg-card p-6 sm:p-8 shadow-xs space-y-6">
           {/* ── Step 1: Hostel Selection (admin only, when no hostel pre-selected) ── */}
           {step === 1 && showHostelPicker && (
             <div className="space-y-4">
@@ -1148,8 +1156,101 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
               </div>
             </div>
           )}
+          </div>
         </div>
-      </div>
+
+        <div className="lg:col-span-4 sticky top-6 space-y-4">
+              <div className="rounded-2xl border border-border/70 bg-card p-6 space-y-5 shadow-xs">
+                <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                  <h3 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-emerald-500" />
+                    Live Prospect Summary
+                  </h3>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    Draft Request
+                  </span>
+                </div>
+
+                <div className="space-y-3.5 text-xs">
+                  {/* Prospect Phone */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground font-medium">Prospect Phone</span>
+                    <span className="font-semibold text-foreground font-mono">
+                      {phone || "Not entered"}
+                    </span>
+                  </div>
+
+                  {/* Selected Hostel */}
+                  {showHostelPicker && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground font-medium">Target Hostel</span>
+                      <span className="font-semibold text-foreground">
+                        {hostels.find((h) => h.id === selectedHostelId)?.name || "Select hostel"}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Stay Duration Type */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground font-medium">Stay Duration</span>
+                    <span className="font-semibold text-foreground">
+                      {durationType === DurationType.MONTHLY ? "Monthly (Open-Ended)" : "Fixed Term"}
+                    </span>
+                  </div>
+
+                  {/* Selected Bed */}
+                  <div className="flex items-center justify-between border-t border-border/30 pt-3">
+                    <span className="text-muted-foreground font-medium">Selected Bed</span>
+                    {selectedBedId ? (
+                      <span className="font-bold text-foreground bg-primary/10 text-primary px-2.5 py-1 rounded-lg border border-primary/20">
+                        {availableBeds.find((b) => b.id === selectedBedId)?.label || "Bed selected"}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground italic">No bed selected</span>
+                    )}
+                  </div>
+
+                  {/* Financial Breakdown */}
+                  {selectedBedId && (
+                    <div className="space-y-2 border-t border-border/30 pt-3">
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Admission Fee</span>
+                        <span>₹{admissionFee || "0"}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Monthly Rent</span>
+                        <span>₹{monthlyRent || "0"}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Security Deposit</span>
+                        <span>₹{securityDeposit || "0"}</span>
+                      </div>
+                      {parseFloat(foodCharges) > 0 && (
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>Food Charges</span>
+                          <span>₹{foodCharges}</span>
+                        </div>
+                      )}
+                      {parseFloat(discount) > 0 && (
+                        <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-medium">
+                          <span>Discount Applied</span>
+                          <span>-₹{discount}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between text-sm font-bold text-foreground border-t border-border/40 pt-2.5">
+                        <span>Total Payable Initial</span>
+                        <span className="text-base text-foreground">
+                          ₹{totalPayable > 0 ? totalPayable.toLocaleString("en-IN") : "0"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </HostelWorkspaceLayout>
   );

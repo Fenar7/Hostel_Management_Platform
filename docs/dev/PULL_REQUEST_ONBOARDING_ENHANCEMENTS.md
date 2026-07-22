@@ -37,11 +37,12 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Updated date boundary check so early exit calculations for open-ended stays (`stay.endDate: null`) do not fail with upper date bound errors.
 - **Stay Extensions (`services/stays/extend.ts`):**
   - Updated overlapping stay query for open-ended stay extensions to evaluate extension start date (`stay.endDate ?? new Date()`) against active stay bounds, resolving false conflict errors against historical completed stays.
-- **Apple-Grade Onboarding Wizard Overhaul (`components/hostel-management/HostelOnboardView.tsx`):**
-  - **Segmented Named Stepper Bar:** Replaced legacy numbered circles with an Apple-style segmented glass tab bar (`[ 🏢 Hostel ]` ➔ `[ 📱 Prospect ]` ➔ `[ 🛏️ Dates & Bed ]` ➔ `[ 💳 Financials ]` ➔ `[ 🚀 Complete ]`) with micro-scaling active pill highlights and green checkmark badges for completed steps.
-  - **Glassmorphism Container Card:** Replaced basic white box with `rounded-2xl border border-border/70 bg-card/90 backdrop-blur-xl shadow-xl shadow-black/5 dark:shadow-black/40` and a top accent gradient line (`from-blue-500 via-indigo-500 to-emerald-500`).
-  - **Apple-Grade Visual Spatial Bed Matrix:** Available beds grouped by Floor and Room Card, featuring interactive Bed Chips (`🛏️ Bed 201-A`), floor filter pills (`All Floors`, `Floor 1`), room search input, and vibrant blue ring selection glow states.
-  - **Duration Mode Toggle & Controls:** `Monthly Recurring` vs `Fixed Duration Stay` toggle with quick duration preset pills (`+1 Month`, `+3 Months`, `+6 Months`, `+1 Year`) and standardized `h-11 rounded-xl` input controls.
+- **Full-Screen Apple Studio Onboarding Workspace (`components/hostel-management/HostelOnboardView.tsx`):**
+  - **Zero Centered Container Cards:** Completely removed narrow centered box container wrappers, upgrading the view into a full-screen edge-to-edge Apple Studio workspace (`w-full min-h-[calc(100vh-65px)]`).
+  - **2-Column Split Studio Grid (66% Canvas / 34% Sticky Sidebar):**
+    - **Left Canvas (66% Width):** Interactive workflow canvas featuring named step tab ribbon (`1. Prospect Phone` ➔ `2. Dates & Bed` ➔ `3. Fees & Food` ➔ `4. Complete`), 11px rounded-xl inputs, and spatial floor/room bed matrix grid with real-time automatic bed loading on Step 2.
+    - **Right Panel (34% Width):** Sticky `LiveProspectSummaryCard` displaying real-time prospect phone, target hostel, stay duration type, selected bed label, and live itemized financial fee breakdown.
+  - **Strict Brand Color Alignment (NO GENERIC BLUE):** Replaced generic blue (`#2563eb`) with Stayee Anywhere primary brand color tokens (pure black `#000000`, white `#ffffff`, dark zinc, and emerald green `#10b981` success accents).
 - **In-Memory Stay Overlap Engine (`bed.service.ts`, `onboarding.service.ts`, `payment.service.ts`, `extend.ts`):**
   - Refactored stay overlap queries across all 4 service modules to perform precise in-memory TypeScript date logic, eliminating Prisma AST query engine `ClientValidationError` exceptions while safely supporting open-ended stays (`endDate: null`).
 
