@@ -392,6 +392,7 @@ model Payment {
   serviceRequest ServiceRequest?
 
   @@index([stayId])
+  @@index([paymentStatus, createdAt])
 }
 
 model RefundInvoice {
