@@ -19,8 +19,7 @@ export default async function WardenOnboardPage({
       const hostel = await prisma.hostel.findUnique({ where: { id: queryHostelId }, select: { id: true } });
       hostelId = hostel?.id ?? null;
     } else {
-      const firstHostel = await prisma.hostel.findFirst({ select: { id: true } });
-      hostelId = firstHostel?.id ?? null;
+      hostelId = null;
     }
   } else {
     hostelId = user.warden?.hostelId ?? null;

@@ -284,6 +284,11 @@ export default function AdminOnboardsPage() {
             <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">Portfolio Onboarding</h1>
             <p className="text-sm text-gray-500 mt-1">Monitor all onboarding applications, verifications, and active stays across all properties.</p>
           </div>
+          <Link href="/admin/onboard">
+            <Button className="bg-black hover:bg-gray-800 text-white font-medium text-sm px-4 h-10 rounded-md">
+              + Onboard New User
+            </Button>
+          </Link>
         </div>
       <div>
         <Tabs defaultValue="all" className="w-full">

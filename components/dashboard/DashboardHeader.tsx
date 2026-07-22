@@ -65,7 +65,7 @@ export function DashboardHeader() {
           Manage Rent <Plus className="ml-1.5 size-4 text-[#58ff48]" />
         </Link>
         <Link
-          href={rolePrefix === "/admin" ? "/admin/onboards" : "/warden/onboard"}
+          href={rolePrefix === "/admin" ? "/admin/onboard" : "/warden/onboard"}
           className="flex items-center justify-center h-10 px-5 rounded-[6px] bg-[#282828] text-white text-[15px] font-semibold hover:bg-black transition-colors whitespace-nowrap"
         >
           On Board a User <Plus className="ml-1.5 size-4 text-[#58ff48]" />
