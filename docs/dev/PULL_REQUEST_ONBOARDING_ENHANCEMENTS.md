@@ -37,21 +37,12 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Updated date boundary check so early exit calculations for open-ended stays (`stay.endDate: null`) do not fail with upper date bound errors.
 - **Stay Extensions (`services/stays/extend.ts`):**
   - Updated overlapping stay query for open-ended stay extensions to evaluate extension start date (`stay.endDate ?? new Date()`) against active stay bounds, resolving false conflict errors against historical completed stays.
-### C. Apple Fintech Onboarding Studio Redesign (`components/hostel-management/HostelOnboardView.tsx`)
-- **Zero Narrow Centered Boxes:** Completely eliminated old centered modal card containers. Re-architected into a 2-column Apple Studio workspace (`66% Studio Stage Canvas` / `34% Sticky Prospect Passport Sidebar`).
-- **Strict Brand Color Alignment (100% Zero Generic Blue):**
-  - Completely stripped all generic blue (`#2563eb`, `bg-primary`, `bg-blue-500`) elements across buttons, inputs, toggles, bed chips, and info banners.
-  - Aligned 100% of UI elements to Stayee Anywhere brand tokens: Pure Black (`#000000`) / Pure White (`#ffffff`), Emerald Green (`#10b981`), and Zinc/Slate neutrals.
-- **Apple Fintech UX & Micro-Animations:**
-  - **Segmented Stage Header Bar:** Interactive stage ribbon with live completion indicators and stage jump support.
-  - **Apple Fintech Stage Cards (`rounded-3xl`):** `rounded-3xl border border-zinc-200/80 dark:border-zinc-800/80 bg-card/90 backdrop-blur-2xl p-6 sm:p-8 shadow-xl shadow-black/5 dark:shadow-black/50`.
-  - **Smooth Stage Transitions:** Wrapped every workflow stage in `<div className="animate-in fade-in-50 slide-in-from-right-4 duration-300 ease-out space-y-6">`.
-  - **Apple Segmented Duration Switcher:** Pill duration selector for `Monthly (Open-Ended)` vs `Fixed Duration Stay`.
-  - **Spatial Bed Matrix:** Spatial floor/room hierarchy cards with Apple Bed Chips (`border-emerald-500 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 ring-2 ring-emerald-500 shadow-md scale-[1.03]`).
-  - **Emerald Glass Financial Summary & Buttons:** Soft emerald callouts (`bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-300`), brand CTA buttons (`bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 h-12 rounded-2xl font-semibold`), and WhatsApp Share button (`bg-[#25D366] hover:bg-[#20bd5a] text-white h-12 rounded-2xl`).
-  - **Sticky Prospect Passport Card:** Right sidebar displaying real-time prospect details, animated drafting status dot (`● DRAFTING`), selected bed label, and live itemized fee breakdown.
-- **In-Memory Stay Overlap Engine (`bed.service.ts`, `onboarding.service.ts`, `payment.service.ts`, `extend.ts`):**
-  - Refactored stay overlap queries across all 4 service modules to perform precise in-memory TypeScript date logic, eliminating Prisma AST query engine `ClientValidationError` exceptions while safely supporting open-ended stays (`endDate: null`).
+### D. Handcrafted Apple Human Interface Onboarding Studio (`components/hostel-management/HostelOnboardView.tsx`)
+- **Eradicated "AI Design Tropes":** Completely eliminated drop shadows (`shadow-xl`, `shadow-md`), gimmicky emojis (🔄, ⏱️, ✨, 🛏️, 🏢), and light green callout boxes.
+- **Precision 1px Flat Surfaces:** Re-architected layout using clean 1px border surfaces (`border-zinc-200 dark:border-zinc-800`), flat backgrounds (`bg-white dark:bg-zinc-950`), and inter typography.
+- **Layout Max-Width Boundary (`max-w-7xl mx-auto`):** Constrained layout container grid to prevent right-side Prospect Passport card clipping across high-resolution displays.
+- **Integrated Header Step Bar:** Replaced disjointed step pills with an integrated top progress line (`Step X of Y`) embedded seamlessly into the stage card header.
+- **Seamless Auto-Bed Search:** Removed redundant full-width grey refresh buttons; bed availability updates automatically when stay parameters change.
 
 ---
 
