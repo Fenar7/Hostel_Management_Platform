@@ -122,7 +122,11 @@ export default async function HostelStaysView({
                     <td>
                       <p className="text-[13px] font-medium text-black dark:text-white">{format(new Date(stay.joiningDate), "PP")}</p>
                       <p className="text-[11px] text-[#767676] uppercase tracking-wider font-bold mt-0.5">
-                        {stay.endDate ? `to ${format(new Date(stay.endDate), "PP")}` : "Open-ended stay"}
+                        {stay.endDate
+                          ? `to ${format(new Date(stay.endDate), "PP")}`
+                          : (stay as { nextBillingDate?: Date | string | null }).nextBillingDate
+                          ? `Next bill: ${format(new Date((stay as { nextBillingDate?: Date | string | null }).nextBillingDate!), "PP")}`
+                          : "Monthly Recurring"}
                       </p>
                     </td>
                     <td>

@@ -1,3 +1,4 @@
+import { addMonths } from "date-fns";
 import { prisma } from "@/lib/db";
 import { createHash, randomBytes } from "crypto";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
@@ -185,6 +186,7 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
         durationType,
         joiningDate,
         endDate: endDate || null,
+        nextBillingDate: durationType === DurationType.MONTHLY ? addMonths(joiningDate, 1) : null,
         isNewAdmission,
         admissionFeePaise,
         monthlyRentPaise,

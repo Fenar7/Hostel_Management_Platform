@@ -436,6 +436,44 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
               <h2 className="text-lg font-semibold">
                 Step {showHostelPicker ? 3 : 2}: Dates &amp; Bed Selection
               </h2>
+              {/* Duration Mode Selector Toggle */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Stay Duration Type</label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-muted/40 rounded-xl border border-border/50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDurationType(DurationType.MONTHLY);
+                      setEndDate("");
+                      setAvailableBeds([]);
+                      setSelectedBedId("");
+                    }}
+                    className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                      durationType === DurationType.MONTHLY
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span>🔄 Monthly (Open-Ended)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDurationType(DurationType.CUSTOM);
+                      setAvailableBeds([]);
+                      setSelectedBedId("");
+                    }}
+                    className={`py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                      durationType !== DurationType.MONTHLY
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span>⏱️ Fixed Duration Stay</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label
@@ -456,27 +494,69 @@ export default function HostelOnboardView({ hostelId, hostelName, baseRoute }: {
                     className={inputClass}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center justify-between" htmlFor="end-date">
-                    <span>End Date</span>
-                    {durationType === DurationType.MONTHLY && (
-                      <span className="text-xs text-muted-foreground font-normal">(Optional for open-ended stay)</span>
-                    )}
-                  </label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={endDate}
-                    min={joiningDate}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      setEndDate(e.target.value);
-                      setAvailableBeds([]);
-                      setSelectedBedId("");
-                    }}
-                    className={inputClass}
-                  />
-                </div>
+
+                {durationType === DurationType.MONTHLY ? (
+                  <div className="flex items-center p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
+                    <div>
+                      <p className="font-semibold text-xs text-blue-700 dark:text-blue-300 mb-0.5">🔄 Monthly Recurring Stay</p>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                        Resident stays open-ended. Next rent invoice automatically scheduled in 30 days from joining date.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium" htmlFor="end-date">
+                      End Date
+                    </label>
+                    <Input
+                      id="end-date"
+                      type="date"
+                      value={endDate}
+                      min={joiningDate}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        setEndDate(e.target.value);
+                        setAvailableBeds([]);
+                        setSelectedBedId("");
+                      }}
+                      className={inputClass}
+                    />
+                  </div>
+                )}
               </div>
+
+              {durationType !== DurationType.MONTHLY && (
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground font-medium">Quick Duration Presets</label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: "1 Month", days: 30 },
+                      { label: "3 Months", days: 90 },
+                      { label: "6 Months", days: 180 },
+                      { label: "1 Year", days: 365 },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                          if (!joiningDate) {
+                            notify.error("Please select a joining date first");
+                            return;
+                          }
+                          const start = new Date(joiningDate);
+                          start.setDate(start.getDate() + preset.days);
+                          setEndDate(start.toISOString().split("T")[0]);
+                          setAvailableBeds([]);
+                          setSelectedBedId("");
+                        }}
+                        className="px-2.5 py-1 text-xs font-medium rounded-lg border border-border bg-muted/30 hover:bg-primary/10 hover:border-primary transition-colors"
+                      >
+                        +{preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <Button
                 onClick={handleSearchBeds}
