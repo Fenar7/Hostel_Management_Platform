@@ -58,12 +58,18 @@ export function DashboardHeader() {
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
-        <button className="flex items-center justify-center h-10 px-5 border border-[#dedede] rounded-[6px] bg-white text-black text-[15px] font-semibold hover:bg-gray-50 transition-colors whitespace-nowrap">
+        <Link
+          href={`${rolePrefix}/worklists`}
+          className="flex items-center justify-center h-10 px-5 border border-[#dedede] rounded-[6px] bg-white text-black text-[15px] font-semibold hover:bg-gray-50 transition-colors whitespace-nowrap"
+        >
           Manage Rent <Plus className="ml-1.5 size-4 text-[#58ff48]" />
-        </button>
-        <button className="flex items-center justify-center h-10 px-5 rounded-[6px] bg-[#282828] text-white text-[15px] font-semibold hover:bg-black transition-colors whitespace-nowrap">
+        </Link>
+        <Link
+          href={rolePrefix === "/admin" ? "/admin/onboards" : "/warden/onboard"}
+          className="flex items-center justify-center h-10 px-5 rounded-[6px] bg-[#282828] text-white text-[15px] font-semibold hover:bg-black transition-colors whitespace-nowrap"
+        >
           On Board a User <Plus className="ml-1.5 size-4 text-[#58ff48]" />
-        </button>
+        </Link>
       </div>
     </div>
   );

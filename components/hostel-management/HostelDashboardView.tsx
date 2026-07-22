@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Bell, Plus } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { redirect } from "next/navigation";
@@ -71,12 +72,12 @@ export default async function HostelDashboardView({
   const Actions = (
     <>
       <NotificationBellClient role={userRole === "MAIN_ADMIN" ? UserRole.MAIN_ADMIN : UserRole.WARDEN} baseRoute={baseRoute} />
-      <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all font-semibold text-[15px] whitespace-nowrap">
+      <Link href={`${baseRoute}/worklists`} className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all font-semibold text-[15px] whitespace-nowrap">
         Manage Rent <Plus className="size-4 text-[#58ff48]" />
-      </button>
-      <button className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] bg-[#282828] dark:bg-[#58ff48] text-white dark:text-black hover:bg-black transition-all font-semibold text-[15px] whitespace-nowrap">
+      </Link>
+      <Link href={`${baseRoute}/onboard`} className="flex items-center justify-center gap-2 h-10 px-5 rounded-[6px] bg-[#282828] dark:bg-[#58ff48] text-white dark:text-black hover:bg-black transition-all font-semibold text-[15px] whitespace-nowrap">
         On Board a User <Plus className="size-4 text-[#58ff48] dark:text-black" />
-      </button>
+      </Link>
     </>
   );
 
