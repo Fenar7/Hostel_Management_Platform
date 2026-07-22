@@ -29,6 +29,10 @@ This PR addresses critical operational and security enhancements in the Stayee A
 - **Step Check Guard (`app/api/public/onboard-request/[id]/register/route.ts`):**
   - Added explicit step validation: `if (onboardingRequest.onboardingCurrentStep < 1) throw new ForbiddenError(...)`.
   - Ensures prospective tenants cannot bypass the 4-digit security PIN verification step.
+- **Middleware Public Route Bypass (`proxy.ts`):**
+  - Added `/api/public`, `/onboarding`, `/onboard`, and `/newuser` to `PUBLIC_ROUTES` so unauthenticated prospective tenants can access validation & registration endpoints without triggering NextAuth `401 Unauthorized` errors.
+- **Onboarding Phone Normalization (`app/api/public/onboarding/[id]/validate/route.ts`):**
+  - Updated phone validation logic to use `normalizePhoneNumber` for cross-matching tenant phone numbers, preventing false validation failures due to spaces, formatting, or country codes.
 - **Warden Beds Endpoint (`app/api/warden/beds/available/route.ts`):**
   - Updated query parameter validation to allow searching available beds with `joiningDate` alone when `endDate` is omitted for open-ended stays.
 

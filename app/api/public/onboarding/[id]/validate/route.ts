@@ -4,8 +4,7 @@ import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ConflictError, ValidationError } from "@/lib/errors";
 import { OnboardingRequestStatus } from "@prisma/client";
 import { validateSchema } from "@/lib/validation/onboarding";
-
-
+import { normalizePhoneNumber } from "@/lib/whatsapp/utils";
 
 export async function POST(
   request: NextRequest,
@@ -51,8 +50,15 @@ export async function POST(
       );
     }
 
-    // Validate phone
-    if (onboardingRequest.phone !== phone) {
+    // Validate phone (normalized comparison to handle formatting/country code differences)
+    let isPhoneMatch = onboardingRequest.phone === phone;
+    try {
+      isPhoneMatch = normalizePhoneNumber(onboardingRequest.phone) === normalizePhoneNumber(phone);
+    } catch {
+      // Fallback to direct string match if normalization fails
+    }
+
+    if (!isPhoneMatch) {
       throw new ValidationError("Phone number does not match this request");
     }
 
