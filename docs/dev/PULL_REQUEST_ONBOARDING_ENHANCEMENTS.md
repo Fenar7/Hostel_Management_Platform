@@ -16,7 +16,7 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Added Date transform `isNaN` guards and enforced `endDate != null` when `durationType != MONTHLY`.
 - **Onboarding Service (`services/onboarding/onboarding.service.ts`):**
   - Updated `OnboardInitiateInput` interface to accept `endDate?: Date | null`.
-  - Updated overlapping stay query and Prisma transaction write (`tx.stay.create`) to set `endDate: endDate || null`.
+  - Updated overlapping stay query and Prisma transaction write (`tx.stay.create`) to set `endDate: endDate || undefined` to resolve `PrismaClientValidationError` related to null strictness.
   - Normalized phone numbers in `checkPhoneAvailability` to prevent duplicate account creation across phone formatting variations.
 - **Bed Conflict & Availability (`services/beds/bed.service.ts`):**
   - Updated `checkBedConflict` and `getAvailableBeds` to handle `null` end dates using explicit Prisma syntax `OR: [{ endDate: { equals: null } }, { endDate: { gte: joiningDate } }]`.

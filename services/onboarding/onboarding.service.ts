@@ -193,7 +193,7 @@ export async function initiateOnboarding(input: OnboardInitiateInput) {
         status: StayStatus.ONBOARDING_PENDING,
         durationType,
         joiningDate,
-        endDate: endDate || null,
+        endDate: endDate || undefined,
         nextBillingDate: durationType === DurationType.MONTHLY ? addMonths(joiningDate, 1) : null,
         isNewAdmission,
         admissionFeePaise,
