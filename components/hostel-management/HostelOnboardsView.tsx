@@ -117,8 +117,7 @@ export default function HostelOnboardsView({
     setDispatchLoadingId(onboardingReqId);
     try {
       const res = await fetch(
-        `/api/warden/onboarding-requests/${onboardingReqId}/regenerate-password`,
-        { method: "POST" }
+        `/api/warden/onboarding-requests/${onboardingReqId}/info`
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to get onboarding link");

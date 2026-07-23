@@ -178,8 +178,7 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
     setDispatchLoading(true);
     try {
       const res = await fetch(
-        `/api/warden/onboarding-requests/${stay.onboardingRequest.id}/regenerate-password`,
-        { method: "POST" }
+        `/api/warden/onboarding-requests/${stay.onboardingRequest.id}/info`
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to get onboarding link");

@@ -186,7 +186,15 @@ export function WhatsAppDispatchModal({
                 <div className="text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
                   <div>
                     <span className="font-semibold text-emerald-700 dark:text-emerald-400">🔑 Access Password:</span>{" "}
-                    <span className="font-bold tracking-wider select-all text-sm bg-emerald-100/60 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded border border-emerald-300/50">{currentPassword}</span>
+                    {currentPassword === "Set by Tenant (Encrypted)" ? (
+                      <span className="font-bold text-xs bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 px-2 py-0.5 rounded border border-emerald-300">
+                        Set by Tenant (Encrypted)
+                      </span>
+                    ) : (
+                      <span className="font-bold tracking-wider select-all text-sm bg-emerald-100/60 dark:bg-emerald-900/40 px-1.5 py-0.5 rounded border border-emerald-300/50">
+                        {currentPassword}
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
