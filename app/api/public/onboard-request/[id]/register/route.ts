@@ -68,9 +68,14 @@ export async function POST(
 
     const parsedData = registrationSchema.safeParse(inputFields);
     if (!parsedData.success) {
-      throw new ValidationError(
-        parsedData.error.issues[0]?.message ?? "Invalid form fields"
-      );
+      const issue = parsedData.error.issues[0];
+      const field = issue?.path?.join(".") || "Form Field";
+      const issueMsg = issue?.message;
+      const finalMsg =
+        !issueMsg || issueMsg === "Invalid input" || issueMsg === "Required"
+          ? `Invalid input provided for ${field}`
+          : issueMsg;
+      throw new ValidationError(finalMsg);
     }
     const data = parsedData.data;
 

@@ -86,7 +86,14 @@ export async function POST(
     const body = await request.json();
     const parsed = progressSchema.safeParse(body);
     if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid input");
+      const issue = parsed.error.issues[0];
+      const field = issue?.path?.join(".") || "Form Field";
+      const issueMsg = issue?.message;
+      const finalMsg =
+        !issueMsg || issueMsg === "Invalid input" || issueMsg === "Required"
+          ? `Invalid input provided for ${field}`
+          : issueMsg;
+      throw new ValidationError(finalMsg);
     }
 
     const { step, data } = parsed.data;
