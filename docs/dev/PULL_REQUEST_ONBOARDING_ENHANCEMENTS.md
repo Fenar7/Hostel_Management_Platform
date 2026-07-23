@@ -67,6 +67,13 @@ This PR addresses critical operational and security enhancements in the Stayee A
     6. `TENANT_ONBOARDED`: Payment completed & stay activated at assigned bed.
     7. `TENANT_ONBOARDING_CANCELLED`: Warden cancels onboarding request.
   - **Activity Feed UI Mappings (`ActivityFeed.tsx` & `ActivityLogPageClient.tsx`):** Updated activity feed widgets to render distinct color badges, icons, relative timestamps, and human-readable event descriptions across both Admin and Warden dashboards.
+- **Tenant Payment Verification State Machine & Dark/Zinc Fintech Redesign (`app/tenant/page.tsx`, `InitialPaymentForm.tsx`):**
+  - **Awaiting Warden Verification Screen:** Fixed state machine logic so when a tenant submits their cash or UPI payment details, the portal immediately transitions into a **`⏳ Payment Submitted & Awaiting Warden Verification`** card displaying:
+    - Glowing amber status badge (`● Verification In Progress`).
+    - Submitted payment details (Amount, Cash/UPI mode, UTR / Receipt Ref, Submission Timestamp).
+    - Explanation card letting tenant know the reception warden has received the submission.
+    - Quick actions: **`↺ Refresh Status`** and **`💬 Contact Reception`**.
+  - **Dark/Zinc Fintech Redesign:** Eradicated outdated generic blue buttons (`bg-blue-600`). Redesigned initial payment form to use dark/zinc cards (`bg-zinc-900/90 border border-zinc-800`), high-contrast dark/emerald segmented tabs, and high-impact CTA buttons (`bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold h-14 rounded-full`).
 - **Authentic WhatsApp Chat Bubble Preview & Dispatch Studio:** Completely redesigned the auto-dispatch modal to feature an authentic WhatsApp Chat Bubble preview (`bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 rounded-2xl rounded-tl-xs p-4`) showing live template message text, link styling, access key highlights, and timestamp (`Just now · WhatsApp`). Paired with a 3-way quick-copy toolbar (`Copy Message`, `Copy Link`, `Copy Key`) and an emerald brand CTA (`Send via WhatsApp ↗`).
 - **Linear Connected Step Node Track:** Replaced cluttered step pills with a sleek connected track line featuring circular step nodes `(1)` ➔ `(2)` ➔ `(3)` ➔ `(4)` ➔ `(5)`. Completed steps display glowing emerald `✓` checkmark circles with instant step-jump navigation.
 - **Contextual Top-Left Back Action:** Added a contextual top back button (`← Back to [Previous Step Name]`) enabling effortless reverse navigation without scrolling down.

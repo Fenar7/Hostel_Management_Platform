@@ -220,23 +220,109 @@ export default function TenantDashboardPage() {
     </div>
   );
 
-  if (stay.status === "APPROVED_AWAITING_PAYMENT") return (
-    <div className="max-w-lg mx-auto p-6 md:p-10 pt-12">
-      <h1 className="text-3xl font-bold mb-8">Welcome! 🎉<br/><span className="text-gray-500 text-xl font-medium">Let's settle your first invoice.</span></h1>
-      <SoftCard className="mb-6 bg-gradient-to-br from-blue-50 to-white dark:from-blue-900/10 dark:to-[#121212] border-blue-100 dark:border-blue-900/30">
-        <div className="flex justify-between items-center mb-6">
-          <span className="text-gray-500 font-medium">Total Due</span>
-          <span className="text-3xl font-bold">{formatCurrency(stay.totalPayable)}</span>
+  const pendingPayment = payments.find(p => p.paymentStatus === "PENDING" || p.paymentStatus === "SUBMITTED");
+
+  if (stay.status === "APPROVED_AWAITING_PAYMENT") {
+    if (pendingPayment) {
+      return (
+        <div className="max-w-lg mx-auto p-6 md:p-10 pt-12 min-h-screen">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full inline-block mb-2">
+                ● Verification In Progress
+              </span>
+              <h1 className="text-2xl font-bold text-black dark:text-white">Payment Submitted</h1>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-xs font-bold text-gray-500 hover:text-black dark:hover:text-white px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10"
+            >
+              Sign Out
+            </button>
+          </div>
+
+          <SoftCard className="mb-6 border-amber-500/20 bg-gradient-to-b from-amber-500/5 to-transparent relative overflow-hidden">
+            <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-100 dark:border-white/10">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-7 h-7 text-amber-500 animate-pulse" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-black dark:text-white">Awaiting Warden Verification</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  Your {pendingPayment.paymentMode === "CASH" ? "cash payment" : "UPI payment"} has been submitted to reception.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs mb-6 bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-gray-200/50 dark:border-white/5">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Amount Submitted</span>
+                <span className="text-base font-bold text-black dark:text-white">{formatCurrency(pendingPayment.amountPaid)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Payment Mode</span>
+                <span className="font-semibold text-black dark:text-white bg-white dark:bg-white/10 px-2.5 py-0.5 rounded-md border border-gray-200 dark:border-white/10">
+                  {pendingPayment.paymentMode}
+                </span>
+              </div>
+              {pendingPayment.transactionRefNo && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Reference UTR</span>
+                  <span className="font-semibold text-black dark:text-white font-mono">{pendingPayment.transactionRefNo}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Submission Date</span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{formatDate(pendingPayment.createdAt)}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
+              The warden will verify your payment receipt shortly. Once verified, your room stay will be activated and you will gain full portal access.
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => load()}
+                className="h-12 rounded-2xl bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-all"
+              >
+                ↺ Refresh Status
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  notify.info("Please reach out to the hostel reception desk or warden directly.");
+                }}
+                className="h-12 rounded-2xl bg-gray-100 dark:bg-white/10 text-black dark:text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+              >
+                💬 Contact Reception
+              </button>
+            </div>
+          </SoftCard>
         </div>
-        <div className="space-y-3 mb-6">
-          <div className="flex justify-between text-sm"><span className="text-gray-500">Rent</span><span className="font-semibold">{formatCurrency(stay.monthlyRent)}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-gray-500">Deposit</span><span className="font-semibold">{formatCurrency(stay.securityDeposit)}</span></div>
-          <div className="flex justify-between text-sm"><span className="text-gray-500">Admission</span><span className="font-semibold">{formatCurrency(stay.admissionFee)}</span></div>
-        </div>
-      </SoftCard>
-      <InitialPaymentForm hostel={hostel} paymentConfig={paymentConfig} remainingBalance={remaining} onSuccess={m => { notify.success(m); load(); }} onError={m => notify.error(m)} />
-    </div>
-  );
+      );
+    }
+
+    return (
+      <div className="max-w-lg mx-auto p-6 md:p-10 pt-12">
+        <h1 className="text-3xl font-bold mb-8 text-black dark:text-white">Welcome! 🎉<br/><span className="text-gray-500 text-xl font-medium">Let's settle your first invoice.</span></h1>
+        <SoftCard className="mb-6 bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 shadow-xl">
+          <div className="flex justify-between items-center mb-6">
+            <span className="text-gray-500 font-medium text-sm">Total Due</span>
+            <span className="text-3xl font-bold text-black dark:text-white">{formatCurrency(stay.totalPayable)}</span>
+          </div>
+          <div className="space-y-3 mb-6">
+            <div className="flex justify-between text-sm"><span className="text-gray-500">Rent</span><span className="font-semibold text-black dark:text-white">{formatCurrency(stay.monthlyRent)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-gray-500">Deposit</span><span className="font-semibold text-black dark:text-white">{formatCurrency(stay.securityDeposit)}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-gray-500">Admission</span><span className="font-semibold text-black dark:text-white">{formatCurrency(stay.admissionFee)}</span></div>
+          </div>
+        </SoftCard>
+        <InitialPaymentForm hostel={hostel} paymentConfig={paymentConfig} remainingBalance={remaining} onSuccess={m => { notify.success(m); load(); }} onError={m => notify.error(m)} />
+      </div>
+    );
+  }
 
   // ─── Main Dashboard (Consumer / Fintech Vibe) ─────────────────────────────
 
