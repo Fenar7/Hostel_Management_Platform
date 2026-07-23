@@ -304,6 +304,7 @@ function SidebarContent({
                   badge={
                     item.label === "Onboards" ? counts.pendingReviews + counts.pendingPayments :
                     item.label === "Worklists" ? counts.rentDueSoon :
+                    item.label === "Tickets" ? counts.openTickets :
                     item.label === "Notifications" ? unreadCount : 0
                   }
                 />
