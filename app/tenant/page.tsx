@@ -39,9 +39,11 @@ interface ServiceRequestItem {
   id: string; type: string; amount: number; status: string;
   createdAt: string; metadata?: any;
 }
+interface WardenDetails { name: string; phone: string | null; }
 interface ApiResponse {
   tenant: TenantDetails | null; stay: StayDetails | null;
   hostel: HostelDetails | null; bed: BedDetails | null;
+  warden?: WardenDetails | null;
   payments: PaymentItem[]; roommates: RoommateDetails[];
   nextDueDate: string | null; pendingServiceRequests?: ServiceRequestItem[];
 }
@@ -103,6 +105,7 @@ export default function TenantDashboardPage() {
   const [stay, setStay] = useState<StayDetails | null>(null);
   const [hostel, setHostel] = useState<HostelDetails | null>(null);
   const [bed, setBed] = useState<BedDetails | null>(null);
+  const [warden, setWarden] = useState<WardenDetails | null>(null);
   const [payments, setPayments] = useState<PaymentItem[]>([]);
   const [roommates, setRoommates] = useState<RoommateDetails[]>([]);
   const [nextDueDate, setNextDueDate] = useState<string | null>(null);
@@ -115,6 +118,14 @@ export default function TenantDashboardPage() {
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "payments" | "profile">("overview");
 
+  // Support Ticket Modal states at top component level
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [ticketTitle, setTicketTitle] = useState("Payment Verification Assistance");
+  const [ticketCategory, setTicketCategory] = useState("OTHER");
+  const [ticketPriority, setTicketPriority] = useState("HIGH");
+  const [ticketDesc, setTicketDesc] = useState("");
+  const [submittingTicket, setSubmittingTicket] = useState(false);
+
   const load = async () => {
     try {
       const res = await fetch("/api/tenant/stay");
@@ -124,6 +135,7 @@ export default function TenantDashboardPage() {
       setStay(data.stay);
       setHostel(data.hostel);
       setBed(data.bed);
+      setWarden(data.warden || null);
       setPayments(data.payments || []);
       setRoommates(data.roommates || []);
       setNextDueDate(data.nextDueDate || null);
@@ -222,10 +234,50 @@ export default function TenantDashboardPage() {
 
   const pendingPayment = payments.find(p => p.paymentStatus === "PENDING" || p.paymentStatus === "SUBMITTED");
 
+  const handleCreateTicketFromPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticketTitle.trim() || !ticketDesc.trim()) {
+      notify.error("Please enter a title and description");
+      return;
+    }
+    setSubmittingTicket(true);
+    try {
+      const res = await fetch("/api/tenant/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: ticketTitle,
+          category: ticketCategory,
+          priority: ticketPriority,
+          description: ticketDesc,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create support ticket");
+      }
+
+      notify.success("Support ticket created! The warden has been notified.");
+      setShowTicketModal(false);
+      setTicketDesc("");
+      load();
+    } catch (err: unknown) {
+      notify.error(err instanceof Error ? err.message : "Error creating ticket");
+    } finally {
+      setSubmittingTicket(false);
+    }
+  };
+
   if (stay.status === "APPROVED_AWAITING_PAYMENT") {
     if (pendingPayment) {
+      const waMessage = encodeURIComponent(
+        `Hi ${warden?.name || "Warden"}, I have submitted my ${pendingPayment.paymentMode === "CASH" ? "cash" : "UPI"} payment of ${formatCurrency(pendingPayment.amountPaid)} for ${hostel?.name || "my stay"}. Please verify my payment receipt.`
+      );
+      const waUrl = warden?.phone ? `https://wa.me/${warden.phone.replace(/\D/g, "")}?text=${waMessage}` : null;
+
       return (
-        <div className="max-w-lg mx-auto p-6 md:p-10 pt-12 min-h-screen">
+        <div className="max-w-lg mx-auto p-6 md:p-10 pt-12 min-h-screen relative">
           <div className="flex items-center justify-between mb-8">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full inline-block mb-2">
@@ -276,31 +328,170 @@ export default function TenantDashboardPage() {
                 <span className="text-gray-500">Submission Date</span>
                 <span className="font-medium text-gray-600 dark:text-gray-300">{formatDate(pendingPayment.createdAt)}</span>
               </div>
+              {warden && (
+                <div className="flex justify-between items-center pt-2 border-t border-gray-200/60 dark:border-white/10">
+                  <span className="text-gray-500">Hostel Warden</span>
+                  <span className="font-semibold text-black dark:text-white">
+                    {warden.name} {warden.phone ? `(${warden.phone})` : ""}
+                  </span>
+                </div>
+              )}
             </div>
 
             <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
               The warden will verify your payment receipt shortly. Once verified, your room stay will be activated and you will gain full portal access.
             </p>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => load()}
-                className="h-12 rounded-2xl bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-all"
-              >
-                ↺ Refresh Status
-              </button>
+            <div className="flex flex-col gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => load()}
+                  className="h-12 rounded-2xl bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-md"
+                >
+                  ↺ Refresh Status
+                </button>
+
+                {waUrl ? (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-12 rounded-2xl bg-emerald-600 dark:bg-emerald-500 text-white dark:text-black font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-md"
+                  >
+                    💬 Contact Warden (WhatsApp)
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (warden?.phone) {
+                        navigator.clipboard.writeText(warden.phone);
+                        notify.success(`Warden phone copied: ${warden.phone}`);
+                      } else {
+                        notify.info("Please contact the hostel reception counter directly.");
+                      }
+                    }}
+                    className="h-12 rounded-2xl bg-gray-100 dark:bg-white/10 text-black dark:text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                  >
+                    💬 Contact Reception
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
-                  notify.info("Please reach out to the hostel reception desk or warden directly.");
+                  setTicketTitle(`Payment Verification - ${formatCurrency(pendingPayment.amountPaid)}`);
+                  setTicketDesc(`Hi, I submitted my ${pendingPayment.paymentMode} payment of ${formatCurrency(pendingPayment.amountPaid)} on ${formatDate(pendingPayment.createdAt)}. Please verify my receipt.`);
+                  setShowTicketModal(true);
                 }}
-                className="h-12 rounded-2xl bg-gray-100 dark:bg-white/10 text-black dark:text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                className="h-12 rounded-2xl border-2 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs flex items-center justify-center gap-2 hover:bg-amber-500/20 transition-all"
               >
-                💬 Contact Reception
+                🎫 Create Support Ticket
               </button>
             </div>
           </SoftCard>
+
+          {/* ── Support Ticket Modal ── */}
+          {showTicketModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-[#121212] border border-gray-200 dark:border-white/10 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-white/10">
+                  <h3 className="text-base font-bold text-black dark:text-white flex items-center gap-2">
+                    🎫 Create Support Ticket
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowTicketModal(false)}
+                    className="text-gray-400 hover:text-black dark:hover:text-white text-lg font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateTicketFromPayment} className="space-y-4 text-xs">
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">
+                      Ticket Title
+                    </label>
+                    <input
+                      type="text"
+                      value={ticketTitle}
+                      onChange={(e) => setTicketTitle(e.target.value)}
+                      className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 font-semibold text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-[#58ff48]"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">
+                        Category
+                      </label>
+                      <select
+                        value={ticketCategory}
+                        onChange={(e) => setTicketCategory(e.target.value)}
+                        className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 font-semibold text-black dark:text-white focus:outline-none"
+                      >
+                        <option value="OTHER">Other / Payment</option>
+                        <option value="MAINTENANCE">Maintenance</option>
+                        <option value="PLUMBING">Plumbing</option>
+                        <option value="WIFI">WiFi & Network</option>
+                        <option value="CLEANING">Housekeeping</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">
+                        Priority
+                      </label>
+                      <select
+                        value={ticketPriority}
+                        onChange={(e) => setTicketPriority(e.target.value)}
+                        className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 font-semibold text-black dark:text-white focus:outline-none"
+                      >
+                        <option value="NORMAL">Normal</option>
+                        <option value="HIGH">High Priority</option>
+                        <option value="URGENT">Urgent</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">
+                      Message / Issue Details
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={ticketDesc}
+                      onChange={(e) => setTicketDesc(e.target.value)}
+                      placeholder="Describe your issue or payment details..."
+                      className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 p-3 text-xs text-black dark:text-white focus:outline-none focus:border-black dark:focus:border-[#58ff48]"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowTicketModal(false)}
+                      className="h-11 rounded-xl bg-gray-100 dark:bg-white/10 font-bold text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submittingTicket}
+                      className="h-11 rounded-xl bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                    >
+                      {submittingTicket ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit Ticket"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
