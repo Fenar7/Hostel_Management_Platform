@@ -112,6 +112,23 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
     password?: string;
   } | null>(null);
   const [dispatchLoading, setDispatchLoading] = useState(false);
+  const [directLinkCopied, setDirectLinkCopied] = useState(false);
+
+  const handleCopyDirectLink = async () => {
+    if (!stay?.onboardingRequest?.id) {
+      notify.error("No active onboarding request found.");
+      return;
+    }
+    const fullLink = `${window.location.origin}/onboarding?id=${stay.onboardingRequest.id}`;
+    try {
+      await navigator.clipboard.writeText(fullLink);
+      setDirectLinkCopied(true);
+      notify.success("Onboarding link copied to clipboard!");
+      setTimeout(() => setDirectLinkCopied(false), 2500);
+    } catch {
+      notify.error("Failed to copy link");
+    }
+  };
 
   // Action pending states
   const [processingApprove, setProcessingApprove] = useState(false);
@@ -427,15 +444,26 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
             </div>
           </div>
           {stay?.onboardingRequest && (
-            <Button
-              size="sm"
-              onClick={handleResendLink}
-              disabled={dispatchLoading}
-              className="border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shrink-0 self-end sm:self-center flex items-center gap-1.5 shadow-xs"
-            >
-              {dispatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-              Resend Link via WhatsApp
-            </Button>
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCopyDirectLink}
+                className="border-amber-300 bg-amber-100/50 hover:bg-amber-100 text-amber-900 font-semibold text-xs flex items-center gap-1.5"
+              >
+                {directLinkCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Clipboard className="h-3.5 w-3.5" />}
+                {directLinkCopied ? "Link Copied!" : "Copy Link"}
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleResendLink}
+                disabled={dispatchLoading}
+                className="border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs"
+              >
+                {dispatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                Resend Link via WhatsApp
+              </Button>
+            </div>
           )}
         </div>
       )}
@@ -671,18 +699,28 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
               </p>
               
               {stay?.onboardingRequest && (
-                <Button
-                  onClick={handleResendLink}
-                  disabled={dispatchLoading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-2 h-10 rounded-lg shadow-xs transition-colors"
-                >
-                  {dispatchLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                  Resend Link via WhatsApp
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button
+                    onClick={handleCopyDirectLink}
+                    variant="outline"
+                    className="w-full font-semibold flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs"
+                  >
+                    {directLinkCopied ? <Check className="h-4 w-4 text-emerald-600" /> : <Clipboard className="h-4 w-4" />}
+                    {directLinkCopied ? "Link Copied!" : "Copy Link"}
+                  </Button>
+                  <Button
+                    onClick={handleResendLink}
+                    disabled={dispatchLoading}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center justify-center gap-1.5 h-10 rounded-lg shadow-xs transition-colors text-xs"
+                  >
+                    {dispatchLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    Resend via WhatsApp
+                  </Button>
+                </div>
               )}
 
               <div className="flex gap-3 border-t pt-3">
