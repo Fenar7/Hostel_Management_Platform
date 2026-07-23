@@ -35,6 +35,19 @@ export async function GET() {
 
     const tickets = await prisma.ticket.findMany({
       where: { tenantId: user.tenant.id },
+      include: {
+        comments: {
+          include: {
+            user: {
+              select: {
+                role: true,
+                phone: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
 
