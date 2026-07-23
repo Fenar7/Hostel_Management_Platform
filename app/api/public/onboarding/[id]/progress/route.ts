@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ConflictError, ValidationError } from "@/lib/errors";
+import { ActivityEventType } from "@prisma/client";
+import { logActivity } from "@/services/activity/activity.service";
 import { progressSchema } from "@/lib/validation/onboarding";
 
 
@@ -100,6 +102,7 @@ export async function POST(
 
     const onboardingRequest = await prisma.onboardingRequest.findUnique({
       where: { id },
+      include: { hostel: { select: { organizationId: true } } },
     });
 
     if (!onboardingRequest) {
@@ -121,11 +124,25 @@ export async function POST(
     }
 
     // Preserve highest step reached
-    const nextStep = Math.max(onboardingRequest.onboardingCurrentStep, step);
+    const prevStep = onboardingRequest.onboardingCurrentStep;
+    const nextStep = Math.max(prevStep, step);
     await prisma.onboardingRequest.update({
       where: { id },
       data: { onboardingCurrentStep: nextStep },
     });
+
+    if (nextStep > prevStep) {
+      void logActivity({
+        organizationId: onboardingRequest.hostel.organizationId,
+        hostelId: onboardingRequest.hostelId,
+        eventType: ActivityEventType.TENANT_ONBOARDING_PROGRESS,
+        actorName: onboardingRequest.phone,
+        subjectName: onboardingRequest.phone,
+        subjectId: id,
+        subjectType: "OnboardingRequest",
+        targetUrl: `/warden/onboards/${id}`,
+      });
+    }
 
     // If we have tenant data to save, update the tenant record
     if (data && Object.keys(data).length > 0) {

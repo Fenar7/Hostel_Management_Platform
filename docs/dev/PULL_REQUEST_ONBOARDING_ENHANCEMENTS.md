@@ -57,7 +57,16 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Provides direct **`↻ New Key`** and **`Set Custom Key`** action buttons in the modal toolbar allowing Wardens to re-assign a new passcode or custom key (`POST .../regenerate-password`) whenever requested by the tenant, immediately enabling `Copy Key` for the new passcode.
 - **Dual-Layer Image & ID Document Compression Pipeline (`lib/image/client-compress.ts`, `lib/image/index.ts`, `register/route.ts`):**
   - **Profile Photo Optimization:** Browser canvas pre-compresses camera uploads to 1000px × 1000px (quality 0.8), while server-side `sharp` engine encodes to progressive JPEG (quality 70%–75%), shrinking file size from 5MB–8MB down to **~40 KB – 90 KB** (98%+ savings).
-  - **ID Document OCR Legibility Optimization:** Government ID scans (Aadhaar Card, Passport, PAN, Driving License) are pre-compressed in browser and optimized via `sharp` with a conservative 1600px × 1600px resolution constraint at 85% JPEG quality. This reduces raw document files from 5MB–10MB down to **~120 KB – 220 KB** while preserving 100% OCR text legibility for warden verification.
+  - **Full Lifecycle Onboarding Activity Feed Logging (`prisma/schema.prisma`, `services/activity/activity.service.ts`):**
+  - **Comprehensive Audit Trail:** Added real-time event logging across every single milestone of the onboarding funnel:
+    1. `TENANT_ONBOARDING_STARTED`: Warden generates onboarding link.
+    2. `TENANT_ONBOARDING_PROGRESS`: Prospect enters gate password or advances form steps (Step 1 ➔ 5).
+    3. `TENANT_ONBOARDING_RESET`: Prospect clears draft & restarts.
+    4. `TENANT_ONBOARDING_SUBMITTED`: Prospect submits profile & ID documents (Awaiting Warden Review).
+    5. `TENANT_PAYMENT_REQUESTED`: Warden approves registration & sends payment request.
+    6. `TENANT_ONBOARDED`: Payment completed & stay activated at assigned bed.
+    7. `TENANT_ONBOARDING_CANCELLED`: Warden cancels onboarding request.
+  - **Activity Feed UI Mappings (`ActivityFeed.tsx` & `ActivityLogPageClient.tsx`):** Updated activity feed widgets to render distinct color badges, icons, relative timestamps, and human-readable event descriptions across both Admin and Warden dashboards.
 - **Authentic WhatsApp Chat Bubble Preview & Dispatch Studio:** Completely redesigned the auto-dispatch modal to feature an authentic WhatsApp Chat Bubble preview (`bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 rounded-2xl rounded-tl-xs p-4`) showing live template message text, link styling, access key highlights, and timestamp (`Just now · WhatsApp`). Paired with a 3-way quick-copy toolbar (`Copy Message`, `Copy Link`, `Copy Key`) and an emerald brand CTA (`Send via WhatsApp ↗`).
 - **Linear Connected Step Node Track:** Replaced cluttered step pills with a sleek connected track line featuring circular step nodes `(1)` ➔ `(2)` ➔ `(3)` ➔ `(4)` ➔ `(5)`. Completed steps display glowing emerald `✓` checkmark circles with instant step-jump navigation.
 - **Contextual Top-Left Back Action:** Added a contextual top back button (`← Back to [Previous Step Name]`) enabling effortless reverse navigation without scrolling down.

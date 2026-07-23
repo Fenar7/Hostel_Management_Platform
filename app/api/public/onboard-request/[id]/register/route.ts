@@ -18,7 +18,9 @@ import {
   OccupationType,
   DocumentOwnerType,
   DocumentType,
+  ActivityEventType,
 } from "@prisma/client";
+import { logActivity } from "@/services/activity/activity.service";
 import bcrypt from "bcryptjs";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
@@ -357,6 +359,17 @@ export async function POST(
             status: OnboardingRequestStatus.COMPLETED,
           },
         });
+      });
+
+      void logActivity({
+        organizationId: onboardingRequest.hostel.organizationId,
+        hostelId: onboardingRequest.hostelId,
+        eventType: ActivityEventType.TENANT_ONBOARDING_SUBMITTED,
+        actorName: phone,
+        subjectName: data.fullName,
+        subjectId: stay.id,
+        subjectType: "Stay",
+        targetUrl: `/warden/onboards/${stay.id}`,
       });
 
       return NextResponse.json({

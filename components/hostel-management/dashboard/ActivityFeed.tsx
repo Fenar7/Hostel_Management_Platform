@@ -18,6 +18,11 @@ const EVENT_COLORS: Record<ActivityEventType, string> = {
   TENANT_PAYMENT_RECEIVED: "#18b92b", // green
   TENANT_ONBOARDED: "#285bc7", // blue
   TENANT_ONBOARDING_STARTED: "#285bc7",
+  TENANT_ONBOARDING_PROGRESS: "#3b82f6", // blue-500
+  TENANT_ONBOARDING_SUBMITTED: "#8b5cf6", // purple-500
+  TENANT_ONBOARDING_RESET: "#f59e0b", // amber-500
+  TENANT_PAYMENT_REQUESTED: "#e1a918", // amber
+  TENANT_ONBOARDING_CANCELLED: "#e23030", // red
   TICKET_RAISED: "#e23030", // red
   TICKET_STATUS_UPDATED: "#e1a918", // amber
   TICKET_COMMENT_ADDED: "#e1a918",
@@ -170,6 +175,11 @@ function formatActionType(type: ActivityEventType): string {
     case "TENANT_PAYMENT_RECEIVED": return "payment received";
     case "TENANT_ONBOARDED": return "onboarded tenant";
     case "TENANT_ONBOARDING_STARTED": return "started onboarding";
+    case "TENANT_ONBOARDING_PROGRESS": return "updated onboarding form";
+    case "TENANT_ONBOARDING_SUBMITTED": return "submitted registration (awaiting review)";
+    case "TENANT_ONBOARDING_RESET": return "restarted onboarding draft";
+    case "TENANT_PAYMENT_REQUESTED": return "payment requested";
+    case "TENANT_ONBOARDING_CANCELLED": return "cancelled onboarding";
     case "TENANT_CHECKED_OUT": return "checked out tenant";
     case "TICKET_RAISED": return "raised ticket";
     case "TICKET_STATUS_UPDATED": return "updated ticket status";

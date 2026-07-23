@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ConflictError } from "@/lib/errors";
+import { ActivityEventType } from "@prisma/client";
+import { logActivity } from "@/services/activity/activity.service";
 
 export async function POST(
   _request: NextRequest,
@@ -11,6 +13,7 @@ export async function POST(
 
     const onboardingRequest = await prisma.onboardingRequest.findUnique({
       where: { id },
+      include: { hostel: { select: { organizationId: true } } },
     });
 
     if (!onboardingRequest) {
@@ -25,6 +28,17 @@ export async function POST(
     await prisma.onboardingRequest.update({
       where: { id },
       data: { onboardingCurrentStep: 1 },
+    });
+
+    void logActivity({
+      organizationId: onboardingRequest.hostel.organizationId,
+      hostelId: onboardingRequest.hostelId,
+      eventType: ActivityEventType.TENANT_ONBOARDING_RESET,
+      actorName: onboardingRequest.phone,
+      subjectName: onboardingRequest.phone,
+      subjectId: id,
+      subjectType: "OnboardingRequest",
+      targetUrl: `/warden/onboards/${id}`,
     });
 
     // Find and reset draft tenant fields

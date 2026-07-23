@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { prisma } from "@/lib/db";
 import { handleApiError, NotFoundError, ConflictError, ValidationError } from "@/lib/errors";
-import { OnboardingRequestStatus } from "@prisma/client";
+import { OnboardingRequestStatus, ActivityEventType } from "@prisma/client";
 import { validateSchema } from "@/lib/validation/onboarding";
 import { normalizePhoneNumber } from "@/lib/whatsapp/utils";
+import { logActivity } from "@/services/activity/activity.service";
 
 export async function POST(
   request: NextRequest,
@@ -23,6 +24,7 @@ export async function POST(
 
     const onboardingRequest = await prisma.onboardingRequest.findUnique({
       where: { id },
+      include: { hostel: { select: { organizationId: true } } },
     });
 
     if (!onboardingRequest) {
@@ -30,7 +32,7 @@ export async function POST(
     }
 
     if (onboardingRequest.status !== OnboardingRequestStatus.PENDING) {
-      throw new ConflictError("This onboarding request is no longer active");
+      throw new ConflictError("This onboarding link is no longer active");
     }
 
     if (!onboardingRequest.tempPasswordHash) {
@@ -88,6 +90,17 @@ export async function POST(
         lockedUntil: null,
         onboardingCurrentStep: 1,
       },
+    });
+
+    void logActivity({
+      organizationId: onboardingRequest.hostel.organizationId,
+      hostelId: onboardingRequest.hostelId,
+      eventType: ActivityEventType.TENANT_ONBOARDING_PROGRESS,
+      actorName: onboardingRequest.phone,
+      subjectName: onboardingRequest.phone,
+      subjectId: id,
+      subjectType: "OnboardingRequest",
+      targetUrl: `/warden/onboards/${id}`,
     });
 
     return NextResponse.json({
