@@ -350,9 +350,16 @@ export default function HostelOnboardsView({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleViewPassword(item.onboardingRequest!.id, item.tenant.phone)}
+                            disabled={dispatchLoadingId === item.onboardingRequest.id}
+                            className="border-emerald-200 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            onClick={() => handleResendLink(item.onboardingRequest!.id, item.tenant.phone)}
                           >
-                            <Key className="h-4 w-4 mr-1" /> Key
+                            {dispatchLoadingId === item.onboardingRequest.id ? (
+                              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin text-emerald-600" />
+                            ) : (
+                              <Send className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                            )}
+                            Resend Link & Key
                           </Button>
                         )}
                         {item.status === "ONBOARDING_PENDING" && (

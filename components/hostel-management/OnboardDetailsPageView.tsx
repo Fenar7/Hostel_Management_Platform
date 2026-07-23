@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Check, X, CreditCard, ShieldCheck, AlertCircle, FileText, ExternalLink, MessageSquare, Clipboard, Upload, Send } from "lucide-react";
+import { Loader2, ArrowLeft, Check, X, CreditCard, ShieldCheck, AlertCircle, FileText, ExternalLink, MessageSquare, Clipboard, Upload, Send, KeyRound } from "lucide-react";
 import { applicationApprovedPaymentRequest } from "@/lib/whatsapp/templates";
 import { normalizePhoneNumber, buildWaMeLink } from "@/lib/whatsapp/utils";
 import { WhatsAppDispatchModal } from "@/components/hostel-management/WhatsAppDispatchModal";
@@ -462,8 +462,8 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
                 disabled={dispatchLoading}
                 className="border-emerald-300 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs"
               >
-                {dispatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                Resend Link via WhatsApp
+                {dispatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+                🔑 Password Key & WhatsApp
               </Button>
             </div>
           )}
@@ -691,6 +691,49 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
               </div>
             </div>
           </div>
+
+          {/* ONBOARDING ACCESS PASSCODE & KEY CONTROLS CARD */}
+          {stay?.status === "ONBOARDING_PENDING" && stay?.onboardingRequest && (
+            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-900/40 dark:bg-emerald-950/20 p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+                  <h4 className="font-bold text-sm text-emerald-950 dark:text-emerald-200">
+                    Onboarding Access Password Key
+                  </h4>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 border border-emerald-300/60">
+                  Active Security Key
+                </span>
+              </div>
+              
+              <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80 leading-relaxed">
+                Prospect uses this password key + their phone number (<span className="font-mono font-semibold">{tenant?.phone}</span>) to enter their onboarding gate. You can view, copy, generate a fresh key, or set a custom password.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <Button
+                  size="sm"
+                  onClick={handleResendLink}
+                  disabled={dispatchLoading}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-xs"
+                >
+                  {dispatchLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+                  🔑 View & Manage Key / Resend
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyDirectLink}
+                  className="bg-white dark:bg-zinc-900 text-xs font-medium flex items-center gap-1.5"
+                >
+                  {directLinkCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Clipboard className="h-3.5 w-3.5 text-zinc-500" />}
+                  {directLinkCopied ? "Link Copied!" : "Copy Link"}
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* ONBOARDING ACTION PANEL */}
           {stay?.status === "ONBOARDING_PENDING" && tenant?.id && (

@@ -286,7 +286,7 @@ export default function AdminOnboardsPage() {
                             ) : (
                               <Send className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
                             )}
-                            Resend Link
+                            Resend Link & Key
                           </Button>
                         )}
                         {item.status === "ONBOARDING_PENDING" && (
