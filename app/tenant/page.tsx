@@ -451,9 +451,10 @@ export default function TenantDashboardPage() {
                         onChange={(e) => setTicketPriority(e.target.value)}
                         className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 font-semibold text-black dark:text-white focus:outline-none"
                       >
+                        <option value="LOW">Low</option>
                         <option value="NORMAL">Normal</option>
                         <option value="HIGH">High Priority</option>
-                        <option value="URGENT">Urgent</option>
+                        <option value="CRITICAL">Urgent / Critical</option>
                       </select>
                     </div>
                   </div>
