@@ -24,11 +24,7 @@ export async function GET(
       return NextResponse.json({ step: 0, hasProgress: false });
     }
 
-    const step = onboardingRequest.onboardingCurrentStep;
-
-    if (step <= 1) {
-      return NextResponse.json({ step: 1, hasProgress: false });
-    }
+    const step = Math.max(1, onboardingRequest.onboardingCurrentStep);
 
     // Find the draft tenant via the stay linked to this onboarding request's bed
     const stay = await prisma.stay.findFirst({
@@ -42,12 +38,19 @@ export async function GET(
     });
 
     if (!stay?.tenant) {
-      return NextResponse.json({ step: 1, hasProgress: false });
+      return NextResponse.json({ step, hasProgress: false });
     }
+
+    const t = stay.tenant;
+    const hasData =
+      Boolean(t.fullName && !t.fullName.startsWith("Prospect ")) ||
+      Boolean(t.placeOfBirth) ||
+      Boolean(t.permanentAddress) ||
+      Boolean(t.emergencyContactName);
 
     return NextResponse.json({
       step,
-      hasProgress: step > 1,
+      hasProgress: hasData || step > 1,
       tenant: {
         fullName: stay.tenant.fullName,
         dateOfBirth: stay.tenant.dateOfBirth,
@@ -100,10 +103,11 @@ export async function POST(
       throw new ConflictError("This onboarding request is no longer active");
     }
 
-    // Update the step
+    // Preserve highest step reached
+    const nextStep = Math.max(onboardingRequest.onboardingCurrentStep, step);
     await prisma.onboardingRequest.update({
       where: { id },
-      data: { onboardingCurrentStep: step },
+      data: { onboardingCurrentStep: nextStep },
     });
 
     // If we have tenant data to save, update the tenant record

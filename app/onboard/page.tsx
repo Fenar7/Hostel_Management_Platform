@@ -125,6 +125,47 @@ function OnboardContent() {
     fetchRequest();
   }, [requestId]);
 
+  // Automatic background debounced auto-save hook for form inputs
+  useEffect(() => {
+    if (!requestId || loading || step <= 1) return;
+
+    const timer = setTimeout(() => {
+      const data: Record<string, unknown> = {};
+      if (fullName) data.fullName = fullName;
+      if (dateOfBirth) data.dateOfBirth = dateOfBirth;
+      if (gender) data.gender = gender;
+      if (placeOfBirth) data.placeOfBirth = placeOfBirth;
+      if (permanentAddress) data.permanentAddress = permanentAddress;
+      if (emergencyContactName) data.emergencyContactName = emergencyContactName;
+      if (relationship) data.relationship = relationship;
+      if (emergencyContactNumber) data.emergencyContactNumber = emergencyContactNumber;
+      if (parentGuardianName) data.parentGuardianName = parentGuardianName;
+      if (parentGuardianContact) data.parentGuardianContact = parentGuardianContact;
+      if (email) data.email = email;
+      if (occupationType) data.occupationType = occupationType;
+      if (collegeName) data.collegeName = collegeName;
+      if (courseOrBranch) data.courseOrBranch = courseOrBranch;
+      if (companyName) data.companyName = companyName;
+      if (designation) data.designation = designation;
+      if (purposeOfStay) data.purposeOfStay = purposeOfStay;
+
+      if (Object.keys(data).length > 0) {
+        fetch(`/api/public/onboarding/${requestId}/progress`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ step, data }),
+        }).catch(() => {});
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [
+    requestId, loading, step, fullName, dateOfBirth, gender, placeOfBirth, permanentAddress,
+    emergencyContactName, relationship, emergencyContactNumber, parentGuardianName,
+    parentGuardianContact, email, occupationType, collegeName, courseOrBranch,
+    companyName, designation, purposeOfStay
+  ]);
+
   // Clean up camera stream on unmount
   useEffect(() => {
     return () => {

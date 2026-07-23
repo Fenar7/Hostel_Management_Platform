@@ -48,14 +48,14 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Distinguishes between 3 live stages: **`Link Sent`** (link generated, tenant has not opened it), **`Filling Form`** (tenant opened link, entered password, actively filling out form), and **`Pending Review`** (tenant completed form, awaiting warden review).
 - **Null-Safe Open-Ended Stay Date Formatting:**
   - Updated `formatDate` helper across admin/warden onboarding views to render `23 Jul 2026 (Ongoing)` instead of Unix epoch fallback `01 Jan 1970` when `endDate` is `null`.
-- **Direct Copy Link Action (`OnboardDetailsPageView.tsx`):** Added a dedicated 1-click **`Copy Link`** action button alongside **`Resend Link via WhatsApp`** on the onboarding details page, enabling wardens/admins to instantly copy the direct tenant entry link (`/onboarding?id=[requestId]`).
-- **Password Regeneration & Custom Key Reset During `Filling Form` (`app/api/warden/onboarding-requests/[id]/regenerate-password` & `WhatsAppDispatchModal.tsx`):**
-  - Removed strict step guard (`onboardingCurrentStep > 0`), enabling wardens and admins to re-issue or reset access passwords for tenants at any stage while onboarding is pending (including `Filling Form`).
-  - Added support for custom password overrides (`{ customPassword: "string" }`), allowing wardens to assign memorable passwords for prospects.
-  - Added live **"🔑 Password Key Controls"** toolbar inside `<WhatsAppDispatchModal />` featuring 1-click **"↻ New Key"** generation and an inline **"Set Custom Key"** input with real-time WhatsApp message preview updating.
-- **Tenant Entry Gate Smart Phone Auto-Fill (`app/onboarding/page.tsx`):**
-  - When the tenant opens their unique onboarding link (`/onboarding?id=[requestId]`), the page automatically fetches the onboarding request metadata (`GET /api/public/onboarding/[id]`) and **pre-fills their registered phone number** with a green `✓ Auto-filled` badge.
-  - The tenant is greeted with a tailored badge showing their assigned hostel and room/bed, requiring them only to enter their Access Password to enter the onboarding gate.
+- **Real-Time Input Auto-Save & Debounced Progress Sync (`app/onboard/page.tsx` & `progress/route.ts`):**
+  - Added a 1.5-second debounced background auto-save effect on all form input fields. Even if a prospect fills half a step (e.g. Full Name, Email, Place of Birth) and closes the browser window without clicking "Next", all typed inputs immediately persist to the database.
+  - Enhanced `progress/route.ts` to update draft `Tenant` fields and preserve highest step reached (`onboardingCurrentStep = Math.max(existingStep, newStep)`).
+- **Session Token Local Storage Resumption (`app/onboarding/page.tsx`):**
+  - Saves a local session key (`stayee_session_[id]`) on gate entry. Returning to `/onboarding?id=[requestId]` automatically bypasses the password entry gate and resumes directly at the tenant's saved step with pre-filled form fields.
+- **Live Warden & Admin Real-Time Draft Visibility (`OnboardDetailsPageView.tsx` & `lib/labels.ts`):**
+  - Displays live step badges across Admin and Warden panels: e.g. **`Filling Form (Step 2/5)`** or **`Filling Form (Step 3/5)`**.
+  - Renders partial draft tenant inputs (Full Name, Place of Birth, Emergency Contact, etc.) with a **`Draft (Filling Form In Progress)`** header badge so wardens can track real-time progress before final submission.
 - **Authentic WhatsApp Chat Bubble Preview & Dispatch Studio:** Completely redesigned the auto-dispatch modal to feature an authentic WhatsApp Chat Bubble preview (`bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 rounded-2xl rounded-tl-xs p-4`) showing live template message text, link styling, access key highlights, and timestamp (`Just now · WhatsApp`). Paired with a 3-way quick-copy toolbar (`Copy Message`, `Copy Link`, `Copy Key`) and an emerald brand CTA (`Send via WhatsApp ↗`).
 - **Linear Connected Step Node Track:** Replaced cluttered step pills with a sleek connected track line featuring circular step nodes `(1)` ➔ `(2)` ➔ `(3)` ➔ `(4)` ➔ `(5)`. Completed steps display glowing emerald `✓` checkmark circles with instant step-jump navigation.
 - **Contextual Top-Left Back Action:** Added a contextual top back button (`← Back to [Previous Step Name]`) enabling effortless reverse navigation without scrolling down.

@@ -523,7 +523,14 @@ export default function OnboardDetailsPageView({ stayId, backUrl }: { stayId: st
                 </div>
               )}
               <div className="text-center sm:text-left space-y-1">
-                <h2 className="text-2xl font-bold">{tenant?.fullName}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-2xl font-bold">{tenant?.fullName}</h2>
+                  {tenant?.fullName.startsWith("Prospect ") && (
+                    <span className="text-[11px] font-semibold font-mono bg-amber-100/80 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-2 py-0.5 rounded-md border border-amber-300/60">
+                      Draft (Filling Form In Progress)
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">Phone: {tenant?.phone || stay?.id}</p>
                 {tenant?.email && <p className="text-xs text-muted-foreground">Email: {tenant.email}</p>}
                 {tenant?.plainTextPassword && (

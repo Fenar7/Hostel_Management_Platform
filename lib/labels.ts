@@ -34,8 +34,9 @@ export function getStayStatusDisplay(item: StayStatusContext): { label: string; 
     }
     const step = item.onboardingCurrentStep ?? 0;
     if (step >= 1) {
+      const stepText = step > 1 ? `Filling Form (Step ${step}/5)` : "Filling Form";
       return {
-        label: "Filling Form",
+        label: stepText,
         colorClass: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
       };
     }

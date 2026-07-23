@@ -22,6 +22,17 @@ function OnboardingEntryInner() {
 
   useEffect(() => {
     if (!requestId) return;
+    // Check if tenant already validated gate previously on this device
+    try {
+      const existingSession = localStorage.getItem(`stayee_session_${requestId}`);
+      if (existingSession === "true") {
+        router.push(`/onboard?id=${requestId}`);
+        return;
+      }
+    } catch {
+      // LocalStorage access fallback
+    }
+
     setFetchingInfo(true);
     fetch(`/api/public/onboarding/${requestId}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -44,7 +55,7 @@ function OnboardingEntryInner() {
       })
       .catch(() => {})
       .finally(() => setFetchingInfo(false));
-  }, [requestId]);
+  }, [requestId, router]);
 
   const handleValidate = async () => {
     if (!phone || !tempPassword) {
@@ -69,6 +80,12 @@ function OnboardingEntryInner() {
 
       if (!response.ok) {
         throw new Error(data.error || "Validation failed");
+      }
+
+      try {
+        if (requestId) localStorage.setItem(`stayee_session_${requestId}`, "true");
+      } catch {
+        // Storage write fallback
       }
 
       router.push(data.redirectUrl);
