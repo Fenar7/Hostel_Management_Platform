@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logActivity } from "@/services/activity/activity.service";
-import { ActivityEventType } from "@prisma/client";
+import { ActivityEventType, StayStatus } from "@prisma/client";
 import { createClient } from "@/lib/auth/server";
 import { z } from "zod";
 
@@ -57,11 +57,21 @@ export async function POST(req: Request) {
         tenant: {
           include: {
             stays: {
-              where: { status: "ACTIVE" }
-            }
-          }
-        }
-      }
+              where: {
+                status: {
+                  in: [
+                    StayStatus.ACTIVE,
+                    StayStatus.EXTENDED,
+                    StayStatus.APPROVED_AWAITING_PAYMENT,
+                    StayStatus.ONBOARDING_PENDING,
+                  ],
+                },
+              },
+              orderBy: { createdAt: "desc" },
+            },
+          },
+        },
+      },
     });
 
     if (!user || user.role !== "TENANT" || !user.tenant) {
@@ -70,7 +80,7 @@ export async function POST(req: Request) {
 
     const activeStay = user.tenant.stays[0];
     if (!activeStay) {
-      return NextResponse.json({ error: "Must have an active stay to create a ticket" }, { status: 400 });
+      return NextResponse.json({ error: "Must have a valid stay record to create a ticket" }, { status: 400 });
     }
 
     const body = await req.json();
