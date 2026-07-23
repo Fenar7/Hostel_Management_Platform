@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -9,8 +9,9 @@ import { Loader2, Shield, ArrowRight } from "lucide-react";
 function OnboardingEntryInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const passwordInputRef = useRef<HTMLInputElement>(null);
 
-  const requestId = searchParams.get("id");
+  const requestId = searchParams.get("id") || searchParams.get("reqId") || searchParams.get("onboardingId");
   const [phone, setPhone] = useState("");
   const [tempPassword, setTempPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,7 +27,17 @@ function OnboardingEntryInner() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) {
-          if (data.phone) setPhone(data.phone);
+          if (data.phone) {
+            const raw = String(data.phone).trim();
+            const digits = raw.replace(/\D/g, "");
+            const formatted = raw.startsWith("+")
+              ? raw
+              : digits.length === 10
+              ? `+91${digits}`
+              : `+${digits}`;
+            setPhone(formatted);
+            setTimeout(() => passwordInputRef.current?.focus(), 150);
+          }
           if (data.hostelName) setHostelName(data.hostelName);
           if (data.bedLabel) setBedLabel(data.bedLabel);
         }
@@ -120,6 +131,7 @@ function OnboardingEntryInner() {
               Access Password
             </label>
             <input
+              ref={passwordInputRef}
               id="password-input"
               type="password"
               placeholder="Enter the password from your warden"
