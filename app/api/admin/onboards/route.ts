@@ -69,7 +69,7 @@ export async function GET() {
           status: stay.bed.status,
         },
         onboardingRequest: matchingReq
-          ? { id: matchingReq.id, status: matchingReq.status, createdAt: matchingReq.createdAt }
+          ? { id: matchingReq.id, status: matchingReq.status, onboardingCurrentStep: matchingReq.onboardingCurrentStep, createdAt: matchingReq.createdAt }
           : null,
       };
     });

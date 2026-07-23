@@ -8,7 +8,7 @@ import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { notify } from "@/lib/toast";
 
-import { STAY_STATUS_LABELS, STAY_STATUS_COLORS } from "@/lib/labels";
+import { STAY_STATUS_LABELS, STAY_STATUS_COLORS, getStayStatusDisplay } from "@/lib/labels";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +36,7 @@ interface OnboardItem {
   id: string;
   status: string;
   joiningDate: string;
-  endDate: string;
+  endDate: string | null;
   totalPayable: number;
   hasPendingPayment?: boolean;
   hostel: { id: string; name: string };
@@ -53,7 +53,7 @@ interface OnboardItem {
     roomNumber: string;
     status: string;
   };
-  onboardingRequest: { id: string; status: string; createdAt: string } | null;
+  onboardingRequest: { id: string; status: string; onboardingCurrentStep?: number; createdAt: string } | null;
 }
 
 export default function AdminOnboardsPage() {
@@ -150,7 +150,8 @@ export default function AdminOnboardsPage() {
     );
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return "Ongoing";
     return new Date(dateStr).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -188,8 +189,11 @@ export default function AdminOnboardsPage() {
             </TableHeader>
             <TableBody>
               {items.map((item) => {
-                const label = STAY_STATUS_LABELS[item.status] || item.status;
-                const colorClass = STAY_STATUS_COLORS[item.status] || "bg-gray-100 text-gray-800";
+                const { label, colorClass } = getStayStatusDisplay({
+                  status: item.status,
+                  hasProfile: item.tenant.hasProfile,
+                  onboardingCurrentStep: item.onboardingRequest?.onboardingCurrentStep,
+                });
                 const needsPaymentVerify = item.status === "APPROVED_AWAITING_PAYMENT" && item.hasPendingPayment;
 
                 return (
@@ -229,7 +233,7 @@ export default function AdminOnboardsPage() {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">
-                        {formatDate(item.joiningDate)} to {formatDate(item.endDate)}
+                        {formatDate(item.joiningDate)} {item.endDate ? `to ${formatDate(item.endDate)}` : "(Ongoing)"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>

@@ -43,6 +43,11 @@ This PR addresses critical operational and security enhancements in the Stayee A
   - Updated date boundary check so early exit calculations for open-ended stays (`stay.endDate: null`) do not fail with upper date bound errors.
 - **Stay Extensions (`services/stays/extend.ts`):**
   - Updated overlapping stay query for open-ended stay extensions to evaluate extension start date (`stay.endDate ?? new Date()`) against active stay bounds, resolving false conflict errors against historical completed stays.
+- **3-Stage Granular Onboarding Status Tracking (`lib/labels.ts`, `app/admin/onboards/page.tsx`, `HostelOnboardsView.tsx`):**
+  - Implemented `getStayStatusDisplay` helper and updated admin/warden API payloads (`/api/admin/onboards`, `/api/warden/onboards`) to return `onboardingCurrentStep`.
+  - Distinguishes between 3 live stages: **`Link Sent`** (link generated, tenant has not opened it), **`Filling Form`** (tenant opened link, entered password, actively filling out form), and **`Pending Review`** (tenant completed form, awaiting warden review).
+- **Null-Safe Open-Ended Stay Date Formatting:**
+  - Updated `formatDate` helper across admin/warden onboarding views to render `23 Jul 2026 (Ongoing)` instead of Unix epoch fallback `01 Jan 1970` when `endDate` is `null`.
 ### D. Stripe & Linear Fintech Onboarding Studio Redesign (`components/hostel-management/HostelOnboardView.tsx`)
 - **Authentic WhatsApp Chat Bubble Preview & Dispatch Studio:** Completely redesigned the auto-dispatch modal to feature an authentic WhatsApp Chat Bubble preview (`bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 rounded-2xl rounded-tl-xs p-4`) showing live template message text, link styling, access key highlights, and timestamp (`Just now · WhatsApp`). Paired with a 3-way quick-copy toolbar (`Copy Message`, `Copy Link`, `Copy Key`) and an emerald brand CTA (`Send via WhatsApp ↗`).
 - **Linear Connected Step Node Track:** Replaced cluttered step pills with a sleek connected track line featuring circular step nodes `(1)` ➔ `(2)` ➔ `(3)` ➔ `(4)` ➔ `(5)`. Completed steps display glowing emerald `✓` checkmark circles with instant step-jump navigation.

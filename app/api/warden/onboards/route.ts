@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
           ? {
               id: matchingReq.id,
               status: matchingReq.status,
+              onboardingCurrentStep: matchingReq.onboardingCurrentStep,
               createdAt: matchingReq.createdAt,
             }
           : null,

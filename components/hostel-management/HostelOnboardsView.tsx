@@ -8,7 +8,7 @@ import { TableSkeleton } from "@/components/shared/TableSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { notify } from "@/lib/toast";
 import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
-import { STAY_STATUS_LABELS, STAY_STATUS_COLORS } from "@/lib/labels";
+import { STAY_STATUS_LABELS, STAY_STATUS_COLORS, getStayStatusDisplay } from "@/lib/labels";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +36,7 @@ interface OnboardItem {
   id: string;
   status: string;
   joiningDate: string;
-  endDate: string;
+  endDate: string | null;
   totalPayable: number;
   hasPendingPayment?: boolean;
   tenant: {
@@ -54,6 +54,7 @@ interface OnboardItem {
   onboardingRequest?: {
     id: string;
     status: string;
+    onboardingCurrentStep?: number;
     createdAt: string;
   } | null;
 }
@@ -169,7 +170,8 @@ export default function HostelOnboardsView({
     );
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return "Ongoing";
     return new Date(dateStr).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -211,8 +213,11 @@ export default function HostelOnboardsView({
             </TableHeader>
           <TableBody>
             {items.map((item) => {
-              const label = STAY_STATUS_LABELS[item.status] || item.status;
-              const colorClass = STAY_STATUS_COLORS[item.status] || "bg-gray-100 text-gray-800";
+              const { label, colorClass } = getStayStatusDisplay({
+                status: item.status,
+                hasProfile: item.tenant.hasProfile,
+                onboardingCurrentStep: item.onboardingRequest?.onboardingCurrentStep,
+              });
               const needsPaymentVerify = item.status === "APPROVED_AWAITING_PAYMENT" && item.hasPendingPayment;
 
               return (
@@ -251,7 +256,7 @@ export default function HostelOnboardsView({
                   </TableCell>
                   <TableCell>
                     <span className="text-sm">
-                      {formatDate(item.joiningDate)} - {formatDate(item.endDate)}
+                      {formatDate(item.joiningDate)} {item.endDate ? `- ${formatDate(item.endDate)}` : "(Ongoing)"}
                     </span>
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
