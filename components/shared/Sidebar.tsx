@@ -69,7 +69,7 @@ const NAV_CONFIG: Record<Role, NavGroup[]> = {
     {
       items: [
         { label: "Food Dashboard", href: "/warden/food", icon: Utensils },
-        { label: "Occupancy", href: "/warden/occupancy", icon: Map },
+        { label: "Occupancy", href: "/admin/occupancy", icon: Map },
         { label: "Worklists", href: "/warden/worklists", icon: List },
       ],
     },
