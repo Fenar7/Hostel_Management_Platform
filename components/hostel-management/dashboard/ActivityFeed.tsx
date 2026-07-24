@@ -43,6 +43,31 @@ const EVENT_COLORS: Record<ActivityEventType, string> = {
   SERVICE_REQUEST_RESOLVED: "#18b92b",
 };
 
+function resolveActivityTargetUrl(url: string | null | undefined, role: "MAIN_ADMIN" | "WARDEN"): string | null {
+  if (!url) return null;
+  let target = url.trim();
+
+  if (role === "MAIN_ADMIN") {
+    if (target.startsWith("/warden/complaints")) {
+      target = target.replace("/warden/complaints", "/admin/tickets");
+    } else if (target.startsWith("/warden/tickets")) {
+      target = target.replace("/warden/tickets", "/admin/tickets");
+    } else if (target.startsWith("/warden/onboards")) {
+      target = target.replace("/warden/onboards", "/admin/onboards");
+    } else if (target.startsWith("/warden/onboard")) {
+      target = target.replace("/warden/onboard", "/admin/onboards");
+    } else if (target.startsWith("/warden/stays")) {
+      target = target.replace("/warden/stays", "/admin/occupancy");
+    }
+  } else {
+    if (target.startsWith("/warden/complaints")) {
+      target = target.replace("/warden/complaints", "/warden/tickets");
+    }
+  }
+
+  return target;
+}
+
 function formatActivityHeader(item: ActivityLog): { text: string; color: string; badge?: string; badgeColor?: string } {
   const meta: any = item.metadata || {};
   const newStatus = meta.newStatus || meta.status;
@@ -290,11 +315,12 @@ export function ActivityFeed({ role, hostelId, organizationId }: ActivityFeedWid
           <div className="flex flex-col divide-y divide-[#f2f2f2] dark:divide-zinc-800 absolute inset-0 overflow-y-auto pr-2 custom-scrollbar">
             {filteredItems.map((item) => {
               const headerInfo = formatActivityHeader(item);
+              const resolvedUrl = resolveActivityTargetUrl(item.targetUrl, role);
               return (
                 <div 
                   key={item.id} 
                   className="py-3.5 first:pt-0 flex flex-col gap-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors -mx-2 px-2 rounded-[4px]"
-                  onClick={() => item.targetUrl && router.push(item.targetUrl)}
+                  onClick={() => resolvedUrl && router.push(resolvedUrl)}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <h4 

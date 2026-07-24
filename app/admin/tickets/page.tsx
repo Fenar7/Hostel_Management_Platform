@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, ChevronDown } from "lucide-react";
 import { notify } from "@/lib/toast";
 import { TicketDetailsSheet } from "@/components/tickets/TicketDetailsSheet";
 
 export default function AdminTicketsPage() {
+  const searchParams = useSearchParams();
+  const urlTicketId = searchParams.get("ticketId");
+
   const [tickets, setTickets] = useState<any[]>([]);
   const [hostels, setHostels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +28,16 @@ export default function AdminTicketsPage() {
   useEffect(() => {
     fetchTickets();
   }, [filter, hostelFilter]);
+
+  useEffect(() => {
+    if (urlTicketId && tickets.length > 0) {
+      const matched = tickets.find((t) => t.id === urlTicketId);
+      if (matched) {
+        setSelectedTicket(matched);
+        setSheetOpen(true);
+      }
+    }
+  }, [urlTicketId, tickets]);
 
   const fetchHostels = async () => {
     try {

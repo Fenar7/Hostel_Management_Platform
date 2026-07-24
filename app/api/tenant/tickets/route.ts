@@ -153,7 +153,7 @@ export async function POST(req: Request) {
       subjectName: parsed.data.title,
       subjectId: ticket.id,
       subjectType: "Ticket",
-      targetUrl: `/warden/complaints?ticketId=${ticket.id}`,
+      targetUrl: `/warden/tickets?ticketId=${ticket.id}`,
     });
 
     return NextResponse.json(ticket, { status: 201 });

@@ -141,7 +141,7 @@ export async function PATCH(req: Request) {
         oldStatus: existingTicket.status,
         newStatus: ticket.status,
       },
-      targetUrl: `/warden/tickets`,
+      targetUrl: `/warden/tickets?ticketId=${ticket.id}`,
     });
 
     return NextResponse.json(ticket);
