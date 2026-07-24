@@ -43,6 +43,31 @@ const EVENT_COLORS: Record<ActivityEventType, string> = {
   SERVICE_REQUEST_RESOLVED: "#18b92b",
 };
 
+function resolveActivityTargetUrl(url: string | null | undefined, role: "MAIN_ADMIN" | "WARDEN"): string | null {
+  if (!url) return null;
+  let target = url.trim();
+
+  if (role === "MAIN_ADMIN") {
+    if (target.startsWith("/warden/complaints")) {
+      target = target.replace("/warden/complaints", "/admin/tickets");
+    } else if (target.startsWith("/warden/tickets")) {
+      target = target.replace("/warden/tickets", "/admin/tickets");
+    } else if (target.startsWith("/warden/onboards")) {
+      target = target.replace("/warden/onboards", "/admin/onboards");
+    } else if (target.startsWith("/warden/onboard")) {
+      target = target.replace("/warden/onboard", "/admin/onboards");
+    } else if (target.startsWith("/warden/stays")) {
+      target = target.replace("/warden/stays", "/admin/occupancy");
+    }
+  } else {
+    if (target.startsWith("/warden/complaints")) {
+      target = target.replace("/warden/complaints", "/warden/tickets");
+    }
+  }
+
+  return target;
+}
+
 function formatActivityHeader(item: ActivityLog): { text: string; color: string; badge?: string; badgeColor?: string } {
   const meta: any = item.metadata || {};
   const newStatus = meta.newStatus || meta.status;
@@ -352,29 +377,4 @@ function formatActionType(type: ActivityEventType): string {
     case "FOOD_ORDER_UPDATED": return "updated food order";
     default: return type.replace(/_/g, " ").toLowerCase();
   }
-}
-
-function resolveActivityTargetUrl(url: string | null | undefined, role: "MAIN_ADMIN" | "WARDEN"): string | null {
-  if (!url) return null;
-  let target = url.trim();
-
-  if (role === "MAIN_ADMIN") {
-    if (target.startsWith("/warden/complaints")) {
-      target = target.replace("/warden/complaints", "/admin/tickets");
-    } else if (target.startsWith("/warden/tickets")) {
-      target = target.replace("/warden/tickets", "/admin/tickets");
-    } else if (target.startsWith("/warden/onboards")) {
-      target = target.replace("/warden/onboards", "/admin/onboards");
-    } else if (target.startsWith("/warden/onboard")) {
-      target = target.replace("/warden/onboard", "/admin/onboards");
-    } else if (target.startsWith("/warden/stays")) {
-      target = target.replace("/warden/stays", "/admin/occupancy");
-    }
-  } else {
-    if (target.startsWith("/warden/complaints")) {
-      target = target.replace("/warden/complaints", "/warden/tickets");
-    }
-  }
-
-  return target;
 }
