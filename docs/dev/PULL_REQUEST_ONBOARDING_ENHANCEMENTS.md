@@ -99,6 +99,9 @@ This PR addresses critical operational and security enhancements in the Stayee A
     - **Available Bed (`AVAILABLE`):** 1-Click `Onboard Tenant to Bed` and `Mark Bed as Maintenance`.
     - **On Hold / Reserved Bed (`ON_HOLD`):** Renders pending onboarding request info and `Release Lock & Mark Available` action.
     - **Maintenance Bed (`IN_MAINTENANCE`):** 1-Click `Unblock & Mark Available`.
+  - **CTO Security & Architecture Audit Resolutions:**
+    - **IDOR / Tenant Isolation Boundary Fix (`lib/auth/resolve-hostel.ts`):** Enforced strict organization ownership validation (`where: { id: hostelId, organizationId: user.organizationId }`) when `MAIN_ADMIN` passes custom `hostelId` parameters, preventing cross-organization data queries.
+    - **AWS S3 Signed PDF Preview Fix (`StayDetailsPageView.tsx`):** Stripped search query parameters (`url.split("?")[0]`) prior to checking file extensions, preventing AWS S3 `X-Amz-Signature` parameters from misidentifying signed PDFs as images and rendering broken `<img>` tags.
   - **Tenant Verification Document Access & Inline Modal Preview:**
     - **Server Pre-signing:** Updated `AdminStayDetailsPage`, `AdminStayDetailsFallbackPage`, and `WardenStayDetailsPage` to pass document storage paths through `getSignedUrl(doc.storagePath)`, resolving AWS S3 private object keys into temporary signed URLs.
     - **Inline Document Preview Modal:** Upgraded `StayDetailsPageView.tsx` to handle document URLs safely and added an interactive inline **Document Preview Modal** with image zoom, iframe PDF preview, and an "Open in New Tab" CTA.

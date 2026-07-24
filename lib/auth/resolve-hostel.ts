@@ -50,14 +50,17 @@ export async function resolveHostelId(
       throw new ValidationError("Hostel parameter is required for Admin");
     }
 
-    // Validate the hostel exists
-    const hostel = await prisma.hostel.findUnique({
-      where: { id: hostelId },
+    // Validate the hostel exists and belongs to the admin's organization
+    const hostel = await prisma.hostel.findFirst({
+      where: {
+        id: hostelId,
+        organizationId: user.organizationId,
+      },
       select: { id: true },
     });
 
     if (!hostel) {
-      throw new ValidationError("Hostel not found");
+      throw new ValidationError("Hostel not found or access denied");
     }
 
     console.info(`[Audit] Main Admin ${user.id} accessing hostel ${hostelId} as warden`);

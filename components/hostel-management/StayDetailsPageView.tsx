@@ -381,19 +381,23 @@ export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay
 
             {/* Document Viewer Body */}
             <div className="flex-1 min-h-[350px] max-h-[65vh] bg-gray-950 rounded-xl overflow-hidden flex items-center justify-center relative p-2">
-              {previewDoc.url.match(/\.(jpeg|jpg|png|webp|gif|svg)(\?.*)?$/i) || previewDoc.url.includes("X-Amz-Signature") ? (
-                <img
-                  src={previewDoc.url}
-                  alt={previewDoc.title}
-                  className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg"
-                />
-              ) : (
-                <iframe
-                  src={previewDoc.url}
-                  className="w-full h-[60vh] border-0 rounded-lg"
-                  title={previewDoc.title}
-                />
-              )}
+              {(() => {
+                const cleanUrl = previewDoc.url.split("?")[0].toLowerCase();
+                const isImage = /\.(jpeg|jpg|png|webp|gif|svg)$/i.test(cleanUrl);
+                return isImage ? (
+                  <img
+                    src={previewDoc.url}
+                    alt={previewDoc.title}
+                    className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg"
+                  />
+                ) : (
+                  <iframe
+                    src={previewDoc.url}
+                    className="w-full h-[60vh] border-0 rounded-lg bg-white"
+                    title={previewDoc.title}
+                  />
+                );
+              })()}
             </div>
           </div>
         </div>
