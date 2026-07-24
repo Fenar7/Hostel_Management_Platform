@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getSignedUrl } from "@/lib/storage";
 import { UserRole } from "@prisma/client";
 import { notFound } from "next/navigation";
 import StayDetailsPageView from "@/components/hostel-management/StayDetailsPageView";
@@ -43,6 +44,29 @@ export default async function AdminStayDetailsFallbackPage({
     notFound();
   }
 
+  // Pre-sign document URLs for AWS S3 / private storage
+  if (stay.tenant?.documents) {
+    const signedDocs = await Promise.all(
+      stay.tenant.documents.map(async (doc) => {
+        let signedUrl = doc.storagePath;
+        if (
+          doc.storagePath &&
+          !doc.storagePath.startsWith("http://") &&
+          !doc.storagePath.startsWith("https://") &&
+          !doc.storagePath.startsWith("data:")
+        ) {
+          try {
+            signedUrl = await getSignedUrl(doc.storagePath);
+          } catch {
+            signedUrl = `/${doc.storagePath}`;
+          }
+        }
+        return { ...doc, storagePath: signedUrl, signedUrl };
+      })
+    );
+    (stay.tenant as any).documents = signedDocs;
+  }
+
   return (
     <StayDetailsPageView
       stay={stay as any}
@@ -50,3 +74,4 @@ export default async function AdminStayDetailsFallbackPage({
     />
   );
 }
+
