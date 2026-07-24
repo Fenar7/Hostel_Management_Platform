@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HostelWorkspaceLayout } from "./HostelWorkspaceLayout";
+import HostelSelectorDropdown from "./HostelSelectorDropdown";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 type Bed = {
@@ -263,21 +264,11 @@ export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }:
     <div className="flex items-center gap-3 flex-wrap">
       {/* Multi-Hostel Selector for Admin */}
       {baseRoute === "/admin" && hostelsList.length > 0 && (
-        <div className="flex items-center gap-2 bg-gray-100 dark:bg-zinc-800/80 px-3 py-1.5 rounded-[6px] border border-gray-200 dark:border-white/10">
-          <Building2 className="size-4 text-gray-600 dark:text-gray-400" />
-          <span className="text-xs font-bold text-gray-500 uppercase">Hostel:</span>
-          <select
-            value={hostelId}
-            onChange={(e) => router.push(`${baseRoute}/occupancy?hostelId=${e.target.value}`)}
-            className="bg-transparent text-xs font-bold text-black dark:text-white outline-none cursor-pointer pr-1"
-          >
-            {hostelsList.map((h) => (
-              <option key={h.id} value={h.id} className="bg-white dark:bg-zinc-900 text-black dark:text-white">
-                {h.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <HostelSelectorDropdown
+          hostels={hostelsList}
+          selectedHostelId={hostelId}
+          onSelectHostel={(id) => router.push(`${baseRoute}/occupancy?hostelId=${id}`)}
+        />
       )}
 
       <button className="flex items-center justify-center gap-2 h-10 px-4 rounded-[6px] border border-[#dedede] dark:border-white/10 bg-white dark:bg-[#1a1a1a] text-black dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all font-semibold text-[13px] whitespace-nowrap">
