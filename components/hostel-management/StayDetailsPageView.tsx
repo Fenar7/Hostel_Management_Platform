@@ -1,15 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { 
   User, ArrowLeft, Download, FileText, MapPin, 
   Phone, Mail, Building, Briefcase, Calendar, 
   Layers, ShieldCheck, Utensils, CreditCard, Clock, Activity,
-  CheckCircle2, IndianRupee
+  CheckCircle2, IndianRupee, ExternalLink, X
 } from "lucide-react";
 import Link from "next/link";
 import { paiseToRupees } from "@/lib/money";
+import { notify } from "@/lib/toast";
 import { ResetPasswordButton } from "@/components/admin/ResetPasswordButton";
 import { ServiceRequestModal } from "./ServiceRequestModal";
 import { RevokeFoodModal } from "./RevokeFoodModal";
@@ -57,9 +59,31 @@ const SectionHeader = ({ title, icon: Icon }: { title: string, icon: any }) => (
 );
 
 export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay: StayData; baseRoute: string; backUrl?: string }) {
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string } | null>(null);
+
   const t = stay.tenant;
   const docs = t.documents || [];
-  const idDoc = docs.find((d: any) => ["AADHAAR", "PASSPORT_PHOTO", "PAN"].includes(d.documentType));
+  const idDoc = docs.find((d: any) => d.documentType !== "PROFILE_PHOTO") || docs[0];
+
+  const handleOpenDocument = (doc?: any) => {
+    if (!doc) {
+      notify.error("Document is unavailable or not uploaded");
+      return;
+    }
+    const rawUrl = doc.signedUrl || doc.storagePath;
+    if (!rawUrl) {
+      notify.error("Document storage path is missing");
+      return;
+    }
+
+    const isHttp = rawUrl.startsWith("http://") || rawUrl.startsWith("https://") || rawUrl.startsWith("data:");
+    const targetUrl = isHttp ? rawUrl : rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+
+    setPreviewDoc({
+      url: targetUrl,
+      title: doc.documentType || "Verification Document",
+    });
+  };
   
   const totalPaid = stay.payments.filter((p: any) => p.paymentStatus === "PAID").reduce((sum: number, p: any) => sum + paiseToRupees(p.amountPaidPaise), 0);
   const totalPayable = paiseToRupees(stay.totalPayablePaise);
@@ -211,7 +235,7 @@ export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay
               <SectionHeader title="Stay & Amenities" icon={Building} />
               <div className="p-6 space-y-3">
                 <DataRow label="Start Date" value={format(new Date(stay.joiningDate), "PP")} />
-                <DataRow label="End Date" value={format(new Date(stay.endDate), "PP")} />
+                <DataRow label="End Date" value={stay.endDate ? format(new Date(stay.endDate), "PP") : "Open-ended stay"} />
                 <DataRow icon={Utensils} label="Food Plan" value={stay.foodPlan.replace("_", " ")} />
                 
                 <div className="pt-4 mt-4 border-t border-[#dedede] dark:border-white/10 flex gap-3">
@@ -240,7 +264,7 @@ export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay
                          <p className="text-[11px] font-bold text-[#767676] dark:text-[#a0a0a0] uppercase tracking-wider mt-0.5">Verified</p>
                        </div>
                      </div>
-                     <button className="premium-button-outline text-[12px] h-8 px-3" onClick={() => window.open(idDoc.storagePath, "_blank")}>
+                     <button className="premium-button-outline text-[12px] h-8 px-3" onClick={() => handleOpenDocument(idDoc)}>
                        <Download className="size-3.5 mr-1.5 inline-block" /> View Document
                      </button>
                   </div>
@@ -326,6 +350,58 @@ export default function StayDetailsPageView({ stay, baseRoute, backUrl }: { stay
           </div>
         </div>
       </div>
+
+      {/* ── Document Preview Modal ── */}
+      {previewDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-2xl max-w-3xl w-full p-6 shadow-2xl relative flex flex-col gap-4 max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="size-5 text-emerald-500" />
+                <h3 className="text-base font-bold text-black dark:text-white">{previewDoc.title}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewDoc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-white/10 text-xs font-bold text-black dark:text-white flex items-center gap-1.5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  <ExternalLink className="size-3.5" /> Open in New Tab
+                </a>
+                <button
+                  onClick={() => setPreviewDoc(null)}
+                  className="p-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Document Viewer Body */}
+            <div className="flex-1 min-h-[350px] max-h-[65vh] bg-gray-950 rounded-xl overflow-hidden flex items-center justify-center relative p-2">
+              {(() => {
+                const cleanUrl = previewDoc.url.split("?")[0].toLowerCase();
+                const isImage = /\.(jpeg|jpg|png|webp|gif|svg)$/i.test(cleanUrl);
+                return isImage ? (
+                  <img
+                    src={previewDoc.url}
+                    alt={previewDoc.title}
+                    className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-lg"
+                  />
+                ) : (
+                  <iframe
+                    src={previewDoc.url}
+                    className="w-full h-[60vh] border-0 rounded-lg bg-white"
+                    title={previewDoc.title}
+                  />
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
