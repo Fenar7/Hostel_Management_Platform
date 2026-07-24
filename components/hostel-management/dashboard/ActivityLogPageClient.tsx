@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { ActivityEventType, ActivityLog } from "@prisma/client";
 import { createClient } from "@/lib/auth/client";
 import { createActivityChannel } from "@/lib/realtime/activity-channel";
@@ -124,6 +125,7 @@ function formatActivityHeader(item: ActivityLog): { text: string; color: string;
 }
 
 export function ActivityLogPageClient({ role, organizationId, hostelId: initialHostelId, showStandaloneHeader = true }: ActivityLogPageClientProps) {
+  const router = useRouter();
   const [items, setItems] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchingMore, setFetchingMore] = useState(false);
@@ -316,10 +318,12 @@ export function ActivityLogPageClient({ role, organizationId, hostelId: initialH
           <div className="flex flex-col divide-y divide-[#dedede] dark:divide-white/10">
             {items.map((item, index) => {
               const headerInfo = formatActivityHeader(item);
+              const resolvedUrl = resolveActivityTargetUrl(item.targetUrl, role);
               return (
                 <div 
                   key={item.id} 
-                  className="p-5 px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors group"
+                  className="p-5 px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors group cursor-pointer"
+                  onClick={() => resolvedUrl && router.push(resolvedUrl)}
                 >
                   <div className="flex gap-4 items-center w-full sm:w-auto">
                     <div 
@@ -374,4 +378,29 @@ export function ActivityLogPageClient({ role, organizationId, hostelId: initialH
       </div>
     </div>
   );
+}
+
+function resolveActivityTargetUrl(url: string | null | undefined, role: "MAIN_ADMIN" | "WARDEN"): string | null {
+  if (!url) return null;
+  let target = url.trim();
+
+  if (role === "MAIN_ADMIN") {
+    if (target.startsWith("/warden/complaints")) {
+      target = target.replace("/warden/complaints", "/admin/tickets");
+    } else if (target.startsWith("/warden/tickets")) {
+      target = target.replace("/warden/tickets", "/admin/tickets");
+    } else if (target.startsWith("/warden/onboards")) {
+      target = target.replace("/warden/onboards", "/admin/onboards");
+    } else if (target.startsWith("/warden/onboard")) {
+      target = target.replace("/warden/onboard", "/admin/onboards");
+    } else if (target.startsWith("/warden/stays")) {
+      target = target.replace("/warden/stays", "/admin/occupancy");
+    }
+  } else {
+    if (target.startsWith("/warden/complaints")) {
+      target = target.replace("/warden/complaints", "/warden/tickets");
+    }
+  }
+
+  return target;
 }
