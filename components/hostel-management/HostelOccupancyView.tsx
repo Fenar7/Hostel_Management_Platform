@@ -697,7 +697,13 @@ export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }:
                     onClick={() => {
                       const stayId = selectedBed.bed.currentStay?.id;
                       setSelectedBed(null);
-                      if (stayId) router.push(`${baseRoute}/stays/${stayId}`);
+                      if (stayId) {
+                        const targetUrl =
+                          baseRoute === "/admin"
+                            ? `/admin/hostels/${hostelId}/stays/${stayId}`
+                            : `/warden/stays/${stayId}`;
+                        router.push(targetUrl);
+                      }
                     }}
                     className="w-full h-11 bg-black dark:bg-[#58ff48] text-white dark:text-black font-bold text-sm rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                   >
@@ -723,7 +729,11 @@ export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }:
                   onClick={() => {
                     const bedId = selectedBed.bed.id;
                     setSelectedBed(null);
-                    router.push(`${baseRoute}/onboard?hostelId=${hostelId}&bedId=${bedId}`);
+                    const onboardUrl =
+                      baseRoute === "/admin"
+                        ? `/admin/onboards?hostelId=${hostelId}&bedId=${bedId}`
+                        : `/warden/onboard?hostelId=${hostelId}&bedId=${bedId}`;
+                    router.push(onboardUrl);
                   }}
                   className="w-full h-11 bg-[#18b92b] text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                 >
