@@ -114,8 +114,9 @@ export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }:
   // Multi-Hostel Selector state for Admins
   const [hostelsList, setHostelsList] = useState<HostelOption[]>([]);
   
-  // Interactive Bed Drawer state
+  // Interactive Bed Drawer & Room Hover state
   const [selectedBed, setSelectedBed] = useState<{ bed: Bed; room: Room; floor: Floor } | null>(null);
+  const [hoveredRoomId, setHoveredRoomId] = useState<string | null>(null);
   const [updatingBed, setUpdatingBed] = useState(false);
 
   const router = useRouter();
@@ -427,11 +428,99 @@ export default function HostelOccupancyView({ hostelId, hostelName, baseRoute }:
 
                     const hasColumns = lbs.length > 0 || ubs.length > 0;
 
+                    const occupiedCount = room.beds.filter((b) => (b.derivedStatus || b.status) === "OCCUPIED").length;
+                    const totalBeds = room.beds.length;
+                    const isFullyOccupied = occupiedCount === totalBeds && totalBeds > 0;
+
                     return (
                       <div
                         key={room.id}
-                        className="w-[165px] rounded-[12px] border border-[#e5e7eb] dark:border-white/10 bg-white dark:bg-zinc-900 p-4 flex flex-col items-center hover:border-gray-300 dark:hover:border-white/20 transition-all shadow-xs"
+                        onMouseEnter={() => setHoveredRoomId(room.id)}
+                        onMouseLeave={() => setHoveredRoomId(null)}
+                        className="relative group w-[165px] rounded-[12px] border border-[#e5e7eb] dark:border-white/10 bg-white dark:bg-zinc-900 p-4 flex flex-col items-center hover:border-gray-400 dark:hover:border-white/30 hover:shadow-md transition-all duration-200"
                       >
+                        {/* ── Room Hover Popover Card ── */}
+                        {hoveredRoomId === room.id && (
+                          <div className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-64 p-3.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 shadow-2xl rounded-2xl z-50 animate-in fade-in-0 zoom-in-95 duration-150 pointer-events-none flex flex-col gap-2.5 text-left">
+                            {/* Down Arrow Pointer */}
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-6 border-transparent border-t-white dark:border-t-zinc-900 drop-shadow-xs" />
+
+                            {/* Header & Occupancy Pill */}
+                            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-white/10">
+                              <div>
+                                <h4 className="text-xs font-bold text-black dark:text-white">
+                                  Room {room.roomNumber}
+                                </h4>
+                                <p className="text-[10px] font-semibold text-gray-500">
+                                  {floor.name} · {formatSharing(room.sharingType, room.isPrivate)}
+                                </p>
+                              </div>
+
+                              <span
+                                className={cn(
+                                  "text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                  isFullyOccupied
+                                    ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800"
+                                    : occupiedCount > 0
+                                    ? "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+                                    : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                                )}
+                              >
+                                {occupiedCount}/{totalBeds} Occupied
+                              </span>
+                            </div>
+
+                            {/* Ratio Bar */}
+                            <div className="h-1.5 w-full bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden flex">
+                              <div
+                                style={{ width: `${(occupiedCount / (totalBeds || 1)) * 100}%` }}
+                                className={cn(
+                                  "h-full transition-all duration-300",
+                                  isFullyOccupied ? "bg-red-500" : "bg-emerald-500"
+                                )}
+                              />
+                            </div>
+
+                            {/* Beds & Resident Breakdown */}
+                            <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto pt-0.5">
+                              {room.beds.map((b) => {
+                                const st = b.derivedStatus || b.status;
+                                return (
+                                  <div
+                                    key={b.id}
+                                    className="flex items-center justify-between text-[11px] font-semibold p-1.5 rounded-lg bg-gray-50 dark:bg-zinc-800/60"
+                                  >
+                                    <div className="flex items-center gap-2 truncate">
+                                      <div
+                                        className={cn(
+                                          "w-2 h-2 rounded-full shrink-0",
+                                          st === "OCCUPIED"
+                                            ? "bg-red-500"
+                                            : st === "AVAILABLE"
+                                            ? "bg-emerald-500"
+                                            : st === "ON_HOLD"
+                                            ? "bg-amber-500"
+                                            : "bg-gray-400"
+                                        )}
+                                      />
+                                      <span className="font-bold text-gray-800 dark:text-gray-200">
+                                        Bed {b.label}:
+                                      </span>
+                                      <span className="truncate text-gray-600 dark:text-gray-400">
+                                        {b.currentStay ? b.currentStay.tenant.fullName : st}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            <p className="text-[9px] font-medium text-gray-400 text-center italic pt-1 border-t border-gray-100 dark:border-white/5">
+                              Click any bed to view profile or actions
+                            </p>
+                          </div>
+                        )}
+
                         {/* Room Header */}
                         <div className="flex items-center justify-center gap-1.5 mb-1 w-full">
                           <span className="text-[15px] font-bold text-[#1a1a1a] dark:text-white">
