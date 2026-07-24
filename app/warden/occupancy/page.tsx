@@ -11,7 +11,7 @@ export default async function WardenOccupancyPage({
   searchParams: Promise<{ hostelId?: string }>;
 }) {
   const { hostelId: queryHostelId } = await searchParams;
-  const { user } = await requireRole([UserRole.WARDEN]);
+  const { user } = await requireRole([UserRole.WARDEN, UserRole.MAIN_ADMIN]);
 
   let hostelId: string | null = null;
   if (user.role === UserRole.MAIN_ADMIN) {

@@ -5,20 +5,21 @@ import { UserRole } from "@prisma/client";
 import { notFound } from "next/navigation";
 import StayDetailsPageView from "@/components/hostel-management/StayDetailsPageView";
 
-export default async function WardenStayDetailsPage({
+export const dynamic = "force-dynamic";
+
+export default async function AdminStayDetailsFallbackPage({
   params,
 }: {
   params: Promise<{ stayId: string }>;
 }) {
-  const { user } = await requireRole([UserRole.WARDEN]);
+  const { user } = await requireRole([UserRole.MAIN_ADMIN]);
   const { stayId } = await params;
 
-  if (!user.warden) {
-    notFound();
-  }
-
-  const stay = await prisma.stay.findUnique({
-    where: { id: stayId, hostelId: user.warden.hostelId },
+  const stay = await prisma.stay.findFirst({
+    where: {
+      id: stayId,
+      hostel: { organizationId: user.organizationId },
+    },
     include: {
       hostel: true,
       tenant: {
@@ -66,6 +67,11 @@ export default async function WardenStayDetailsPage({
     (stay.tenant as any).documents = signedDocs;
   }
 
-  return <StayDetailsPageView stay={stay} baseRoute="/warden" />;
+  return (
+    <StayDetailsPageView
+      stay={stay as any}
+      baseRoute={`/admin/hostels/${stay.hostelId}`}
+    />
+  );
 }
 
